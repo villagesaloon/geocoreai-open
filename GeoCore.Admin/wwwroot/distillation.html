@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒸馏配置管理 - GCore Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn.active { background: #6366f1; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Admin 侧边栏 -->
+    <aside class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50">
+        <div class="p-6 border-b border-gray-100">
+            <a href="dashboard.html" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-cog text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-900">GCore Admin</h1>
+                    <p class="text-xs text-gray-500">后台管理系统</p>
+                </div>
+            </a>
+        </div>
+        <nav class="p-3 space-y-0.5 text-sm">
+            <p class="text-xs text-gray-400 uppercase tracking-wider mt-4 mb-2 px-3">概览</p>
+            <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-tachometer-alt w-5 text-center"></i><span>仪表盘</span>
+            </a>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mt-4 mb-2 px-3">内容管理</p>
+            <a href="prompt-config.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-terminal w-5 text-center"></i><span>Prompt 配置</span>
+            </a>
+            <a href="prompt-studio.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-magic w-5 text-center"></i><span>Prompt 模板</span>
+            </a>
+            <a href="distillation.html" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg">
+                <i class="fas fa-filter w-5 text-center"></i><span>蒸馏配置</span>
+            </a>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mt-4 mb-2 px-3">系统配置</p>
+            <a href="model-config.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-robot w-5 text-center"></i><span>大模型配置</span>
+            </a>
+            <a href="system-config.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-sliders-h w-5 text-center"></i><span>系统参数</span>
+            </a>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mt-4 mb-2 px-3">用户管理</p>
+            <a href="users.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-users w-5 text-center"></i><span>用户管理</span>
+            </a>
+            <a href="admins.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600">
+                <i class="fas fa-user-shield w-5 text-center"></i><span>管理员</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">蒸馏配置管理</h2>
+                    <p class="text-sm text-gray-500">管理蒸馏模型参数 | 噪音词过滤 | 平台适配规则</p>
+                </div>
+                <button onclick="saveAllConfigs()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-save mr-2"></i>保存配置
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 功能标签页 -->
+            <div class="flex gap-2 mb-6">
+                <button class="tab-btn active px-4 py-2 rounded-lg font-medium" onclick="switchTab('models')">蒸馏模型</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-600" onclick="switchTab('filters')">噪音词过滤</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-600" onclick="switchTab('platforms')">平台适配</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-600" onclick="switchTab('defaults')">默认参数</button>
+            </div>
+
+            <!-- 蒸馏模型配置 -->
+            <div id="modelsTab" class="space-y-6">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">三层蒸馏模型配置</h3>
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-bullhorn text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">第1层: 核心卖点</p>
+                                    <p class="text-xs text-gray-500">提炼品牌核心差异化</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">最大卖点数</label>
+                                    <input type="number" value="10" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">最小字符数</label>
+                                    <input type="number" value="5" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-random text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">第2层: 语义变体</p>
+                                    <p class="text-xs text-gray-500">扩展语义表达方式</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">每卖点变体数</label>
+                                    <input type="number" value="5" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">相似度阈值</label>
+                                    <input type="number" value="0.7" step="0.1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-share-alt text-emerald-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">第3层: 分发优化</p>
+                                    <p class="text-xs text-gray-500">适配不同平台场景</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">平台数量</label>
+                                    <input type="number" value="5" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">质量分阈值</label>
+                                    <input type="number" value="80" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">五层蒸馏模型配置</h3>
+                    <div class="grid grid-cols-5 gap-4">
+                        <div class="border border-gray-200 rounded-xl p-4 text-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-user text-blue-600"></i>
+                            </div>
+                            <p class="font-medium text-gray-900 text-sm">用户画像</p>
+                            <input type="number" value="12" class="w-full mt-2 px-2 py-1 border border-gray-200 rounded text-sm text-center">
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4 text-center">
+                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-search text-purple-600"></i>
+                            </div>
+                            <p class="font-medium text-gray-900 text-sm">关键词扩展</p>
+                            <input type="number" value="50" class="w-full mt-2 px-2 py-1 border border-gray-200 rounded text-sm text-center">
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4 text-center">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-route text-emerald-600"></i>
+                            </div>
+                            <p class="font-medium text-gray-900 text-sm">决策旅程</p>
+                            <input type="number" value="5" class="w-full mt-2 px-2 py-1 border border-gray-200 rounded text-sm text-center">
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4 text-center">
+                            <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-theater-masks text-amber-600"></i>
+                            </div>
+                            <p class="font-medium text-gray-900 text-sm">场景蒸馏</p>
+                            <input type="number" value="10" class="w-full mt-2 px-2 py-1 border border-gray-200 rounded text-sm text-center">
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4 text-center">
+                            <div class="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-comments text-rose-600"></i>
+                            </div>
+                            <p class="font-medium text-gray-900 text-sm">口语化蒸馏</p>
+                            <input type="number" value="20" class="w-full mt-2 px-2 py-1 border border-gray-200 rounded text-sm text-center">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 噪音词过滤 -->
+            <div id="filtersTab" class="hidden">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">噪音词过滤规则</h3>
+                        <button onclick="addFilterWord()" class="px-3 py-1.5 bg-indigo-100 text-indigo-600 rounded-lg text-sm hover:bg-indigo-200">
+                            <i class="fas fa-plus mr-1"></i>添加
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">这些词会在蒸馏过程中被过滤，避免生成低质量内容</p>
+                    <div id="filterWordsList" class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm">
+                            免费 <button onclick="removeFilterWord(this)" class="hover:text-red-800"><i class="fas fa-times"></i></button>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm">
+                            最好 <button onclick="removeFilterWord(this)" class="hover:text-red-800"><i class="fas fa-times"></i></button>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm">
+                            第一 <button onclick="removeFilterWord(this)" class="hover:text-red-800"><i class="fas fa-times"></i></button>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm">
+                            绝对 <button onclick="removeFilterWord(this)" class="hover:text-red-800"><i class="fas fa-times"></i></button>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm">
+                            保证 <button onclick="removeFilterWord(this)" class="hover:text-red-800"><i class="fas fa-times"></i></button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 平台适配 -->
+            <div id="platformsTab" class="hidden">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">平台适配规则</h3>
+                    <div class="space-y-4">
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-globe text-blue-600"></i>
+                                    </div>
+                                    <span class="font-medium text-gray-900">官网</span>
+                                </div>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" checked class="rounded">
+                                    <span class="text-sm text-gray-600">启用</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">最大字符数</label>
+                                    <input type="number" value="100" class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">语气</label>
+                                    <select class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                        <option>专业</option>
+                                        <option>友好</option>
+                                        <option>正式</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">前缀</label>
+                                    <input type="text" value="" placeholder="可选" class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-hashtag text-purple-600"></i>
+                                    </div>
+                                    <span class="font-medium text-gray-900">社交媒体</span>
+                                </div>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" checked class="rounded">
+                                    <span class="text-sm text-gray-600">启用</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">最大字符数</label>
+                                    <input type="number" value="50" class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">语气</label>
+                                    <select class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                        <option>友好</option>
+                                        <option>专业</option>
+                                        <option>正式</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">前缀</label>
+                                    <input type="text" value="#" class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-search text-emerald-600"></i>
+                                    </div>
+                                    <span class="font-medium text-gray-900">搜索引擎</span>
+                                </div>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" class="rounded">
+                                    <span class="text-sm text-gray-600">启用</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">最大字符数</label>
+                                    <input type="number" value="60" class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">语气</label>
+                                    <select class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                        <option>专业</option>
+                                        <option>友好</option>
+                                        <option>正式</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">前缀</label>
+                                    <input type="text" value="" placeholder="可选" class="w-full px-3 py-1.5 border border-gray-200 rounded">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 默认参数 -->
+            <div id="defaultsTab" class="hidden">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">蒸馏默认参数</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">默认蒸馏模型</label>
+                                <select class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                                    <option value="3layer">三层蒸馏</option>
+                                    <option value="5layer">五层蒸馏</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">默认生成数量</label>
+                                <input type="number" value="50" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">质量分阈值</label>
+                                <input type="number" value="80" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">使用的 AI 模型</label>
+                                <select class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                                    <option>gpt-4o</option>
+                                    <option>gpt-4o-mini</option>
+                                    <option>claude-3-5-sonnet</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Temperature</label>
+                                <input type="number" value="0.7" step="0.1" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Max Tokens</label>
+                                <input type="number" value="2000" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 切换标签页
+        function switchTab(tab) {
+            // 隐藏所有标签页
+            document.querySelectorAll('[id$="Tab"]').forEach(el => el.classList.add('hidden'));
+            // 显示选中的标签页
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+            // 更新按钮样式
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            event.target.classList.add('active');
+            event.target.classList.remove('bg-gray-100', 'text-gray-600');
+        }
+
+        // 添加过滤词
+        function addFilterWord() {
+            const word = prompt('请输入要过滤的词:');
+            if (word && word.trim()) {
+                const list = document.getElementById('filterWordsList');
+                const span = document.createElement('span');
+                span.className = 'inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm';
+                span.innerHTML = `${word.trim()} <button onclick="removeFilterWord(this)" class="hover:text-red-800"><i class="fas fa-times"></i></button>`;
+                list.appendChild(span);
+            }
+        }
+
+        // 移除过滤词
+        function removeFilterWord(btn) {
+            btn.parentElement.remove();
+        }
+
+        // 保存所有配置
+        async function saveAllConfigs() {
+            // TODO: 调用 API 保存配置
+            alert('配置已保存');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统参数 - GCore Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">系统参数</h2>
+                    <p class="text-sm text-gray-500">配置问题生成、AI 模型等参数</p>
+                </div>
+                <button onclick="saveAllConfigs()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-save mr-2"></i>保存配置
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8 max-w-4xl">
+            <!-- 问题生成参数 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-900">
+                        <i class="fas fa-question-circle text-blue-500 mr-2"></i>问题生成参数
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                最低频率分数阈值
+                                <span class="text-xs text-gray-500 ml-1">(低于此分数的问题不生成)</span>
+                            </label>
+                            <input type="number" id="min_freq_score" class="w-full border rounded-lg px-3 py-2" 
+                                   value="70" min="0" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                每次生成问题数量
+                            </label>
+                            <input type="number" id="questions_per_batch" class="w-full border rounded-lg px-3 py-2" 
+                                   value="20" min="5" max="50">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                高频问题分数范围 (最高)
+                            </label>
+                            <input type="number" id="high_freq_min" class="w-full border rounded-lg px-3 py-2" 
+                                   value="85" min="0" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                中频问题分数范围 (最低)
+                            </label>
+                            <input type="number" id="mid_freq_min" class="w-full border rounded-lg px-3 py-2" 
+                                   value="70" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI 模型参数 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-900">
+                        <i class="fas fa-robot text-purple-500 mr-2"></i>AI 模型参数
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                默认温度 (Temperature)
+                            </label>
+                            <input type="number" id="default_temperature" class="w-full border rounded-lg px-3 py-2" 
+                                   value="0.7" min="0" max="2" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                API 超时时间 (秒)
+                            </label>
+                            <input type="number" id="api_timeout" class="w-full border rounded-lg px-3 py-2" 
+                                   value="60" min="10" max="300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                最大重试次数
+                            </label>
+                            <input type="number" id="max_retries" class="w-full border rounded-lg px-3 py-2" 
+                                   value="2" min="0" max="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导出参数 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-900">
+                        <i class="fas fa-download text-green-500 mr-2"></i>导出参数
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                默认导出格式
+                            </label>
+                            <select id="default_export_format" class="w-full border rounded-lg px-3 py-2">
+                                <option value="markdown">Markdown</option>
+                                <option value="json">JSON</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                导出文件保留天数
+                            </label>
+                            <input type="number" id="export_retention_days" class="w-full border rounded-lg px-3 py-2" 
+                                   value="30" min="1" max="365">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // 配置项定义
+        const configItems = [
+            { id: 'min_freq_score', category: 'questions', key: 'min_freq_score', name: '最低频率分数阈值', type: 'int' },
+            { id: 'questions_per_batch', category: 'questions', key: 'questions_per_batch', name: '每次生成问题数量', type: 'int' },
+            { id: 'high_freq_min', category: 'questions', key: 'high_freq_min', name: '高频问题分数范围', type: 'int' },
+            { id: 'mid_freq_min', category: 'questions', key: 'mid_freq_min', name: '中频问题分数范围', type: 'int' },
+            { id: 'default_temperature', category: 'ai', key: 'default_temperature', name: '默认温度', type: 'string' },
+            { id: 'api_timeout', category: 'ai', key: 'api_timeout', name: 'API超时时间', type: 'int' },
+            { id: 'max_retries', category: 'ai', key: 'max_retries', name: '最大重试次数', type: 'int' },
+            { id: 'default_export_format', category: 'export', key: 'default_export_format', name: '默认导出格式', type: 'string' },
+            { id: 'export_retention_days', category: 'export', key: 'export_retention_days', name: '导出文件保留天数', type: 'int' }
+        ];
+
+        // 加载配置
+        async function loadConfigs() {
+            try {
+                const response = await fetch('/api/config/system');
+                const result = await response.json();
+                if (result.success) {
+                    result.data.forEach(config => {
+                        const item = configItems.find(i => i.category === config.category && i.key === config.configKey);
+                        if (item) {
+                            document.getElementById(item.id).value = config.configValue;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('加载配置失败:', error);
+            }
+        }
+
+        // 保存所有配置
+        async function saveAllConfigs() {
+            try {
+                for (const item of configItems) {
+                    const value = document.getElementById(item.id).value;
+                    await fetch('/api/config/system', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            category: item.category,
+                            configKey: item.key,
+                            configValue: value,
+                            name: item.name
+                        })
+                    });
+                }
+                alert('配置保存成功！');
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('保存失败');
+            }
+        }
+
+        // 初始化
+        loadConfigs();
+    </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据统计 - GCore Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">数据统计</h2>
+                    <p class="text-sm text-gray-500">平台运营数据概览</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">总用户数</span>
+                        <span class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-indigo-600"></i>
+                        </span>
+                    </div>
+                    <p id="statUsers" class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">今日登录</span>
+                        <span class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-sign-in-alt text-emerald-600"></i>
+                        </span>
+                    </div>
+                    <p id="statLogins" class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">API 调用</span>
+                        <span class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-code text-amber-600"></i>
+                        </span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-900">-</p>
+                    <p class="text-xs text-gray-400 mt-1">功能开发中</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">系统状态</span>
+                        <span class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-emerald-600"></i>
+                        </span>
+                    </div>
+                    <p class="text-3xl font-bold text-emerald-600">正常</p>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="grid grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">用户增长趋势</h3>
+                    <div class="h-64 flex items-center justify-center text-gray-400">
+                        <div class="text-center">
+                            <i class="fas fa-chart-line text-4xl mb-2"></i>
+                            <p>数据统计功能开发中</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">活跃用户分布</h3>
+                    <div class="h-64 flex items-center justify-center text-gray-400">
+                        <div class="text-center">
+                            <i class="fas fa-chart-pie text-4xl mb-2"></i>
+                            <p>数据统计功能开发中</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/users/stats');
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('statUsers').textContent = result.data.totalUsers;
+                    document.getElementById('statLogins').textContent = result.data.todayActiveUsers;
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

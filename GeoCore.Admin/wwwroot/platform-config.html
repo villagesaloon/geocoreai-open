@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平台配置 - GCore Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn.active { border-bottom: 2px solid #6366f1; color: #6366f1; }
+        .modal { display: none; }
+        .modal.show { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">平台配置管理</h2>
+                    <p class="text-sm text-gray-500">管理 AI 爬虫、LLM Referrer、平台偏好、引用基准、Persona 模板</p>
+                </div>
+                <button onclick="refreshCurrentTab()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                    <i class="fas fa-sync-alt mr-2"></i>刷新
+                </button>
+            </div>
+        </header>
+
+        <!-- Tab 导航 -->
+        <div class="bg-white border-b border-gray-200 px-8">
+            <div class="flex space-x-8">
+                <button class="tab-btn active py-4 px-2 text-sm font-medium" data-tab="crawlers">
+                    <i class="fas fa-spider mr-2"></i>AI 爬虫
+                </button>
+                <button class="tab-btn py-4 px-2 text-sm font-medium text-gray-500" data-tab="referrers">
+                    <i class="fas fa-link mr-2"></i>LLM Referrer
+                </button>
+                <button class="tab-btn py-4 px-2 text-sm font-medium text-gray-500" data-tab="preferences">
+                    <i class="fas fa-sliders-h mr-2"></i>平台偏好
+                </button>
+                <button class="tab-btn py-4 px-2 text-sm font-medium text-gray-500" data-tab="benchmarks">
+                    <i class="fas fa-chart-bar mr-2"></i>引用基准
+                </button>
+                <button class="tab-btn py-4 px-2 text-sm font-medium text-gray-500" data-tab="personas">
+                    <i class="fas fa-user-tag mr-2"></i>Persona 模板
+                </button>
+            </div>
+        </div>
+
+        <div class="p-8">
+            <!-- AI 爬虫 Tab -->
+            <div id="tab-crawlers" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center space-x-4">
+                        <select id="crawlerTypeFilter" class="border rounded-lg px-3 py-2" onchange="loadCrawlers()">
+                            <option value="">全部类型</option>
+                            <option value="training">训练爬虫</option>
+                            <option value="retrieval">检索爬虫</option>
+                            <option value="search">搜索爬虫</option>
+                        </select>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="crawlerEnabledOnly" class="mr-2" onchange="loadCrawlers()">
+                            <span class="text-sm">仅显示启用</span>
+                        </label>
+                    </div>
+                    <button onclick="showCrawlerModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-plus mr-2"></i>添加爬虫
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User-Agent</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">重要性</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="crawlersTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LLM Referrer Tab -->
+            <div id="tab-referrers" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="referrerEnabledOnly" class="mr-2" onchange="loadReferrers()">
+                        <span class="text-sm">仅显示启用</span>
+                    </label>
+                    <button onclick="showReferrerModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-plus mr-2"></i>添加 Referrer
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">平台</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referrer 模式</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">显示名称</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类别</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="referrersTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 平台偏好 Tab -->
+            <div id="tab-preferences" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <p class="text-sm text-gray-500">配置各 LLM 平台的内容偏好参数</p>
+                    <button onclick="showPreferenceModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-plus mr-2"></i>添加平台偏好
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">平台</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">最优段落长度</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">语气偏好</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">新鲜度权重</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preferencesTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 引用基准 Tab -->
+            <div id="tab-benchmarks" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <p class="text-sm text-gray-500">配置各平台的引用率基准数据</p>
+                    <button onclick="showBenchmarkModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-plus mr-2"></i>添加引用基准
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">平台</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">平均引用率</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">典型引用数</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">更新频率偏好</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="benchmarksTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Persona 模板 Tab -->
+            <div id="tab-personas" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center space-x-4">
+                        <select id="personaIndustryFilter" class="border rounded-lg px-3 py-2" onchange="loadPersonas()">
+                            <option value="">全部行业</option>
+                            <option value="technology">科技</option>
+                            <option value="finance">金融</option>
+                            <option value="healthcare">医疗</option>
+                            <option value="ecommerce">电商</option>
+                            <option value="education">教育</option>
+                        </select>
+                    </div>
+                    <button onclick="showPersonaModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-plus mr-2"></i>添加 Persona 模板
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">行业</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司规模</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personasTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- AI 爬虫 Modal -->
+    <div id="crawlerModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="crawlerModalTitle">添加 AI 爬虫</h3>
+            </div>
+            <form id="crawlerForm" class="p-6 space-y-4">
+                <input type="hidden" id="crawlerId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">名称 *</label>
+                        <input type="text" id="crawlerName" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">公司 *</label>
+                        <input type="text" id="crawlerCompany" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">User-Agent 模式 *</label>
+                    <input type="text" id="crawlerUserAgent" class="w-full border rounded-lg px-3 py-2" required placeholder="GPTBot">
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">爬虫类型</label>
+                        <select id="crawlerType" class="w-full border rounded-lg px-3 py-2">
+                            <option value="training">训练爬虫</option>
+                            <option value="retrieval">检索爬虫</option>
+                            <option value="search">搜索爬虫</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">重要性</label>
+                        <select id="crawlerImportance" class="w-full border rounded-lg px-3 py-2">
+                            <option value="critical">关键</option>
+                            <option value="high">高</option>
+                            <option value="medium" selected>中</option>
+                            <option value="low">低</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">流量占比 (%)</label>
+                        <input type="number" id="crawlerTrafficShare" class="w-full border rounded-lg px-3 py-2" value="0" min="0" max="100" step="0.1">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">推荐 Robots 策略</label>
+                    <select id="crawlerRobotsPolicy" class="w-full border rounded-lg px-3 py-2">
+                        <option value="allow">Allow (允许)</option>
+                        <option value="disallow">Disallow (禁止)</option>
+                        <option value="conditional">Conditional (条件允许)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                    <textarea id="crawlerDescription" class="w-full border rounded-lg px-3 py-2" rows="2"></textarea>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="crawlerRespectsRobots" class="mr-2" checked>
+                        <span class="text-sm">遵守 robots.txt</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="crawlerEnabled" class="mr-2" checked>
+                        <span class="text-sm">启用</span>
+                    </label>
+                </div>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeCrawlerModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button onclick="saveCrawler()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LLM Referrer Modal -->
+    <div id="referrerModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-full max-w-lg">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="referrerModalTitle">添加 LLM Referrer</h3>
+            </div>
+            <form id="referrerForm" class="p-6 space-y-4">
+                <input type="hidden" id="referrerId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">平台代码 *</label>
+                        <input type="text" id="referrerPlatform" class="w-full border rounded-lg px-3 py-2" required placeholder="chatgpt">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">显示名称 *</label>
+                        <input type="text" id="referrerDisplayName" class="w-full border rounded-lg px-3 py-2" required placeholder="ChatGPT">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Referrer 模式 *</label>
+                    <input type="text" id="referrerPattern" class="w-full border rounded-lg px-3 py-2" required placeholder="chat.openai.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">类别</label>
+                    <select id="referrerCategory" class="w-full border rounded-lg px-3 py-2">
+                        <option value="ai_assistant">AI 助手</option>
+                        <option value="ai_search">AI 搜索</option>
+                        <option value="ai_agent">AI Agent</option>
+                    </select>
+                </div>
+                <label class="flex items-center">
+                    <input type="checkbox" id="referrerEnabled" class="mr-2" checked>
+                    <span class="text-sm">启用</span>
+                </label>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeReferrerModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button onclick="saveReferrer()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 平台偏好 Modal -->
+    <div id="preferenceModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="preferenceModalTitle">添加平台偏好</h3>
+            </div>
+            <form id="preferenceForm" class="p-6 space-y-4">
+                <input type="hidden" id="preferenceId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">平台代码 *</label>
+                        <input type="text" id="preferencePlatform" class="w-full border rounded-lg px-3 py-2" required placeholder="chatgpt">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">显示名称 *</label>
+                        <input type="text" id="preferenceDisplayName" class="w-full border rounded-lg px-3 py-2" required placeholder="ChatGPT">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">最优段落长度</label>
+                        <input type="number" id="preferenceOptimalParagraphLength" class="w-full border rounded-lg px-3 py-2" value="150">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">最优章节数</label>
+                        <input type="number" id="preferenceOptimalSectionCount" class="w-full border rounded-lg px-3 py-2" value="5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">标题深度</label>
+                        <input type="number" id="preferenceHeadingDepth" class="w-full border rounded-lg px-3 py-2" value="3" min="1" max="6">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">语气偏好</label>
+                    <select id="preferenceTone" class="w-full border rounded-lg px-3 py-2">
+                        <option value="neutral">中立客观</option>
+                        <option value="professional">专业正式</option>
+                        <option value="conversational">对话式</option>
+                        <option value="academic">学术风格</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">新鲜度权重</label>
+                        <input type="number" id="preferenceFreshnessWeight" class="w-full border rounded-lg px-3 py-2" value="0.3" min="0" max="1" step="0.1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">权威性权重</label>
+                        <input type="number" id="preferenceAuthorityWeight" class="w-full border rounded-lg px-3 py-2" value="0.4" min="0" max="1" step="0.1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">相关性权重</label>
+                        <input type="number" id="preferenceRelevanceWeight" class="w-full border rounded-lg px-3 py-2" value="0.3" min="0" max="1" step="0.1">
+                    </div>
+                </div>
+                <label class="flex items-center">
+                    <input type="checkbox" id="preferenceEnabled" class="mr-2" checked>
+                    <span class="text-sm">启用</span>
+                </label>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closePreferenceModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button onclick="savePreference()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引用基准 Modal -->
+    <div id="benchmarkModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-full max-w-lg">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="benchmarkModalTitle">添加引用基准</h3>
+            </div>
+            <form id="benchmarkForm" class="p-6 space-y-4">
+                <input type="hidden" id="benchmarkId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">平台代码 *</label>
+                        <input type="text" id="benchmarkPlatform" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">显示名称 *</label>
+                        <input type="text" id="benchmarkDisplayName" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">平均引用率</label>
+                        <input type="number" id="benchmarkAvgCitationRate" class="w-full border rounded-lg px-3 py-2" value="0.35" min="0" max="1" step="0.01">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">典型引用数</label>
+                        <input type="number" id="benchmarkTypicalCitationCount" class="w-full border rounded-lg px-3 py-2" value="3" min="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">更新频率偏好</label>
+                    <input type="text" id="benchmarkUpdateFrequency" class="w-full border rounded-lg px-3 py-2" placeholder="6-12个月">
+                </div>
+                <label class="flex items-center">
+                    <input type="checkbox" id="benchmarkEnabled" class="mr-2" checked>
+                    <span class="text-sm">启用</span>
+                </label>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeBenchmarkModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button onclick="saveBenchmark()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persona 模板 Modal -->
+    <div id="personaModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="personaModalTitle">添加 Persona 模板</h3>
+            </div>
+            <form id="personaForm" class="p-6 space-y-4">
+                <input type="hidden" id="personaId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">模板名称 *</label>
+                        <input type="text" id="personaName" class="w-full border rounded-lg px-3 py-2" required placeholder="技术决策者">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">角色 *</label>
+                        <input type="text" id="personaRole" class="w-full border rounded-lg px-3 py-2" required placeholder="CTO">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">行业</label>
+                        <select id="personaIndustry" class="w-full border rounded-lg px-3 py-2">
+                            <option value="technology">科技</option>
+                            <option value="finance">金融</option>
+                            <option value="healthcare">医疗</option>
+                            <option value="ecommerce">电商</option>
+                            <option value="education">教育</option>
+                            <option value="general">通用</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">公司规模</label>
+                        <select id="personaCompanySize" class="w-full border rounded-lg px-3 py-2">
+                            <option value="startup">初创 (1-50人)</option>
+                            <option value="smb">中小企业 (50-500人)</option>
+                            <option value="enterprise">大型企业 (500+人)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">痛点 (每行一个)</label>
+                    <textarea id="personaPainPoints" class="w-full border rounded-lg px-3 py-2" rows="3" placeholder="技术选型困难&#10;团队效率低下"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">目标 (每行一个)</label>
+                    <textarea id="personaGoals" class="w-full border rounded-lg px-3 py-2" rows="3" placeholder="提升团队效率&#10;降低技术债务"></textarea>
+                </div>
+                <label class="flex items-center">
+                    <input type="checkbox" id="personaEnabled" class="mr-2" checked>
+                    <span class="text-sm">启用</span>
+                </label>
+            </form>
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closePersonaModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button onclick="savePersona()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/admin/platform-config';
+        let currentTab = 'crawlers';
+
+        // Tab 切换
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                currentTab = btn.dataset.tab;
+                document.getElementById(`tab-${currentTab}`).classList.remove('hidden');
+                refreshCurrentTab();
+            });
+        });
+
+        function refreshCurrentTab() {
+            switch(currentTab) {
+                case 'crawlers': loadCrawlers(); break;
+                case 'referrers': loadReferrers(); break;
+                case 'preferences': loadPreferences(); break;
+                case 'benchmarks': loadBenchmarks(); break;
+                case 'personas': loadPersonas(); break;
+            }
+        }
+
+        // AI 爬虫
+        async function loadCrawlers() {
+            const enabledOnly = document.getElementById('crawlerEnabledOnly').checked;
+            const crawlerType = document.getElementById('crawlerTypeFilter').value;
+            let url = `${API_BASE}/ai-crawlers?enabledOnly=${enabledOnly}`;
+            if (crawlerType) url += `&crawlerType=${crawlerType}`;
+            
+            const res = await fetch(url);
+            const json = await res.json();
+            const tbody = document.getElementById('crawlersTable');
+            tbody.innerHTML = json.data?.map(c => `
+                <tr>
+                    <td class="px-4 py-3 font-medium">${c.name}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500 font-mono">${c.userAgentPattern}</td>
+                    <td class="px-4 py-3 text-sm">${c.company}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${getTypeColor(c.crawlerType)}">${c.crawlerType || '-'}</span></td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${getImportanceColor(c.importance)}">${c.importance}</span></td>
+                    <td class="px-4 py-3">${c.isEnabled ? '<span class="text-green-600">✓ 启用</span>' : '<span class="text-gray-400">禁用</span>'}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="editCrawler(${c.id})" class="text-indigo-600 hover:text-indigo-800 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteCrawler(${c.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>';
+        }
+
+        function getTypeColor(type) {
+            const colors = { training: 'bg-purple-100 text-purple-800', retrieval: 'bg-blue-100 text-blue-800', search: 'bg-green-100 text-green-800' };
+            return colors[type] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getImportanceColor(imp) {
+            const colors = { critical: 'bg-red-100 text-red-800', high: 'bg-orange-100 text-orange-800', medium: 'bg-yellow-100 text-yellow-800', low: 'bg-gray-100 text-gray-800' };
+            return colors[imp] || 'bg-gray-100 text-gray-800';
+        }
+
+        function showCrawlerModal(data = null) {
+            document.getElementById('crawlerModalTitle').textContent = data ? '编辑 AI 爬虫' : '添加 AI 爬虫';
+            document.getElementById('crawlerId').value = data?.id || '';
+            document.getElementById('crawlerName').value = data?.name || '';
+            document.getElementById('crawlerCompany').value = data?.company || '';
+            document.getElementById('crawlerUserAgent').value = data?.userAgentPattern || '';
+            document.getElementById('crawlerType').value = data?.crawlerType || 'training';
+            document.getElementById('crawlerImportance').value = data?.importance || 'medium';
+            document.getElementById('crawlerTrafficShare').value = data?.trafficShare || 0;
+            document.getElementById('crawlerRobotsPolicy').value = data?.recommendedRobotsPolicy || 'allow';
+            document.getElementById('crawlerDescription').value = data?.description || '';
+            document.getElementById('crawlerRespectsRobots').checked = data?.respectsRobotsTxt ?? true;
+            document.getElementById('crawlerEnabled').checked = data?.isEnabled ?? true;
+            document.getElementById('crawlerModal').classList.add('show');
+        }
+
+        function closeCrawlerModal() { document.getElementById('crawlerModal').classList.remove('show'); }
+
+        async function saveCrawler() {
+            const id = document.getElementById('crawlerId').value;
+            const data = {
+                name: document.getElementById('crawlerName').value,
+                company: document.getElementById('crawlerCompany').value,
+                userAgentPattern: document.getElementById('crawlerUserAgent').value,
+                crawlerType: document.getElementById('crawlerType').value,
+                importance: document.getElementById('crawlerImportance').value,
+                trafficShare: parseFloat(document.getElementById('crawlerTrafficShare').value),
+                recommendedRobotsPolicy: document.getElementById('crawlerRobotsPolicy').value,
+                description: document.getElementById('crawlerDescription').value,
+                respectsRobotsTxt: document.getElementById('crawlerRespectsRobots').checked,
+                isEnabled: document.getElementById('crawlerEnabled').checked
+            };
+            const url = id ? `${API_BASE}/ai-crawlers/${id}` : `${API_BASE}/ai-crawlers`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            closeCrawlerModal();
+            loadCrawlers();
+        }
+
+        async function editCrawler(id) {
+            const res = await fetch(`${API_BASE}/ai-crawlers`);
+            const json = await res.json();
+            const crawler = json.data?.find(c => c.id === id);
+            if (crawler) showCrawlerModal(crawler);
+        }
+
+        async function deleteCrawler(id) {
+            if (!confirm('确定删除此爬虫配置？')) return;
+            await fetch(`${API_BASE}/ai-crawlers/${id}`, { method: 'DELETE' });
+            loadCrawlers();
+        }
+
+        // LLM Referrer
+        async function loadReferrers() {
+            const enabledOnly = document.getElementById('referrerEnabledOnly').checked;
+            const res = await fetch(`${API_BASE}/llm-referrers?enabledOnly=${enabledOnly}`);
+            const json = await res.json();
+            const tbody = document.getElementById('referrersTable');
+            tbody.innerHTML = json.data?.map(r => `
+                <tr>
+                    <td class="px-4 py-3 font-medium">${r.platform}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500 font-mono">${r.referrerPattern}</td>
+                    <td class="px-4 py-3">${r.displayName}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">${r.category || '-'}</span></td>
+                    <td class="px-4 py-3">${r.isEnabled ? '<span class="text-green-600">✓ 启用</span>' : '<span class="text-gray-400">禁用</span>'}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="editReferrer(${r.id})" class="text-indigo-600 hover:text-indigo-800 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteReferrer(${r.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>';
+        }
+
+        function showReferrerModal(data = null) {
+            document.getElementById('referrerModalTitle').textContent = data ? '编辑 LLM Referrer' : '添加 LLM Referrer';
+            document.getElementById('referrerId').value = data?.id || '';
+            document.getElementById('referrerPlatform').value = data?.platform || '';
+            document.getElementById('referrerDisplayName').value = data?.displayName || '';
+            document.getElementById('referrerPattern').value = data?.referrerPattern || '';
+            document.getElementById('referrerCategory').value = data?.category || 'ai_assistant';
+            document.getElementById('referrerEnabled').checked = data?.isEnabled ?? true;
+            document.getElementById('referrerModal').classList.add('show');
+        }
+
+        function closeReferrerModal() { document.getElementById('referrerModal').classList.remove('show'); }
+
+        async function saveReferrer() {
+            const id = document.getElementById('referrerId').value;
+            const data = {
+                platform: document.getElementById('referrerPlatform').value,
+                displayName: document.getElementById('referrerDisplayName').value,
+                referrerPattern: document.getElementById('referrerPattern').value,
+                category: document.getElementById('referrerCategory').value,
+                isEnabled: document.getElementById('referrerEnabled').checked
+            };
+            const url = id ? `${API_BASE}/llm-referrers/${id}` : `${API_BASE}/llm-referrers`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            closeReferrerModal();
+            loadReferrers();
+        }
+
+        async function editReferrer(id) {
+            const res = await fetch(`${API_BASE}/llm-referrers`);
+            const json = await res.json();
+            const referrer = json.data?.find(r => r.id === id);
+            if (referrer) showReferrerModal(referrer);
+        }
+
+        async function deleteReferrer(id) {
+            if (!confirm('确定删除此 Referrer 配置？')) return;
+            await fetch(`${API_BASE}/llm-referrers/${id}`, { method: 'DELETE' });
+            loadReferrers();
+        }
+
+        // 平台偏好
+        async function loadPreferences() {
+            const res = await fetch(`${API_BASE}/platform-preferences`);
+            const json = await res.json();
+            const tbody = document.getElementById('preferencesTable');
+            tbody.innerHTML = json.data?.map(p => `
+                <tr>
+                    <td class="px-4 py-3 font-medium">${p.displayName || p.platform}</td>
+                    <td class="px-4 py-3">${p.optimalParagraphLength || '-'} 词</td>
+                    <td class="px-4 py-3">${p.tonePreference || '-'}</td>
+                    <td class="px-4 py-3">${p.freshnessWeight || '-'}</td>
+                    <td class="px-4 py-3">${p.isEnabled ? '<span class="text-green-600">✓ 启用</span>' : '<span class="text-gray-400">禁用</span>'}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="editPreference(${p.id})" class="text-indigo-600 hover:text-indigo-800 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deletePreference(${p.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>';
+        }
+
+        function showPreferenceModal(data = null) {
+            document.getElementById('preferenceModalTitle').textContent = data ? '编辑平台偏好' : '添加平台偏好';
+            document.getElementById('preferenceId').value = data?.id || '';
+            document.getElementById('preferencePlatform').value = data?.platform || '';
+            document.getElementById('preferenceDisplayName').value = data?.displayName || '';
+            document.getElementById('preferenceOptimalParagraphLength').value = data?.optimalParagraphLength || 150;
+            document.getElementById('preferenceOptimalSectionCount').value = data?.optimalSectionCount || 5;
+            document.getElementById('preferenceHeadingDepth').value = data?.optimalHeadingDepth || 3;
+            document.getElementById('preferenceTone').value = data?.tonePreference || 'neutral';
+            document.getElementById('preferenceFreshnessWeight').value = data?.freshnessWeight || 0.3;
+            document.getElementById('preferenceAuthorityWeight').value = data?.authorityWeight || 0.4;
+            document.getElementById('preferenceRelevanceWeight').value = data?.relevanceWeight || 0.3;
+            document.getElementById('preferenceEnabled').checked = data?.isEnabled ?? true;
+            document.getElementById('preferenceModal').classList.add('show');
+        }
+
+        function closePreferenceModal() { document.getElementById('preferenceModal').classList.remove('show'); }
+
+        async function savePreference() {
+            const id = document.getElementById('preferenceId').value;
+            const data = {
+                platform: document.getElementById('preferencePlatform').value,
+                displayName: document.getElementById('preferenceDisplayName').value,
+                optimalParagraphLength: parseInt(document.getElementById('preferenceOptimalParagraphLength').value),
+                optimalSectionCount: parseInt(document.getElementById('preferenceOptimalSectionCount').value),
+                optimalHeadingDepth: parseInt(document.getElementById('preferenceHeadingDepth').value),
+                tonePreference: document.getElementById('preferenceTone').value,
+                freshnessWeight: parseFloat(document.getElementById('preferenceFreshnessWeight').value),
+                authorityWeight: parseFloat(document.getElementById('preferenceAuthorityWeight').value),
+                relevanceWeight: parseFloat(document.getElementById('preferenceRelevanceWeight').value),
+                isEnabled: document.getElementById('preferenceEnabled').checked
+            };
+            const url = id ? `${API_BASE}/platform-preferences/${id}` : `${API_BASE}/platform-preferences`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            closePreferenceModal();
+            loadPreferences();
+        }
+
+        async function editPreference(id) {
+            const res = await fetch(`${API_BASE}/platform-preferences`);
+            const json = await res.json();
+            const pref = json.data?.find(p => p.id === id);
+            if (pref) showPreferenceModal(pref);
+        }
+
+        async function deletePreference(id) {
+            if (!confirm('确定删除此平台偏好配置？')) return;
+            await fetch(`${API_BASE}/platform-preferences/${id}`, { method: 'DELETE' });
+            loadPreferences();
+        }
+
+        // 引用基准
+        async function loadBenchmarks() {
+            const res = await fetch(`${API_BASE}/citation-benchmarks`);
+            const json = await res.json();
+            const tbody = document.getElementById('benchmarksTable');
+            tbody.innerHTML = json.data?.map(b => `
+                <tr>
+                    <td class="px-4 py-3 font-medium">${b.displayName || b.platform}</td>
+                    <td class="px-4 py-3">${(b.averageCitationRate * 100).toFixed(0)}%</td>
+                    <td class="px-4 py-3">${b.typicalCitationCount}</td>
+                    <td class="px-4 py-3">${b.updateFrequencyPreference || '-'}</td>
+                    <td class="px-4 py-3">${b.isEnabled ? '<span class="text-green-600">✓ 启用</span>' : '<span class="text-gray-400">禁用</span>'}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="editBenchmark(${b.id})" class="text-indigo-600 hover:text-indigo-800 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteBenchmark(${b.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>';
+        }
+
+        function showBenchmarkModal(data = null) {
+            document.getElementById('benchmarkModalTitle').textContent = data ? '编辑引用基准' : '添加引用基准';
+            document.getElementById('benchmarkId').value = data?.id || '';
+            document.getElementById('benchmarkPlatform').value = data?.platform || '';
+            document.getElementById('benchmarkDisplayName').value = data?.displayName || '';
+            document.getElementById('benchmarkAvgCitationRate').value = data?.averageCitationRate || 0.35;
+            document.getElementById('benchmarkTypicalCitationCount').value = data?.typicalCitationCount || 3;
+            document.getElementById('benchmarkUpdateFrequency').value = data?.updateFrequencyPreference || '';
+            document.getElementById('benchmarkEnabled').checked = data?.isEnabled ?? true;
+            document.getElementById('benchmarkModal').classList.add('show');
+        }
+
+        function closeBenchmarkModal() { document.getElementById('benchmarkModal').classList.remove('show'); }
+
+        async function saveBenchmark() {
+            const id = document.getElementById('benchmarkId').value;
+            const data = {
+                platform: document.getElementById('benchmarkPlatform').value,
+                displayName: document.getElementById('benchmarkDisplayName').value,
+                averageCitationRate: parseFloat(document.getElementById('benchmarkAvgCitationRate').value),
+                typicalCitationCount: parseInt(document.getElementById('benchmarkTypicalCitationCount').value),
+                updateFrequencyPreference: document.getElementById('benchmarkUpdateFrequency').value,
+                isEnabled: document.getElementById('benchmarkEnabled').checked
+            };
+            const url = id ? `${API_BASE}/citation-benchmarks/${id}` : `${API_BASE}/citation-benchmarks`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            closeBenchmarkModal();
+            loadBenchmarks();
+        }
+
+        async function editBenchmark(id) {
+            const res = await fetch(`${API_BASE}/citation-benchmarks`);
+            const json = await res.json();
+            const benchmark = json.data?.find(b => b.id === id);
+            if (benchmark) showBenchmarkModal(benchmark);
+        }
+
+        async function deleteBenchmark(id) {
+            if (!confirm('确定删除此引用基准配置？')) return;
+            await fetch(`${API_BASE}/citation-benchmarks/${id}`, { method: 'DELETE' });
+            loadBenchmarks();
+        }
+
+        // Persona 模板
+        async function loadPersonas() {
+            const industry = document.getElementById('personaIndustryFilter').value;
+            let url = `${API_BASE}/persona-templates`;
+            if (industry) url += `?industry=${industry}`;
+            const res = await fetch(url);
+            const json = await res.json();
+            const tbody = document.getElementById('personasTable');
+            tbody.innerHTML = json.data?.map(p => `
+                <tr>
+                    <td class="px-4 py-3 font-medium">${p.name}</td>
+                    <td class="px-4 py-3">${p.role}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">${p.industry}</span></td>
+                    <td class="px-4 py-3">${p.companySize || '-'}</td>
+                    <td class="px-4 py-3">${p.isEnabled ? '<span class="text-green-600">✓ 启用</span>' : '<span class="text-gray-400">禁用</span>'}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="editPersona(${p.id})" class="text-indigo-600 hover:text-indigo-800 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deletePersona(${p.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>';
+        }
+
+        function showPersonaModal(data = null) {
+            document.getElementById('personaModalTitle').textContent = data ? '编辑 Persona 模板' : '添加 Persona 模板';
+            document.getElementById('personaId').value = data?.id || '';
+            document.getElementById('personaName').value = data?.name || '';
+            document.getElementById('personaRole').value = data?.role || '';
+            document.getElementById('personaIndustry').value = data?.industry || 'technology';
+            document.getElementById('personaCompanySize').value = data?.companySize || 'smb';
+            document.getElementById('personaPainPoints').value = data?.painPoints?.join('\n') || '';
+            document.getElementById('personaGoals').value = data?.goals?.join('\n') || '';
+            document.getElementById('personaEnabled').checked = data?.isEnabled ?? true;
+            document.getElementById('personaModal').classList.add('show');
+        }
+
+        function closePersonaModal() { document.getElementById('personaModal').classList.remove('show'); }
+
+        async function savePersona() {
+            const id = document.getElementById('personaId').value;
+            const data = {
+                name: document.getElementById('personaName').value,
+                role: document.getElementById('personaRole').value,
+                industry: document.getElementById('personaIndustry').value,
+                companySize: document.getElementById('personaCompanySize').value,
+                painPoints: document.getElementById('personaPainPoints').value.split('\n').filter(x => x.trim()),
+                goals: document.getElementById('personaGoals').value.split('\n').filter(x => x.trim()),
+                isEnabled: document.getElementById('personaEnabled').checked
+            };
+            const url = id ? `${API_BASE}/persona-templates/${id}` : `${API_BASE}/persona-templates`;
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            closePersonaModal();
+            loadPersonas();
+        }
+
+        async function editPersona(id) {
+            const res = await fetch(`${API_BASE}/persona-templates`);
+            const json = await res.json();
+            const persona = json.data?.find(p => p.id === id);
+            if (persona) showPersonaModal(persona);
+        }
+
+        async function deletePersona(id) {
+            if (!confirm('确定删除此 Persona 模板？')) return;
+            await fetch(`${API_BASE}/persona-templates/${id}`, { method: 'DELETE' });
+            loadPersonas();
+        }
+
+        // 初始化
+        loadCrawlers();
+    </script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统参数 - GEOCore AI 运营后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/admin-styles.css">
+</head>
+<body class="bg-gray-900 min-h-screen">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 admin-sidebar min-h-screen fixed left-0 top-0 z-40">
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">G</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-bold">GEOCore AI</div>
+                        <div class="text-gray-500 text-xs">运营后台</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="../dashboard.html" class="admin-sidebar-link">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span>运营仪表盘</span>
+                </a>
+                <div class="pt-4 mt-4 border-t border-gray-800">
+                    <div class="text-gray-500 text-xs uppercase tracking-wider px-3 mb-2">系统配置</div>
+                    <a href="../prompts/list.html" class="admin-sidebar-link">
+                        <i class="fas fa-comment-dots w-5"></i>
+                        <span>Prompt 管理</span>
+                    </a>
+                    <a href="#" class="admin-sidebar-link">
+                        <i class="fas fa-robot w-5"></i>
+                        <span>模型管理</span>
+                    </a>
+                    <a href="parameters.html" class="admin-sidebar-link active">
+                        <i class="fas fa-sliders-h w-5"></i>
+                        <span>系统参数</span>
+                    </a>
+                    <a href="features.html" class="admin-sidebar-link">
+                        <i class="fas fa-toggle-on w-5"></i>
+                        <span>功能开关</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 ml-64">
+            <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 sticky top-0 z-30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-xl font-semibold text-white">系统参数</h1>
+                        <p class="text-sm text-gray-400">配置系统运行参数和阈值</p>
+                    </div>
+                    <button id="saveAllBtn" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90 transition">
+                        <i class="fas fa-save mr-2"></i>保存所有更改
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-6 space-y-6">
+                <!-- SHEEP 评估参数 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-indigo-400"></i>
+                            SHEEP 评估参数
+                        </h3>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">Source 权重</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" min="0" max="100" value="20" class="flex-1">
+                                <input type="number" value="20" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-center">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">Helpfulness 权重</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" min="0" max="100" value="20" class="flex-1">
+                                <input type="number" value="20" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-center">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">Expertise 权重</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" min="0" max="100" value="20" class="flex-1">
+                                <input type="number" value="20" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-center">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">Engagement 权重</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" min="0" max="100" value="20" class="flex-1">
+                                <input type="number" value="20" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-center">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">Presentation 权重</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" min="0" max="100" value="20" class="flex-1">
+                                <input type="number" value="20" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-center">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">最低合格分数</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" value="60" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <span class="text-gray-400">分</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 可见度分析参数 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-eye text-green-400"></i>
+                            可见度分析参数
+                        </h3>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">采样查询数量</label>
+                            <input type="number" value="50" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                            <p class="text-xs text-gray-500 mt-1">每次分析使用的查询数量</p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">可见度计算方法</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <option value="weighted">加权平均</option>
+                                <option value="simple">简单平均</option>
+                                <option value="median">中位数</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">低可见度阈值</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" value="30" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">低于此值触发预警</p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">高可见度阈值</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" value="70" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">高于此值标记为优秀</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API 限制参数 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-server text-amber-400"></i>
+                            API 限制参数
+                        </h3>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">免费版每日请求限制</label>
+                            <input type="number" value="100" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">专业版每日请求限制</label>
+                            <input type="number" value="1000" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">企业版每日请求限制</label>
+                            <input type="number" value="10000" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">请求超时时间 (秒)</label>
+                            <input type="number" value="30" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">并发请求限制</label>
+                            <input type="number" value="5" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">重试次数</label>
+                            <input type="number" value="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 监控预警参数 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-bell text-red-400"></i>
+                            监控预警参数
+                        </h3>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">可见度下降预警阈值</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" value="5" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">24小时内下降超过此值触发预警</p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">竞品超越预警</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" value="10" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <span class="text-gray-400">%</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">竞品可见度超过用户此值时预警</p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">监控检查间隔</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <option value="1">每小时</option>
+                                <option value="6">每 6 小时</option>
+                                <option value="12">每 12 小时</option>
+                                <option value="24" selected>每天</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">预警通知方式</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 text-gray-300">
+                                    <input type="checkbox" checked class="rounded border-gray-600 text-indigo-600">
+                                    <span>邮件通知</span>
+                                </label>
+                                <label class="flex items-center gap-2 text-gray-300">
+                                    <input type="checkbox" checked class="rounded border-gray-600 text-indigo-600">
+                                    <span>站内消息</span>
+                                </label>
+                                <label class="flex items-center gap-2 text-gray-300">
+                                    <input type="checkbox" class="rounded border-gray-600 text-indigo-600">
+                                    <span>Webhook</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bright Data / Google Trends 配置 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700" id="brightDataSection">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-400"></i>
+                            Bright Data / Google Trends 配置
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">用于获取 Google Trends 趋势数据</p>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-400 text-sm mb-2">API Key <span class="text-red-400">*</span></label>
+                            <input type="password" id="brightdata_apikey" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" placeholder="输入 Bright Data API Key">
+                            <p class="text-xs text-gray-500 mt-1">从 Bright Data 控制台获取的 SERP API 密钥</p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">Zone</label>
+                            <input type="text" id="brightdata_zone" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" value="serp_api1">
+                            <p class="text-xs text-gray-500 mt-1">Bright Data Zone 名称</p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">超时时间 (秒)</label>
+                            <input type="number" id="brightdata_timeoutseconds" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" value="60">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">默认地区</label>
+                            <select id="googletrends_geo" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <option value="CN">中国 (CN)</option>
+                                <option value="US">美国 (US)</option>
+                                <option value="JP">日本 (JP)</option>
+                                <option value="GB">英国 (GB)</option>
+                                <option value="">全球</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-2">缓存时间 (分钟)</label>
+                            <input type="number" id="googletrends_cache" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" value="60">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button onclick="testBrightDataConnection()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-plug mr-2"></i>测试连接
+                            </button>
+                            <span id="brightdata_test_result" class="ml-3 text-sm"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 加载系统配置
+        async function loadSystemConfigs() {
+            try {
+                const resp = await fetch('/api/config/system');
+                const result = await resp.json();
+                if (result.success && result.data) {
+                    result.data.forEach(config => {
+                        const key = `${config.category.toLowerCase()}_${config.configKey.toLowerCase()}`;
+                        const el = document.getElementById(key);
+                        if (el) {
+                            if (el.type === 'password' || el.type === 'text' || el.type === 'number') {
+                                el.value = config.configValue || '';
+                            } else if (el.tagName === 'SELECT') {
+                                el.value = config.configValue || '';
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('加载配置失败:', e);
+            }
+        }
+
+        // 保存所有配置
+        async function saveAllConfigs() {
+            const configs = [
+                { category: 'BrightData', configKey: 'ApiKey', configValue: document.getElementById('brightdata_apikey')?.value },
+                { category: 'BrightData', configKey: 'Zone', configValue: document.getElementById('brightdata_zone')?.value },
+                { category: 'BrightData', configKey: 'TimeoutSeconds', configValue: document.getElementById('brightdata_timeoutseconds')?.value },
+                { category: 'GoogleTrends', configKey: 'DefaultGeo', configValue: document.getElementById('googletrends_defaultgeo')?.value || document.getElementById('googletrends_geo')?.value },
+                { category: 'GoogleTrends', configKey: 'CacheExpirationMinutes', configValue: document.getElementById('googletrends_cacheexpirationminutes')?.value || document.getElementById('googletrends_cache')?.value }
+            ].filter(c => c.configValue !== undefined && c.configValue !== '');
+
+            try {
+                const resp = await fetch('/api/config/system/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configs)
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    alert('配置已保存！');
+                } else {
+                    alert('保存失败: ' + result.message);
+                }
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+        // 测试 Bright Data 连接
+        async function testBrightDataConnection() {
+            const resultEl = document.getElementById('brightdata_test_result');
+            resultEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+            resultEl.className = 'ml-3 text-sm text-gray-400';
+
+            try {
+                // 先保存配置
+                await saveAllConfigs();
+                
+                // 调用测试 API（需要在 SaaS 端实现）
+                const resp = await fetch('http://localhost:8080/api/trends/daily?geo=US', {
+                    method: 'GET'
+                });
+                const result = await resp.json();
+                
+                if (result.success) {
+                    resultEl.innerHTML = '<i class="fas fa-check-circle"></i> 连接成功！';
+                    resultEl.className = 'ml-3 text-sm text-green-400';
+                } else {
+                    resultEl.innerHTML = '<i class="fas fa-times-circle"></i> 连接失败: ' + (result.error || '未知错误');
+                    resultEl.className = 'ml-3 text-sm text-red-400';
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<i class="fas fa-times-circle"></i> 连接失败: ' + e.message;
+                resultEl.className = 'ml-3 text-sm text-red-400';
+            }
+        }
+
+        document.getElementById('saveAllBtn').addEventListener('click', saveAllConfigs);
+        
+        // 页面加载时获取配置
+        loadSystemConfigs();
+    </script>
+</body>
+</html>

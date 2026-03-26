@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt 管理 - GEOCore AI 运营后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/admin-styles.css">
+</head>
+<body class="bg-gray-900 min-h-screen">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 admin-sidebar min-h-screen fixed left-0 top-0 z-40">
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">G</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-bold">GEOCore AI</div>
+                        <div class="text-gray-500 text-xs">运营后台</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="../dashboard.html" class="admin-sidebar-link">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span>运营仪表盘</span>
+                </a>
+                <div class="pt-4 mt-4 border-t border-gray-800">
+                    <div class="text-gray-500 text-xs uppercase tracking-wider px-3 mb-2">系统配置</div>
+                    <a href="list.html" class="admin-sidebar-link active">
+                        <i class="fas fa-comment-dots w-5"></i>
+                        <span>Prompt 管理</span>
+                    </a>
+                    <a href="#" class="admin-sidebar-link">
+                        <i class="fas fa-robot w-5"></i>
+                        <span>模型管理</span>
+                    </a>
+                    <a href="../system/parameters.html" class="admin-sidebar-link">
+                        <i class="fas fa-sliders-h w-5"></i>
+                        <span>系统参数</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 ml-64">
+            <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 sticky top-0 z-30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-xl font-semibold text-white">Prompt 管理</h1>
+                        <p class="text-sm text-gray-400">管理系统中使用的所有 Prompt 模板</p>
+                    </div>
+                    <button onclick="openCreateModal()" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90 transition">
+                        <i class="fas fa-plus mr-2"></i>新建 Prompt
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-6">
+                <!-- Filters -->
+                <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-6">
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex-1 min-w-[200px]">
+                            <input type="text" placeholder="搜索 Prompt 名称或描述..." 
+                                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <select class="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white">
+                            <option value="">所有类别</option>
+                            <option value="visibility">可见度分析</option>
+                            <option value="sheep">SHEEP 评估</option>
+                            <option value="optimization">优化建议</option>
+                            <option value="competitor">竞品分析</option>
+                        </select>
+                        <select class="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white">
+                            <option value="">所有状态</option>
+                            <option value="active">启用</option>
+                            <option value="draft">草稿</option>
+                            <option value="archived">已归档</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Prompt List -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                    <table class="w-full admin-table">
+                        <thead>
+                            <tr>
+                                <th class="text-left px-6 py-4">名称</th>
+                                <th class="text-left px-6 py-4">类别</th>
+                                <th class="text-left px-6 py-4">版本</th>
+                                <th class="text-left px-6 py-4">状态</th>
+                                <th class="text-left px-6 py-4">最后更新</th>
+                                <th class="text-left px-6 py-4">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="hover:bg-gray-700/50">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">visibility_analysis_v2</div>
+                                    <div class="text-sm text-gray-400">分析品牌在 AI 模型中的可见度</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-info">可见度分析</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-300">v2.3.1</td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-success">启用</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-400">2026-02-06 14:30</td>
+                                <td class="px-6 py-4">
+                                    <div class="flex gap-2">
+                                        <button class="p-2 text-gray-400 hover:text-white" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="测试">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="版本历史">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-700/50">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">sheep_evaluation_main</div>
+                                    <div class="text-sm text-gray-400">SHEEP 五维评估主 Prompt</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-info">SHEEP 评估</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-300">v3.0.0</td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-success">启用</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-400">2026-02-05 10:15</td>
+                                <td class="px-6 py-4">
+                                    <div class="flex gap-2">
+                                        <button class="p-2 text-gray-400 hover:text-white" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="测试">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="版本历史">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-700/50">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">optimization_suggestions</div>
+                                    <div class="text-sm text-gray-400">生成优化建议的 Prompt</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-info">优化建议</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-300">v1.5.2</td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-success">启用</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-400">2026-02-04 16:45</td>
+                                <td class="px-6 py-4">
+                                    <div class="flex gap-2">
+                                        <button class="p-2 text-gray-400 hover:text-white" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="测试">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="版本历史">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-700/50">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">competitor_analysis_deep</div>
+                                    <div class="text-sm text-gray-400">深度竞品分析 Prompt</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-info">竞品分析</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-300">v2.1.0</td>
+                                <td class="px-6 py-4">
+                                    <span class="admin-badge admin-badge-warning">草稿</span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-400">2026-02-07 09:20</td>
+                                <td class="px-6 py-4">
+                                    <div class="flex gap-2">
+                                        <button class="p-2 text-gray-400 hover:text-white" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="测试">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button class="p-2 text-gray-400 hover:text-white" title="版本历史">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex items-center justify-between mt-4">
+                    <div class="text-sm text-gray-400">显示 1-4 共 12 条</div>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 bg-gray-700 text-gray-400 rounded-lg">上一页</button>
+                        <button class="px-3 py-1 bg-indigo-600 text-white rounded-lg">1</button>
+                        <button class="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">2</button>
+                        <button class="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">3</button>
+                        <button class="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">下一页</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Modal -->
+    <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl w-full max-w-2xl mx-4 border border-gray-700">
+            <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                <h3 class="text-lg font-semibold text-white">新建 Prompt</h3>
+                <button onclick="closeCreateModal()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-gray-400 text-sm mb-2">Prompt 名称</label>
+                    <input type="text" placeholder="例如: visibility_analysis_v3" 
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-2">类别</label>
+                    <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white">
+                        <option value="visibility">可见度分析</option>
+                        <option value="sheep">SHEEP 评估</option>
+                        <option value="optimization">优化建议</option>
+                        <option value="competitor">竞品分析</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-2">描述</label>
+                    <input type="text" placeholder="简要描述此 Prompt 的用途" 
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-2">Prompt 内容</label>
+                    <textarea rows="8" placeholder="输入 Prompt 内容..." 
+                              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 font-mono text-sm"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 p-6 border-t border-gray-700">
+                <button onclick="closeCreateModal()" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">取消</button>
+                <button class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openCreateModal() {
+            document.getElementById('createModal').classList.remove('hidden');
+            document.getElementById('createModal').classList.add('flex');
+        }
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+            document.getElementById('createModal').classList.remove('flex');
+        }
+    </script>
+</body>
+</html>

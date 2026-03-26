@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型配置 - GCore Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .modal-overlay { background: rgba(0,0,0,0.4); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">大模型配置</h2>
+                    <p class="text-sm text-gray-500">管理 AI 模型的 API 端点、密钥和参数</p>
+                </div>
+                <button onclick="openAddModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-plus mr-2"></i>添加模型
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 缓存状态 -->
+            <div id="cacheStatus" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 hidden">
+                <i class="fas fa-info-circle mr-1"></i><span id="cacheStatusText"></span>
+            </div>
+
+            <!-- 模型列表 -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">模型</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">端点</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">模型名</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">API Key</th>
+                            <th class="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">温度</th>
+                            <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">价格 ($/M tokens)</th>
+                            <th class="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">状态</th>
+                            <th class="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modelList" class="divide-y divide-gray-100">
+                        <tr><td colspan="8" class="text-center py-8 text-gray-400">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 编辑弹窗 -->
+    <div id="editModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[600px] max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h3 id="modalTitle" class="text-lg font-bold text-gray-900">添加模型</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="editId" value="">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">模型标识 <span class="text-red-500">*</span></label>
+                        <input type="text" id="editModelId" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="如: gpt, claude, gemini">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">显示名称</label>
+                        <input type="text" id="editDisplayName" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="如: GPT-4o">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">API 端点 <span class="text-red-500">*</span></label>
+                    <input type="text" id="editEndpoint" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="https://api.openai.com/v1/chat/completions">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">API Key <span class="text-red-500">*</span></label>
+                    <input type="text" id="editApiKey" class="w-full border rounded-lg px-3 py-2 text-sm font-mono" placeholder="sk-...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">模型名称 <span class="text-red-500">*</span></label>
+                    <input type="text" id="editModelName" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="如: gpt-4o, claude-3-opus">
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">温度</label>
+                        <input type="number" id="editTemperature" class="w-full border rounded-lg px-3 py-2 text-sm" value="0.7" min="0" max="2" step="0.1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">最大 Tokens</label>
+                        <input type="number" id="editMaxTokens" class="w-full border rounded-lg px-3 py-2 text-sm" value="16384" min="256" max="200000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
+                        <input type="number" id="editSortOrder" class="w-full border rounded-lg px-3 py-2 text-sm" value="0" min="0">
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-amber-800 mb-3"><i class="fas fa-dollar-sign mr-1"></i>价格配置（按用量计费）</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">输入价格 ($/M tokens)</label>
+                            <input type="number" id="editInputPrice" class="w-full border rounded-lg px-3 py-2 text-sm" value="" min="0" step="0.01" placeholder="如 2.50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">输出价格 ($/M tokens)</label>
+                            <input type="number" id="editOutputPrice" class="w-full border rounded-lg px-3 py-2 text-sm" value="" min="0" step="0.01" placeholder="如 10.00">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">货币</label>
+                            <select id="editPriceCurrency" class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <option value="USD">USD</option>
+                                <option value="CNY">CNY</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                    <input type="text" id="editDescription" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="可选">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="editEnabled" checked class="rounded text-indigo-600">
+                    <label for="editEnabled" class="text-sm text-gray-700">启用</label>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-100 flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+                <button onclick="saveModel()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-save mr-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let models = [];
+
+        async function loadModels() {
+            try {
+                const res = await fetch('/api/config/models');
+                const result = await res.json();
+                if (result.success) {
+                    models = result.data;
+                    renderModels();
+                }
+            } catch (e) {
+                console.error('加载模型配置失败:', e);
+                document.getElementById('modelList').innerHTML =
+                    '<tr><td colspan="8" class="text-center py-8 text-red-400">加载失败</td></tr>';
+            }
+        }
+
+        function renderModels() {
+            const tbody = document.getElementById('modelList');
+            if (!models.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无模型配置</td></tr>';
+                return;
+            }
+            tbody.innerHTML = models.map(m => `
+                <tr class="hover:bg-gray-50 ${!m.isEnabled ? 'opacity-50' : ''}">
+                    <td class="px-6 py-3">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 text-xs font-bold">
+                                ${(m.displayName || m.modelId).charAt(0).toUpperCase()}
+                            </span>
+                            <div>
+                                <div class="font-medium text-gray-900 text-sm">${m.displayName || m.modelId}</div>
+                                <div class="text-xs text-gray-500">${m.modelId}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-xs text-gray-600 max-w-[180px] truncate" title="${m.apiEndpoint}">${m.apiEndpoint}</td>
+                    <td class="px-6 py-3 text-sm text-gray-700 font-mono">${m.modelName}</td>
+                    <td class="px-6 py-3 text-xs text-gray-500 font-mono">${m.apiKey}</td>
+                    <td class="px-6 py-3 text-center text-sm">${m.temperature}</td>
+                    <td class="px-6 py-3 text-right text-xs font-mono">
+                        ${m.inputPricePerMToken != null || m.outputPricePerMToken != null 
+                            ? `<span class="text-green-700">↑${m.inputPricePerMToken ?? '-'}</span> / <span class="text-orange-600">↓${m.outputPricePerMToken ?? '-'}</span><br><span class="text-gray-400">${m.priceCurrency || 'USD'}</span>`
+                            : '<span class="text-gray-300">未设置</span>'}
+                    </td>
+                    <td class="px-6 py-3 text-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${m.isEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
+                            ${m.isEnabled ? '启用' : '禁用'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-3 text-center">
+                        <button onclick="openEditModal(${m.id})" class="text-indigo-600 hover:text-indigo-800 mr-3" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteModel(${m.id}, '${m.modelId}')" class="text-red-500 hover:text-red-700" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = '添加模型';
+            document.getElementById('editId').value = '';
+            document.getElementById('editModelId').value = '';
+            document.getElementById('editModelId').disabled = false;
+            document.getElementById('editDisplayName').value = '';
+            document.getElementById('editEndpoint').value = '';
+            document.getElementById('editApiKey').value = '';
+            document.getElementById('editModelName').value = '';
+            document.getElementById('editTemperature').value = '0.7';
+            document.getElementById('editMaxTokens').value = '16384';
+            document.getElementById('editSortOrder').value = '0';
+            document.getElementById('editDescription').value = '';
+            document.getElementById('editInputPrice').value = '';
+            document.getElementById('editOutputPrice').value = '';
+            document.getElementById('editPriceCurrency').value = 'USD';
+            document.getElementById('editEnabled').checked = true;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        async function openEditModal(id) {
+            try {
+                const res = await fetch(`/api/config/models/${id}`);
+                const result = await res.json();
+                if (!result.success) { alert('获取配置失败'); return; }
+                const m = result.data;
+
+                document.getElementById('modalTitle').textContent = `编辑模型 - ${m.displayName || m.modelId}`;
+                document.getElementById('editId').value = m.id;
+                document.getElementById('editModelId').value = m.modelId;
+                document.getElementById('editModelId').disabled = true;
+                document.getElementById('editDisplayName').value = m.displayName || '';
+                document.getElementById('editEndpoint').value = m.apiEndpoint || '';
+                document.getElementById('editApiKey').value = m.apiKey || '';
+                document.getElementById('editModelName').value = m.modelName || '';
+                document.getElementById('editTemperature').value = m.temperature;
+                document.getElementById('editMaxTokens').value = m.maxTokens;
+                document.getElementById('editSortOrder').value = m.sortOrder;
+                document.getElementById('editDescription').value = m.description || '';
+                document.getElementById('editInputPrice').value = m.inputPricePerMToken ?? '';
+                document.getElementById('editOutputPrice').value = m.outputPricePerMToken ?? '';
+                document.getElementById('editPriceCurrency').value = m.priceCurrency || 'USD';
+                document.getElementById('editEnabled').checked = m.isEnabled;
+                document.getElementById('editModal').classList.remove('hidden');
+            } catch (e) {
+                alert('获取配置失败: ' + e.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        async function saveModel() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                modelId: document.getElementById('editModelId').value.trim(),
+                displayName: document.getElementById('editDisplayName').value.trim(),
+                apiEndpoint: document.getElementById('editEndpoint').value.trim(),
+                apiKey: document.getElementById('editApiKey').value.trim(),
+                modelName: document.getElementById('editModelName').value.trim(),
+                temperature: parseFloat(document.getElementById('editTemperature').value),
+                maxTokens: parseInt(document.getElementById('editMaxTokens').value),
+                sortOrder: parseInt(document.getElementById('editSortOrder').value),
+                description: document.getElementById('editDescription').value.trim(),
+                inputPricePerMToken: document.getElementById('editInputPrice').value ? parseFloat(document.getElementById('editInputPrice').value) : null,
+                outputPricePerMToken: document.getElementById('editOutputPrice').value ? parseFloat(document.getElementById('editOutputPrice').value) : null,
+                priceCurrency: document.getElementById('editPriceCurrency').value,
+                isEnabled: document.getElementById('editEnabled').checked
+            };
+
+            if (!data.modelId) { alert('模型标识不能为空'); return; }
+
+            try {
+                const url = id ? `/api/config/models/${id}` : '/api/config/models';
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    closeModal();
+                    showCacheStatus('配置已保存，SaaS 前台缓存已同步刷新');
+                    await loadModels();
+                } else {
+                    alert('保存失败: ' + result.message);
+                }
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+        async function deleteModel(id, modelId) {
+            if (!confirm(`确定要删除模型 "${modelId}" 的配置吗？`)) return;
+            try {
+                const res = await fetch(`/api/config/models/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.success) {
+                    showCacheStatus('模型已删除，SaaS 前台缓存已同步刷新');
+                    await loadModels();
+                } else {
+                    alert('删除失败: ' + result.message);
+                }
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+
+        function showCacheStatus(msg) {
+            const el = document.getElementById('cacheStatus');
+            document.getElementById('cacheStatusText').textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        loadModels();
+    </script>
+</body>
+</html>

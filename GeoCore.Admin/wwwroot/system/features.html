@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能开关 - GEOCore AI 运营后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/admin-styles.css">
+</head>
+<body class="bg-gray-900 min-h-screen">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 admin-sidebar min-h-screen fixed left-0 top-0 z-40">
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">G</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-bold">GEOCore AI</div>
+                        <div class="text-gray-500 text-xs">运营后台</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="../dashboard.html" class="admin-sidebar-link">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span>运营仪表盘</span>
+                </a>
+                <div class="pt-4 mt-4 border-t border-gray-800">
+                    <div class="text-gray-500 text-xs uppercase tracking-wider px-3 mb-2">系统配置</div>
+                    <a href="../prompts/list.html" class="admin-sidebar-link">
+                        <i class="fas fa-comment-dots w-5"></i>
+                        <span>Prompt 管理</span>
+                    </a>
+                    <a href="parameters.html" class="admin-sidebar-link">
+                        <i class="fas fa-sliders-h w-5"></i>
+                        <span>系统参数</span>
+                    </a>
+                    <a href="features.html" class="admin-sidebar-link active">
+                        <i class="fas fa-toggle-on w-5"></i>
+                        <span>功能开关</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 ml-64">
+            <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 sticky top-0 z-30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-xl font-semibold text-white">功能开关</h1>
+                        <p class="text-sm text-gray-400">控制系统功能的启用和禁用状态</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-6 space-y-6">
+                <!-- 核心功能 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-star text-amber-400"></i>
+                            核心功能
+                        </h3>
+                    </div>
+                    <div class="divide-y divide-gray-700">
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">可见度分析</div>
+                                <div class="text-sm text-gray-400">分析品牌在 AI 模型中的可见度</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">SHEEP 评估</div>
+                                <div class="text-sm text-gray-400">五维评估模型分析</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">竞品分析</div>
+                                <div class="text-sm text-gray-400">竞争对手可见度对比分析</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">优化建议</div>
+                                <div class="text-sm text-gray-400">AI 驱动的优化建议生成</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 实验性功能 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-flask text-purple-400"></i>
+                            实验性功能
+                            <span class="admin-badge admin-badge-warning ml-2">Beta</span>
+                        </h3>
+                    </div>
+                    <div class="divide-y divide-gray-700">
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">AI 内容生成</div>
+                                <div class="text-sm text-gray-400">自动生成优化后的内容</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">实时监控 v2</div>
+                                <div class="text-sm text-gray-400">新版实时监控系统</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-medium text-white">多语言支持</div>
+                                <div class="text-sm text-gray-400">支持多语言内容分析</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 订阅级别功能 -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-crown text-yellow-400"></i>
+                            订阅级别功能
+                        </h3>
+                    </div>
+                    <div class="p-4">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-gray-400 text-sm">
+                                    <th class="pb-3">功能</th>
+                                    <th class="pb-3 text-center">免费版</th>
+                                    <th class="pb-3 text-center">专业版</th>
+                                    <th class="pb-3 text-center">企业版</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-white">
+                                <tr class="border-t border-gray-700">
+                                    <td class="py-3">项目数量</td>
+                                    <td class="py-3 text-center">1</td>
+                                    <td class="py-3 text-center">10</td>
+                                    <td class="py-3 text-center">无限</td>
+                                </tr>
+                                <tr class="border-t border-gray-700">
+                                    <td class="py-3">支持模型数</td>
+                                    <td class="py-3 text-center">3</td>
+                                    <td class="py-3 text-center">6</td>
+                                    <td class="py-3 text-center">9+</td>
+                                </tr>
+                                <tr class="border-t border-gray-700">
+                                    <td class="py-3">竞品分析</td>
+                                    <td class="py-3 text-center"><i class="fas fa-times text-red-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-check text-green-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-check text-green-400"></i></td>
+                                </tr>
+                                <tr class="border-t border-gray-700">
+                                    <td class="py-3">实时监控</td>
+                                    <td class="py-3 text-center"><i class="fas fa-times text-red-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-check text-green-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-check text-green-400"></i></td>
+                                </tr>
+                                <tr class="border-t border-gray-700">
+                                    <td class="py-3">API 访问</td>
+                                    <td class="py-3 text-center"><i class="fas fa-times text-red-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-times text-red-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-check text-green-400"></i></td>
+                                </tr>
+                                <tr class="border-t border-gray-700">
+                                    <td class="py-3">白标定制</td>
+                                    <td class="py-3 text-center"><i class="fas fa-times text-red-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-times text-red-400"></i></td>
+                                    <td class="py-3 text-center"><i class="fas fa-check text-green-400"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 维护模式 -->
+                <div class="bg-gray-800 rounded-xl border border-red-900/50">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-tools text-red-400"></i>
+                            维护模式
+                        </h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center justify-between p-4 bg-red-900/20 rounded-lg border border-red-900/30">
+                            <div>
+                                <div class="font-medium text-white">启用维护模式</div>
+                                <div class="text-sm text-gray-400">启用后用户将无法访问系统，仅管理员可用</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                            </label>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-gray-400 text-sm mb-2">维护提示信息</label>
+                            <textarea rows="3" placeholder="系统正在维护中，请稍后再试..." 
+                                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

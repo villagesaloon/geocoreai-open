@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt 配置 - GCore Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Prompt 配置</h2>
+                    <p class="text-sm text-gray-500">管理 AI 模型的 Prompt 模板</p>
+                </div>
+                <button onclick="showCreateModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-plus mr-2"></i>新建配置
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 分类筛选 -->
+            <div class="mb-6 flex gap-2">
+                <button onclick="filterByCategory('')" class="category-btn px-4 py-2 rounded-lg bg-white border shadow-sm hover:bg-gray-50" data-category="">全部</button>
+                <button onclick="filterByCategory('distillation')" class="category-btn px-4 py-2 rounded-lg bg-white border shadow-sm hover:bg-gray-50" data-category="distillation">蒸馏</button>
+                <button onclick="filterByCategory('questions')" class="category-btn px-4 py-2 rounded-lg bg-white border shadow-sm hover:bg-gray-50" data-category="questions">问题生成</button>
+                <button onclick="filterByCategory('answers')" class="category-btn px-4 py-2 rounded-lg bg-white border shadow-sm hover:bg-gray-50" data-category="answers">答案生成</button>
+            </div>
+
+            <!-- 配置列表 -->
+            <div class="bg-white rounded-xl shadow-sm">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">分类</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">键名</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">更新时间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="configList" class="divide-y divide-gray-200">
+                        <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 编辑弹窗 -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-4/5 max-w-4xl max-h-[90vh] overflow-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 id="modalTitle" class="text-xl font-bold">编辑 Prompt 配置</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="configForm" class="p-6 space-y-4">
+                <input type="hidden" id="configId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">分类 *</label>
+                        <select id="category" class="w-full border rounded-lg px-3 py-2" required>
+                            <option value="distillation">蒸馏 (distillation)</option>
+                            <option value="questions">问题生成 (questions)</option>
+                            <option value="answers">答案生成 (answers)</option>
+                            <option value="other">其他 (other)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">键名 *</label>
+                        <input type="text" id="configKey" class="w-full border rounded-lg px-3 py-2" placeholder="如: general, perplexity" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">名称 *</label>
+                        <input type="text" id="name" class="w-full border rounded-lg px-3 py-2" placeholder="配置显示名称" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
+                        <input type="number" id="sortOrder" class="w-full border rounded-lg px-3 py-2" value="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                    <input type="text" id="description" class="w-full border rounded-lg px-3 py-2" placeholder="配置说明">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Prompt 模板 *</label>
+                    <div class="text-xs text-gray-500 mb-2">
+                        可用占位符: {{brandName}}, {{productContext}}, {{industry}}, {{sellingPoints}}, {{personas}}, {{language}}, {{regionGuidance}}
+                    </div>
+                    <textarea id="promptTemplate" class="w-full border rounded-lg px-3 py-2 font-mono text-sm" rows="20" required></textarea>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="isEnabled" class="mr-2" checked>
+                    <label for="isEnabled" class="text-sm text-gray-700">启用此配置</label>
+                </div>
+                <div class="flex justify-end gap-2 pt-4 border-t">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let allConfigs = [];
+        let currentCategory = '';
+
+        // 加载配置列表
+        async function loadConfigs() {
+            try {
+                const response = await fetch('/api/promptconfig');
+                const result = await response.json();
+                if (result.success) {
+                    allConfigs = result.data;
+                    renderConfigs();
+                }
+            } catch (error) {
+                console.error('加载配置失败:', error);
+            }
+        }
+
+        // 渲染配置列表
+        function renderConfigs() {
+            const filtered = currentCategory 
+                ? allConfigs.filter(c => c.category === currentCategory)
+                : allConfigs;
+            
+            const tbody = document.getElementById('configList');
+            tbody.innerHTML = filtered.map(config => `
+                <tr>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${getCategoryColor(config.category)}">${config.category}</span>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-sm">${config.configKey}</td>
+                    <td class="px-6 py-4">${config.name}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${config.isEnabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${config.isEnabled ? '启用' : '禁用'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${new Date(config.updatedAt).toLocaleString()}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="editConfig(${config.id})" class="text-indigo-600 hover:text-indigo-800 mr-2">
+                            <i class="fas fa-edit"></i> 编辑
+                        </button>
+                        <button onclick="deleteConfig(${config.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                'distillation': 'bg-purple-100 text-purple-800',
+                'questions': 'bg-blue-100 text-blue-800',
+                'answers': 'bg-green-100 text-green-800'
+            };
+            return colors[category] || 'bg-gray-100 text-gray-800';
+        }
+
+        // 分类筛选
+        function filterByCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.toggle('bg-indigo-600', btn.dataset.category === category);
+                btn.classList.toggle('text-white', btn.dataset.category === category);
+            });
+            renderConfigs();
+        }
+
+        // 显示创建弹窗
+        function showCreateModal() {
+            document.getElementById('modalTitle').textContent = '新建 Prompt 配置';
+            document.getElementById('configId').value = '';
+            document.getElementById('configForm').reset();
+            document.getElementById('isEnabled').checked = true;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        // 编辑配置
+        function editConfig(id) {
+            const config = allConfigs.find(c => c.id === id);
+            if (!config) return;
+
+            document.getElementById('modalTitle').textContent = '编辑 Prompt 配置';
+            document.getElementById('configId').value = config.id;
+            document.getElementById('category').value = config.category;
+            document.getElementById('configKey').value = config.configKey;
+            document.getElementById('name').value = config.name;
+            document.getElementById('description').value = config.description || '';
+            document.getElementById('promptTemplate').value = config.promptTemplate;
+            document.getElementById('sortOrder').value = config.sortOrder;
+            document.getElementById('isEnabled').checked = config.isEnabled;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        // 保存配置
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('configId').value;
+            const data = {
+                category: document.getElementById('category').value,
+                configKey: document.getElementById('configKey').value,
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                promptTemplate: document.getElementById('promptTemplate').value,
+                sortOrder: parseInt(document.getElementById('sortOrder').value) || 0,
+                isEnabled: document.getElementById('isEnabled').checked
+            };
+
+            try {
+                const url = id ? `/api/promptconfig/${id}` : '/api/promptconfig';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    closeModal();
+                    loadConfigs();
+                    alert('保存成功');
+                } else {
+                    alert('保存失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('保存失败');
+            }
+        });
+
+        // 删除配置
+        async function deleteConfig(id) {
+            if (!confirm('确定要删除此配置吗？')) return;
+            
+            try {
+                const response = await fetch(`/api/promptconfig/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    loadConfigs();
+                } else {
+                    alert('删除失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+            }
+        }
+
+        // 初始化
+        loadConfigs();
+    </script>
+</body>
+</html>

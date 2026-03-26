@@ -1,0 +1,169 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒸馏工作室 - GCore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .layer-arrow { position: relative; }
+        .layer-arrow::after { content: '→'; position: absolute; right: -20px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">蒸馏工作室</h2>
+                    <p class="text-sm text-gray-500">三层蒸馏模型 | 五层蒸馏模型 | 蒸馏报告</p>
+                </div>
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-download mr-2"></i>导出报告
+                </button>
+            </div>
+        </header>
+        <div class="p-8">
+            <!-- 蒸馏模式选择 -->
+            <div class="flex gap-4 mb-6">
+                <button class="flex-1 p-4 bg-indigo-50 border-2 border-indigo-500 rounded-xl text-center">
+                    <i class="fas fa-layer-group text-indigo-600 text-2xl mb-2"></i>
+                    <p class="font-semibold text-indigo-700">三层蒸馏</p>
+                    <p class="text-xs text-indigo-600">卖点 → 语义 → 分发</p>
+                </button>
+                <button class="flex-1 p-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-center hover:border-purple-300">
+                    <i class="fas fa-sitemap text-gray-400 text-2xl mb-2"></i>
+                    <p class="font-semibold text-gray-600">五层蒸馏</p>
+                    <p class="text-xs text-gray-500">画像 → 旅程 → 场景 → 口语 → 本地化</p>
+                </button>
+            </div>
+
+            <!-- 三层蒸馏流程 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">三层蒸馏流程</h3>
+                <div class="grid grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-bullhorn text-blue-600 text-2xl"></i>
+                        </div>
+                        <p class="font-semibold text-gray-900">第1层: 核心卖点</p>
+                        <p class="text-sm text-gray-500 mt-1">提炼品牌核心差异化</p>
+                        <div class="mt-3 p-3 bg-blue-50 rounded-lg text-left">
+                            <p class="text-xs text-blue-700 font-medium mb-1">已配置卖点:</p>
+                            <p class="text-sm text-blue-600">• AI可见度分析领导者</p>
+                            <p class="text-sm text-blue-600">• SHEEP五维评估模型</p>
+                            <p class="text-sm text-blue-600">• 多模型覆盖分析</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-random text-purple-600 text-2xl"></i>
+                        </div>
+                        <p class="font-semibold text-gray-900">第2层: 语义变体</p>
+                        <p class="text-sm text-gray-500 mt-1">扩展语义表达方式</p>
+                        <div class="mt-3 p-3 bg-purple-50 rounded-lg text-left">
+                            <p class="text-xs text-purple-700 font-medium mb-1">生成变体 (24个):</p>
+                            <p class="text-sm text-purple-600">• 品牌AI曝光度</p>
+                            <p class="text-sm text-purple-600">• ChatGPT品牌排名</p>
+                            <p class="text-sm text-purple-600">• AI搜索可见性...</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-share-alt text-emerald-600 text-2xl"></i>
+                        </div>
+                        <p class="font-semibold text-gray-900">第3层: 分发优化</p>
+                        <p class="text-sm text-gray-500 mt-1">适配不同平台场景</p>
+                        <div class="mt-3 p-3 bg-emerald-50 rounded-lg text-left">
+                            <p class="text-xs text-emerald-700 font-medium mb-1">平台适配词:</p>
+                            <p class="text-sm text-emerald-600">• [官网] AI可见度优化</p>
+                            <p class="text-sm text-emerald-600">• [社媒] #AI品牌曝光</p>
+                            <p class="text-sm text-emerald-600">• [搜索] GEO优化工具</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- 输入配置 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">蒸馏配置</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">核心卖点输入</label>
+                            <textarea class="w-full px-4 py-2 border border-gray-200 rounded-lg" rows="3" placeholder="输入品牌核心卖点，每行一个...">AI可见度分析领导者
+SHEEP五维评估模型
+多模型覆盖分析</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">噪音词过滤</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-200 rounded-lg" placeholder="输入要过滤的词，逗号分隔" value="免费,最好,第一">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">目标平台</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg cursor-pointer">
+                                    <input type="checkbox" checked class="rounded"> 官网
+                                </label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg cursor-pointer">
+                                    <input type="checkbox" checked class="rounded"> 社交媒体
+                                </label>
+                                <label class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="rounded"> 搜索引擎
+                                </label>
+                            </div>
+                        </div>
+                        <button class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                            <i class="fas fa-filter mr-2"></i>开始蒸馏
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 蒸馏结果 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">蒸馏结果预览</h3>
+                    <div class="space-y-3 max-h-72 overflow-y-auto">
+                        <div class="p-3 bg-emerald-50 rounded-lg">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">官网</span>
+                                <span class="text-xs text-gray-400">质量分: 92</span>
+                            </div>
+                            <p class="text-sm text-gray-700">AI可见度分析与优化平台</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded">社媒</span>
+                                <span class="text-xs text-gray-400">质量分: 88</span>
+                            </div>
+                            <p class="text-sm text-gray-700">#AI品牌可见度 #GEO优化</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">搜索</span>
+                                <span class="text-xs text-gray-400">质量分: 85</span>
+                            </div>
+                            <p class="text-sm text-gray-700">品牌AI搜索排名优化工具</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+                        <button class="flex-1 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                            <i class="fas fa-copy mr-1"></i> 复制全部
+                        </button>
+                        <button class="flex-1 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                            <i class="fas fa-file-export mr-1"></i> 导出
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+

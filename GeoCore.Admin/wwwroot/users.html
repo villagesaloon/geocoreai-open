@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS 用户管理 - GCore Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">SaaS 用户管理</h2>
+                    <p class="text-sm text-gray-500">管理平台注册用户</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="loadUsers()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-sync-alt mr-2"></i>刷新
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">总用户数</span>
+                        <span class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-indigo-600"></i>
+                        </span>
+                    </div>
+                    <p id="statTotal" class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">活跃用户</span>
+                        <span class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-check text-emerald-600"></i>
+                        </span>
+                    </div>
+                    <p id="statActive" class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">今日新增</span>
+                        <span class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-plus text-amber-600"></i>
+                        </span>
+                    </div>
+                    <p id="statToday" class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">今日活跃</span>
+                        <span class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-purple-600"></i>
+                        </span>
+                    </div>
+                    <p id="statTodayActive" class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+            </div>
+
+            <!-- 用户列表 -->
+            <div class="bg-white rounded-xl shadow-sm">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">用户列表</h3>
+                        <div class="flex items-center gap-4">
+                            <input type="text" id="searchInput" placeholder="搜索用户..." 
+                                   class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">登录次数</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">最后登录</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- 分页 -->
+                <div class="p-4 border-t border-gray-200 flex items-center justify-between">
+                    <p id="pageInfo" class="text-sm text-gray-500">显示 0 条记录</p>
+                    <div class="flex items-center gap-2">
+                        <button id="prevBtn" onclick="prevPage()" disabled class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">上一页</button>
+                        <span id="pageNum" class="px-3 py-1 text-sm">1</span>
+                        <button id="nextBtn" onclick="nextPage()" disabled class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">下一页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+        let totalPages = 1;
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/users/stats');
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('statTotal').textContent = result.data.totalUsers;
+                    document.getElementById('statActive').textContent = result.data.activeUsers;
+                    document.getElementById('statToday').textContent = result.data.todayNewUsers;
+                    document.getElementById('statTodayActive').textContent = result.data.todayActiveUsers;
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`/api/admin/users?page=${currentPage}&pageSize=${pageSize}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    totalPages = result.totalPages;
+                    renderUsers(result.data);
+                    updatePagination(result.total);
+                }
+            } catch (error) {
+                console.error('加载用户失败:', error);
+                document.getElementById('userTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-red-500">
+                            <i class="fas fa-exclamation-circle mr-2"></i>加载失败
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('userTableBody');
+            
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox mr-2"></i>暂无用户
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${user.photoUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email)}" 
+                                 alt="" class="w-10 h-10 rounded-full">
+                            <div>
+                                <p class="font-medium text-gray-900">${user.displayName || '-'}</p>
+                                <p class="text-xs text-gray-500">${user.provider || 'google.com'}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${user.email}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}">
+                            ${user.role || 'user'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${user.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${user.status === 'active' ? '正常' : '禁用'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${user.loginCount || 0}</td>
+                    <td class="px-6 py-4 text-gray-600">${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('zh-CN') : '-'}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleStatus(${user.id}, '${user.status}')" 
+                                    class="text-sm ${user.status === 'active' ? 'text-red-600 hover:text-red-800' : 'text-emerald-600 hover:text-emerald-800'}">
+                                ${user.status === 'active' ? '禁用' : '启用'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updatePagination(total) {
+            document.getElementById('pageInfo').textContent = `共 ${total} 条记录`;
+            document.getElementById('pageNum').textContent = currentPage;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadUsers();
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadUsers();
+            }
+        }
+
+        async function toggleStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+            const action = newStatus === 'active' ? '启用' : '禁用';
+            
+            if (!confirm(`确定要${action}该用户吗？`)) return;
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadUsers();
+                    loadStats();
+                } else {
+                    alert('操作失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                alert('操作失败');
+            }
+        }
+
+        // 初始化
+        loadStats();
+        loadUsers();
+    </script>
+</body>
+</html>
