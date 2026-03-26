@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">文章 - GeoCore AI</title>
+    <meta name="description" id="pageDesc" content="">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .prose { max-width: 65ch; }
+        .prose h1 { font-size: 2em; font-weight: 700; margin: 1.5em 0 0.5em; }
+        .prose h2 { font-size: 1.5em; font-weight: 600; margin: 1.25em 0 0.5em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5em; }
+        .prose h3 { font-size: 1.25em; font-weight: 600; margin: 1em 0 0.5em; }
+        .prose p { margin: 1em 0; line-height: 1.75; }
+        .prose ul, .prose ol { margin: 1em 0; padding-left: 1.5em; }
+        .prose li { margin: 0.5em 0; }
+        .prose code { background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; }
+        .prose pre { background: #1f2937; color: #e5e7eb; padding: 1em; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
+        .prose pre code { background: none; padding: 0; }
+        .prose blockquote { border-left: 4px solid #6366f1; padding-left: 1em; margin: 1em 0; color: #6b7280; font-style: italic; }
+        .prose a { color: #6366f1; text-decoration: underline; }
+        .prose img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+        .prose table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+        .prose th, .prose td { border: 1px solid #e5e7eb; padding: 0.75em; text-align: left; }
+        .prose th { background: #f9fafb; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white"></i>
+                </div>
+                <span class="font-bold text-xl text-gray-900">GeoCore AI</span>
+            </a>
+            <nav class="flex items-center gap-6">
+                <a href="features.html" class="text-gray-600 hover:text-indigo-600">功能</a>
+                <a href="pricing.html" class="text-gray-600 hover:text-indigo-600">定价</a>
+                <a href="blog.html" class="text-indigo-600 font-medium">博客</a>
+                <a href="docs.html" class="text-gray-600 hover:text-indigo-600">文档</a>
+                <a href="login.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-6 py-12">
+        <!-- 加载状态 -->
+        <div id="loading" class="text-center py-16">
+            <i class="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+            <p class="text-gray-500">加载中...</p>
+        </div>
+
+        <!-- 文章内容 -->
+        <article id="articleContent" class="hidden">
+            <!-- 面包屑 -->
+            <nav class="mb-8">
+                <a href="blog.html" class="text-indigo-600 hover:underline"><i class="fas fa-arrow-left mr-2"></i>返回博客</a>
+            </nav>
+
+            <!-- 封面图 -->
+            <div id="coverImage" class="mb-8"></div>
+
+            <!-- 标题和元信息 -->
+            <header class="mb-8">
+                <div id="tags" class="flex flex-wrap gap-2 mb-4"></div>
+                <h1 id="title" class="text-4xl font-bold text-gray-900 mb-4"></h1>
+                <div id="meta" class="flex items-center gap-6 text-gray-500"></div>
+            </header>
+
+            <!-- 正文 -->
+            <div id="content" class="prose text-gray-700"></div>
+
+            <!-- 分享和相关 -->
+            <footer class="mt-12 pt-8 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <span class="text-gray-500">分享到：</span>
+                        <a href="#" onclick="shareToTwitter()" class="text-gray-400 hover:text-blue-500"><i class="fab fa-twitter text-xl"></i></a>
+                        <a href="#" onclick="shareToLinkedIn()" class="text-gray-400 hover:text-blue-700"><i class="fab fa-linkedin text-xl"></i></a>
+                    </div>
+                    <a href="blog.html" class="text-indigo-600 hover:underline">查看更多文章 →</a>
+                </div>
+            </footer>
+        </article>
+
+        <!-- 404 状态 -->
+        <div id="notFound" class="hidden text-center py-16">
+            <i class="fas fa-file-excel text-6xl text-gray-300 mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">文章不存在</h2>
+            <p class="text-gray-500 mb-6">您访问的文章可能已被删除或从未存在</p>
+            <a href="blog.html" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">返回博客</a>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-gray-400 py-12 mt-16">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <p>&copy; 2024 GeoCore AI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = '/api/cms';
+        let articleData = null;
+
+        async function loadArticle() {
+            const params = new URLSearchParams(window.location.search);
+            const slug = params.get('slug');
+            
+            if (!slug) {
+                showNotFound();
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/articles/${slug}`);
+                if (!res.ok) {
+                    showNotFound();
+                    return;
+                }
+                
+                articleData = await res.json();
+                renderArticle(articleData);
+            } catch (e) {
+                showNotFound();
+            }
+        }
+
+        function renderArticle(a) {
+            // 更新页面标题和描述
+            document.getElementById('pageTitle').textContent = `${a.seoTitle || a.title} - GeoCore AI`;
+            document.getElementById('pageDesc').content = a.seoDescription || a.summary || '';
+            
+            // 封面图
+            if (a.coverImage) {
+                document.getElementById('coverImage').innerHTML = `<img src="${a.coverImage}" class="w-full h-80 object-cover rounded-2xl" alt="${a.title}">`;
+            }
+            
+            // 标签
+            if (a.tags && a.tags.length > 0) {
+                document.getElementById('tags').innerHTML = a.tags.map(t => 
+                    `<span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-sm">${t}</span>`
+                ).join('');
+            }
+            
+            // 标题
+            document.getElementById('title').textContent = a.title;
+            
+            // 元信息
+            document.getElementById('meta').innerHTML = `
+                ${a.author ? `<span><i class="fas fa-user mr-1"></i>${a.author}</span>` : ''}
+                <span><i class="fas fa-calendar mr-1"></i>${new Date(a.publishedAt).toLocaleDateString()}</span>
+                <span><i class="fas fa-eye mr-1"></i>${a.viewCount} 阅读</span>
+            `;
+            
+            // 正文（Markdown 渲染）
+            document.getElementById('content').innerHTML = marked.parse(a.content || '');
+            
+            // 显示文章
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('articleContent').classList.remove('hidden');
+        }
+
+        function showNotFound() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('notFound').classList.remove('hidden');
+        }
+
+        function shareToTwitter() {
+            if (!articleData) return;
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(articleData.title);
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+        }
+
+        function shareToLinkedIn() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+        }
+
+        // 初始化
+        loadArticle();
+    </script>
+</body>
+</html>

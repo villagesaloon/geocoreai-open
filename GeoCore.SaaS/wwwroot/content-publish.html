@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容生成与发布 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .platform-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .platform-card { transition: all 0.2s; }
+        .status-draft { background: #fef3c7; color: #92400e; }
+        .status-approved { background: #dcfce7; color: #166534; }
+        .status-published { background: #dbeafe; color: #1e40af; }
+        .status-failed { background: #fee2e2; color: #991b1b; }
+        .modal { display: none; }
+        .modal.show { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-xl font-bold text-blue-600">GeoCore AI</a>
+                <span class="text-gray-400">/</span>
+                <span class="text-gray-600">内容生成与发布</span>
+            </div>
+            <div class="text-sm text-gray-500">Phase 8: Content Generation & Publishing</div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- 标签页导航 -->
+        <div class="bg-white rounded-lg shadow-sm mb-6">
+            <div class="flex border-b overflow-x-auto">
+                <button onclick="switchTab('generate')" id="tab-generate" class="px-6 py-3 font-medium tab-active whitespace-nowrap">
+                    <i class="fas fa-magic mr-2"></i>内容生成
+                </button>
+                <button onclick="switchTab('drafts')" id="tab-drafts" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                    <i class="fas fa-file-alt mr-2"></i>草稿管理
+                </button>
+                <button onclick="switchTab('accounts')" id="tab-accounts" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                    <i class="fas fa-link mr-2"></i>平台账号
+                </button>
+                <button onclick="switchTab('history')" id="tab-history" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                    <i class="fas fa-history mr-2"></i>发布历史
+                </button>
+            </div>
+        </div>
+
+        <!-- 内容生成 Tab -->
+        <div id="panel-generate" class="space-y-6">
+            <!-- 平台选择 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">选择发布平台</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="platform-card border-2 border-orange-400 bg-orange-50 rounded-lg p-4 text-center cursor-pointer" onclick="selectPlatform('reddit')">
+                        <i class="fab fa-reddit text-3xl text-orange-500 mb-2"></i>
+                        <p class="font-medium">Reddit</p>
+                        <p class="text-xs text-gray-500">帖子/评论</p>
+                    </div>
+                    <div class="platform-card border-2 border-blue-400 bg-blue-50 rounded-lg p-4 text-center cursor-pointer" onclick="selectPlatform('linkedin')">
+                        <i class="fab fa-linkedin text-3xl text-blue-600 mb-2"></i>
+                        <p class="font-medium">LinkedIn</p>
+                        <p class="text-xs text-gray-500">文章/帖子</p>
+                    </div>
+                    <div class="platform-card border-2 border-gray-400 bg-gray-50 rounded-lg p-4 text-center cursor-pointer" onclick="selectPlatform('medium')">
+                        <i class="fab fa-medium text-3xl text-gray-800 mb-2"></i>
+                        <p class="font-medium">Medium</p>
+                        <p class="text-xs text-gray-500">长文章</p>
+                    </div>
+                    <div class="platform-card border-2 border-sky-400 bg-sky-50 rounded-lg p-4 text-center cursor-pointer" onclick="selectPlatform('twitter')">
+                        <i class="fab fa-twitter text-3xl text-sky-500 mb-2"></i>
+                        <p class="font-medium">Twitter/X</p>
+                        <p class="text-xs text-gray-500">推文/Thread</p>
+                    </div>
+                    <div class="platform-card border-2 border-red-400 bg-red-50 rounded-lg p-4 text-center cursor-pointer" onclick="selectPlatform('youtube')">
+                        <i class="fab fa-youtube text-3xl text-red-600 mb-2"></i>
+                        <p class="font-medium">YouTube</p>
+                        <p class="text-xs text-gray-500">视频描述</p>
+                    </div>
+                    <div class="platform-card border-2 border-purple-400 bg-purple-50 rounded-lg p-4 text-center cursor-pointer" onclick="selectPlatform('quora')">
+                        <i class="fab fa-quora text-3xl text-purple-600 mb-2"></i>
+                        <p class="font-medium">Quora</p>
+                        <p class="text-xs text-gray-500">问答</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模板选择 -->
+            <div id="templateSection" class="bg-white rounded-lg shadow-sm p-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">选择内容模板</h3>
+                    <span id="selectedPlatformBadge" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"></span>
+                </div>
+                <div id="templateList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- 模板卡片动态加载 -->
+                </div>
+            </div>
+
+            <!-- 内容编辑 -->
+            <div id="editorSection" class="bg-white rounded-lg shadow-sm p-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">编辑内容</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="reviewContent()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+                            <i class="fas fa-check-circle mr-2"></i>审核
+                        </button>
+                        <button onclick="saveDraft()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                            <i class="fas fa-save mr-2"></i>保存草稿
+                        </button>
+                        <button onclick="publishContent()" id="publishBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            <i class="fas fa-paper-plane mr-2"></i>发布
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 变量输入 -->
+                <div id="variablesSection" class="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-medium mb-3">填写变量</h4>
+                    <div id="variableInputs" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 动态生成 -->
+                    </div>
+                    <button onclick="generateContent()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-magic mr-2"></i>生成内容
+                    </button>
+                </div>
+
+                <!-- 内容编辑器 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">标题</label>
+                    <input type="text" id="contentTitle" class="w-full border rounded-lg px-4 py-2" placeholder="输入标题（可选）">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">内容</label>
+                    <textarea id="contentBody" class="w-full border rounded-lg px-4 py-3 font-mono text-sm" rows="12" placeholder="生成的内容将显示在这里..."></textarea>
+                </div>
+
+                <!-- 审核结果 -->
+                <div id="reviewResult" class="hidden p-4 rounded-lg border">
+                    <h4 class="font-medium mb-2">审核结果</h4>
+                    <div id="reviewContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 草稿管理 Tab -->
+        <div id="panel-drafts" class="hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">我的草稿</h3>
+                    <select id="draftStatusFilter" class="border rounded-lg px-3 py-2" onchange="loadDrafts()">
+                        <option value="">全部状态</option>
+                        <option value="draft">草稿</option>
+                        <option value="approved">已审核</option>
+                        <option value="published">已发布</option>
+                    </select>
+                </div>
+                <div id="draftsList" class="space-y-4">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 平台账号 Tab -->
+        <div id="panel-accounts" class="hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">已绑定的平台账号</h3>
+                <div id="accountsList" class="space-y-4">
+                    <!-- 动态加载 -->
+                </div>
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-medium text-blue-800 mb-2">绑定新平台</h4>
+                    <p class="text-sm text-blue-600 mb-3">选择要绑定的平台，将跳转到对应平台进行 OAuth 授权</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="bindPlatform('reddit')" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+                            <i class="fab fa-reddit mr-2"></i>Reddit
+                        </button>
+                        <button onclick="bindPlatform('linkedin')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <i class="fab fa-linkedin mr-2"></i>LinkedIn
+                        </button>
+                        <button onclick="bindPlatform('twitter')" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
+                            <i class="fab fa-twitter mr-2"></i>Twitter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 发布历史 Tab -->
+        <div id="panel-history" class="hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">发布历史</h3>
+                <div id="historyList" class="space-y-4">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPlatform = null;
+        let currentTemplate = null;
+        let currentTemplateData = null;
+
+        // Tab 切换
+        function switchTab(tab) {
+            document.querySelectorAll('[id^="panel-"]').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('[id^="tab-"]').forEach(t => {
+                t.classList.remove('tab-active');
+                t.classList.add('text-gray-500');
+            });
+            document.getElementById(`panel-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+            document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
+
+            if (tab === 'drafts') loadDrafts();
+            if (tab === 'accounts') loadAccounts();
+            if (tab === 'history') loadHistory();
+        }
+
+        // 平台选择
+        function selectPlatform(platform) {
+            currentPlatform = platform;
+            document.getElementById('selectedPlatformBadge').textContent = platform.toUpperCase();
+            document.getElementById('templateSection').classList.remove('hidden');
+            loadTemplates(platform);
+        }
+
+        // 加载模板
+        async function loadTemplates(platform) {
+            const container = document.getElementById('templateList');
+            container.innerHTML = '<div class="col-span-3 text-center py-8 text-gray-500">加载中...</div>';
+
+            try {
+                const res = await fetch(`/api/content-publish/templates/${platform}`);
+                const json = await res.json();
+
+                if (!json.data || json.data.length === 0) {
+                    container.innerHTML = '<div class="col-span-3 text-center py-8 text-gray-500">暂无可用模板</div>';
+                    return;
+                }
+
+                container.innerHTML = json.data.map(t => `
+                    <div class="border rounded-lg p-4 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition" 
+                         onclick="selectTemplate(${t.id}, '${t.templateName}', ${JSON.stringify(t.variables).replace(/"/g, '&quot;')})">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium">${t.templateName}</span>
+                            <span class="text-xs px-2 py-1 bg-gray-100 rounded">${t.templateType}</span>
+                        </div>
+                        <p class="text-sm text-gray-500">${t.toneStyle || '默认语气'}</p>
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            ${t.variables.map(v => `<span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{{${v}}}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="col-span-3 text-center py-8 text-red-500">加载失败</div>';
+            }
+        }
+
+        // 选择模板
+        function selectTemplate(id, name, variables) {
+            currentTemplate = id;
+            currentTemplateData = { id, name, variables };
+            document.getElementById('editorSection').classList.remove('hidden');
+
+            const container = document.getElementById('variableInputs');
+            container.innerHTML = variables.map(v => `
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">${v}</label>
+                    <input type="text" id="var_${v}" class="w-full border rounded-lg px-3 py-2" placeholder="输入 ${v}">
+                </div>
+            `).join('');
+        }
+
+        // 生成内容
+        async function generateContent() {
+            if (!currentTemplate) return;
+
+            const variables = {};
+            currentTemplateData.variables.forEach(v => {
+                variables[v] = document.getElementById(`var_${v}`).value;
+            });
+
+            try {
+                const res = await fetch('/api/content-publish/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateId: currentTemplate, variables })
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    document.getElementById('contentBody').value = json.data.generatedContent;
+                    if (json.data.reviewResult) {
+                        showReviewResult(json.data.reviewResult);
+                    }
+                } else {
+                    alert('生成失败: ' + json.message);
+                }
+            } catch (e) {
+                alert('生成失败');
+            }
+        }
+
+        // 审核内容
+        async function reviewContent() {
+            const content = document.getElementById('contentBody').value;
+            if (!content || !currentPlatform) return;
+
+            try {
+                const res = await fetch('/api/content-publish/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform: currentPlatform, content })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showReviewResult(json.data);
+                }
+            } catch (e) {
+                alert('审核失败');
+            }
+        }
+
+        function showReviewResult(result) {
+            const container = document.getElementById('reviewResult');
+            const content = document.getElementById('reviewContent');
+            container.classList.remove('hidden');
+            container.className = `p-4 rounded-lg border ${result.passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`;
+
+            let html = `
+                <div class="flex items-center mb-2">
+                    <span class="text-lg mr-2">${result.passed ? '✅' : '❌'}</span>
+                    <span class="font-medium">${result.passed ? '审核通过' : '审核未通过'}</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-2">
+                    字符数: ${result.characterCount} | 字数: ${result.wordCount}
+                </div>
+            `;
+
+            if (result.issues && result.issues.length > 0) {
+                html += `<div class="mt-2"><p class="text-red-600 font-medium">问题:</p><ul class="list-disc list-inside text-red-600 text-sm">`;
+                result.issues.forEach(i => html += `<li>${i}</li>`);
+                html += '</ul></div>';
+            }
+
+            if (result.warnings && result.warnings.length > 0) {
+                html += `<div class="mt-2"><p class="text-yellow-600 font-medium">警告:</p><ul class="list-disc list-inside text-yellow-600 text-sm">`;
+                result.warnings.forEach(w => html += `<li>${w}</li>`);
+                html += '</ul></div>';
+            }
+
+            content.innerHTML = html;
+        }
+
+        // 发布内容
+        async function publishContent() {
+            const content = document.getElementById('contentBody').value;
+            const title = document.getElementById('contentTitle').value;
+            if (!content || !currentPlatform) {
+                alert('请先生成内容');
+                return;
+            }
+
+            // 检查是否已绑定平台
+            try {
+                const checkRes = await fetch(`/api/content-publish/accounts/check/${currentPlatform}`);
+                const checkJson = await checkRes.json();
+                if (!checkJson.data?.hasBound) {
+                    if (confirm(`您尚未绑定 ${currentPlatform} 账号，是否前往绑定？`)) {
+                        switchTab('accounts');
+                    }
+                    return;
+                }
+            } catch (e) {
+                alert('检查账号状态失败');
+                return;
+            }
+
+            if (!confirm(`确定发布到 ${currentPlatform}？`)) return;
+
+            const btn = document.getElementById('publishBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>发布中...';
+
+            try {
+                const res = await fetch('/api/publish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform: currentPlatform,
+                        title,
+                        content
+                    })
+                });
+                const json = await res.json();
+                
+                if (json.success) {
+                    alert(`发布成功！\n${json.data.url || ''}`);
+                    if (json.data.url) {
+                        window.open(json.data.url, '_blank');
+                    }
+                } else {
+                    alert('发布失败: ' + json.message);
+                }
+            } catch (e) {
+                alert('发布失败');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>发布';
+            }
+        }
+
+        // 保存草稿
+        async function saveDraft() {
+            const content = document.getElementById('contentBody').value;
+            const title = document.getElementById('contentTitle').value;
+            if (!content || !currentPlatform) {
+                alert('请先生成内容');
+                return;
+            }
+
+            const variables = {};
+            if (currentTemplateData) {
+                currentTemplateData.variables.forEach(v => {
+                    variables[v] = document.getElementById(`var_${v}`).value;
+                });
+            }
+
+            try {
+                const res = await fetch('/api/content-publish/drafts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform: currentPlatform,
+                        templateId: currentTemplate,
+                        title,
+                        content,
+                        variables
+                    })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert('草稿已保存');
+                } else {
+                    alert('保存失败');
+                }
+            } catch (e) {
+                alert('保存失败');
+            }
+        }
+
+        // 加载草稿
+        async function loadDrafts() {
+            const status = document.getElementById('draftStatusFilter').value;
+            const container = document.getElementById('draftsList');
+            container.innerHTML = '<div class="text-center py-8 text-gray-500">加载中...</div>';
+
+            try {
+                let url = '/api/content-publish/drafts';
+                if (status) url += `?status=${status}`;
+                const res = await fetch(url);
+                const json = await res.json();
+
+                if (!json.data || json.data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500">暂无草稿</div>';
+                    return;
+                }
+
+                container.innerHTML = json.data.map(d => `
+                    <div class="border rounded-lg p-4 flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-1">
+                                ${getPlatformIcon(d.platform)}
+                                <span class="font-medium">${d.title || '无标题'}</span>
+                                <span class="text-xs px-2 py-0.5 rounded ${getStatusClass(d.status)}">${d.status}</span>
+                            </div>
+                            <p class="text-sm text-gray-500">${d.contentPreview}</p>
+                            <p class="text-xs text-gray-400 mt-1">v${d.version} · ${formatDate(d.updatedAt)}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editDraft(${d.id})" class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded">编辑</button>
+                            <button onclick="deleteDraft(${d.id})" class="px-3 py-1 text-red-600 hover:bg-red-50 rounded">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-8 text-red-500">加载失败</div>';
+            }
+        }
+
+        // 加载账号
+        async function loadAccounts() {
+            const container = document.getElementById('accountsList');
+            container.innerHTML = '<div class="text-center py-8 text-gray-500">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/content-publish/accounts');
+                const json = await res.json();
+
+                if (!json.data || json.data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500">暂未绑定任何平台账号</div>';
+                    return;
+                }
+
+                container.innerHTML = json.data.map(a => `
+                    <div class="border rounded-lg p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            ${getPlatformIcon(a.platform)}
+                            <div>
+                                <p class="font-medium">${a.platformUsername}</p>
+                                <p class="text-sm text-gray-500">${a.platform}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs px-2 py-1 rounded ${a.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${a.status === 'active' ? '已连接' : '已断开'}
+                            </span>
+                            <button onclick="unbindPlatform(${a.id})" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-unlink"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-8 text-red-500">加载失败</div>';
+            }
+        }
+
+        // 加载发布历史
+        async function loadHistory() {
+            const container = document.getElementById('historyList');
+            container.innerHTML = '<div class="text-center py-8 text-gray-500">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/content-publish/history');
+                const json = await res.json();
+
+                if (!json.data || json.data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500">暂无发布记录</div>';
+                    return;
+                }
+
+                container.innerHTML = json.data.map(h => `
+                    <div class="border rounded-lg p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            ${getPlatformIcon(h.platform)}
+                            <div>
+                                <p class="font-medium">${h.platform}</p>
+                                <p class="text-sm text-gray-500">${formatDate(h.publishedAt || h.createdAt)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs px-2 py-1 rounded ${getStatusClass(h.status)}">${h.status}</span>
+                            ${h.platformUrl ? `<a href="${h.platformUrl}" target="_blank" class="text-blue-600 hover:text-blue-800"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-8 text-red-500">加载失败</div>';
+            }
+        }
+
+        // 绑定平台
+        async function bindPlatform(platform) {
+            try {
+                const res = await fetch(`/api/oauth/authorize/${platform}`);
+                const json = await res.json();
+                if (json.success && json.data.authorizeUrl) {
+                    window.location.href = json.data.authorizeUrl;
+                } else {
+                    alert('获取授权链接失败: ' + (json.message || json.data?.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('获取授权链接失败');
+            }
+        }
+
+        // 辅助函数
+        function getPlatformIcon(platform) {
+            const icons = {
+                reddit: '<i class="fab fa-reddit text-2xl text-orange-500"></i>',
+                linkedin: '<i class="fab fa-linkedin text-2xl text-blue-600"></i>',
+                medium: '<i class="fab fa-medium text-2xl text-gray-800"></i>',
+                twitter: '<i class="fab fa-twitter text-2xl text-sky-500"></i>',
+                youtube: '<i class="fab fa-youtube text-2xl text-red-600"></i>',
+                quora: '<i class="fab fa-quora text-2xl text-purple-600"></i>'
+            };
+            return icons[platform] || '<i class="fas fa-globe text-2xl text-gray-500"></i>';
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                draft: 'status-draft',
+                approved: 'status-approved',
+                published: 'status-published',
+                failed: 'status-failed',
+                pending: 'bg-gray-100 text-gray-700',
+                active: 'bg-green-100 text-green-700'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN');
+        }
+
+        async function editDraft(id) {
+            switchTab('generate');
+            // TODO: 加载草稿内容到编辑器
+        }
+
+        async function deleteDraft(id) {
+            if (!confirm('确定删除此草稿？')) return;
+            try {
+                await fetch(`/api/content-publish/drafts/${id}`, { method: 'DELETE' });
+                loadDrafts();
+            } catch (e) {
+                alert('删除失败');
+            }
+        }
+
+        async function unbindPlatform(id) {
+            if (!confirm('确定解绑此平台账号？')) return;
+            try {
+                const res = await fetch(`/api/oauth/unbind/${id}`, { method: 'DELETE' });
+                const json = await res.json();
+                if (json.success) {
+                    loadAccounts();
+                } else {
+                    alert('解绑失败');
+                }
+            } catch (e) {
+                alert('解绑失败');
+            }
+        }
+
+        // 页面加载时检查 URL 参数
+        (function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('success') === '1') {
+                const platform = params.get('platform');
+                const username = params.get('username');
+                alert(`成功绑定 ${platform} 账号: ${username}`);
+                window.history.replaceState({}, '', '/content-publish.html');
+                switchTab('accounts');
+            } else if (params.get('error')) {
+                alert('授权失败: ' + params.get('error'));
+                window.history.replaceState({}, '', '/content-publish.html');
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情感分析 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">情感分析</h1>
+                        <p class="text-sm text-gray-500 mt-1">多维情感分析、趋势追踪与竞品对比</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <select id="taskSelect" class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">选择监测任务...</option>
+                        </select>
+                        <input type="text" id="brandInput" placeholder="品牌名称" 
+                               class="border border-gray-300 rounded-lg px-4 py-2 w-48 focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="competitorsInput" placeholder="竞品(逗号分隔)" 
+                               class="border border-gray-300 rounded-lg px-4 py-2 w-48 focus:ring-2 focus:ring-blue-500">
+                        <button onclick="generateReport()" 
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-heart mr-2"></i>分析情感
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden">
+                    <div class="flex items-center justify-center h-64">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                            <p class="text-gray-600">正在分析情感数据...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-16">
+                    <i class="fas fa-smile text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-600 mb-2">选择任务开始分析</h3>
+                    <p class="text-gray-500">选择监测任务并输入品牌名称，生成情感分析报告</p>
+                </div>
+
+                <!-- Report Content -->
+                <div id="reportContent" class="hidden space-y-6">
+                    <!-- Alerts -->
+                    <div id="alertsContainer" class="space-y-3"></div>
+
+                    <!-- Summary Card -->
+                    <div id="summaryCard" class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2 class="text-xl font-semibold mb-2">
+                                    <i class="fas fa-chart-line mr-2"></i>情感概览
+                                </h2>
+                                <p id="reportSummary" class="text-purple-100 leading-relaxed"></p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-purple-200">生成时间</p>
+                                <p id="reportTime" class="font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sentiment Score -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 col-span-2">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold text-gray-900">整体情感评分</h3>
+                                <span id="sentimentLevel" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                            </div>
+                            <div class="flex items-center justify-center">
+                                <div class="relative w-40 h-40">
+                                    <canvas id="scoreGauge"></canvas>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span id="overallScore" class="text-3xl font-bold text-gray-900"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-smile text-green-600 text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">正面</p>
+                                <p id="positiveRate" class="text-2xl font-bold text-green-600">-</p>
+                                <p id="positiveCount" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-meh text-gray-600 text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">中性</p>
+                                <p id="neutralRate" class="text-2xl font-bold text-gray-600">-</p>
+                                <p id="neutralCount" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-frown text-red-600 text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">负面</p>
+                                <p id="negativeRate" class="text-2xl font-bold text-red-600">-</p>
+                                <p id="negativeCount" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Trend Chart -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-chart-line text-blue-600 mr-2"></i>情感趋势
+                                </h3>
+                                <span id="trendDirection" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                            </div>
+                            <div class="h-64">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                            <div id="trendAnalysis" class="mt-4 text-sm text-gray-600"></div>
+                        </div>
+
+                        <!-- Platform Distribution -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-layer-group text-purple-600 mr-2"></i>平台情感分布
+                            </h3>
+                            <div class="h-64">
+                                <canvas id="platformChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Competitor Comparison -->
+                    <div id="competitorSection" class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hidden">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-users text-indigo-600 mr-2"></i>竞品情感对比
+                        </h3>
+                        <div id="competitorComparisons" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+
+                    <!-- Keywords -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-thumbs-up text-green-600 mr-2"></i>正面关键词
+                            </h3>
+                            <div id="positiveKeywords" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-thumbs-down text-red-600 mr-2"></i>负面关键词
+                            </h3>
+                            <div id="negativeKeywords" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Sentiment Categories -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-tags text-orange-600 mr-2"></i>情感细分
+                        </h3>
+                        <div id="categoriesContainer" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+                    </div>
+
+                    <!-- Suggestions -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>优化建议
+                        </h3>
+                        <div id="suggestionsContainer" class="space-y-4"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/navigation.js"></script>
+    <script>
+        let trendChart = null;
+        let platformChart = null;
+        let scoreGauge = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTasks();
+        });
+
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/citation-monitoring/tasks');
+                const data = await response.json();
+                const select = document.getElementById('taskSelect');
+                
+                if (data.success && data.data) {
+                    data.data.forEach(task => {
+                        const option = document.createElement('option');
+                        option.value = task.id;
+                        option.textContent = `${task.brand} - ${task.name || '监测任务'}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+            }
+        }
+
+        async function generateReport() {
+            const taskId = document.getElementById('taskSelect').value;
+            const brand = document.getElementById('brandInput').value.trim();
+            const competitors = document.getElementById('competitorsInput').value.trim();
+
+            if (!taskId) {
+                alert('请选择监测任务');
+                return;
+            }
+            if (!brand) {
+                alert('请输入品牌名称');
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('reportContent').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            try {
+                const requestBody = {
+                    taskId: parseInt(taskId),
+                    brand,
+                    includeTrends: true,
+                    includeKeywords: true,
+                    includeAlerts: true
+                };
+
+                if (competitors) {
+                    requestBody.competitors = competitors.split(',').map(c => c.trim()).filter(c => c);
+                }
+
+                const response = await fetch('/api/sentiment/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    renderReport(data.data);
+                } else {
+                    alert(data.error || '生成报告失败');
+                    document.getElementById('emptyState').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to generate report:', error);
+                alert('生成报告失败，请重试');
+                document.getElementById('emptyState').classList.remove('hidden');
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        function renderReport(report) {
+            document.getElementById('reportContent').classList.remove('hidden');
+
+            // Alerts
+            renderAlerts(report.alerts);
+
+            // Summary
+            document.getElementById('reportSummary').textContent = report.summary;
+            document.getElementById('reportTime').textContent = new Date(report.generatedAt).toLocaleString('zh-CN');
+
+            // Sentiment scores
+            const sentiment = report.sentiment;
+            document.getElementById('overallScore').textContent = sentiment.overallScore.toFixed(2);
+            
+            const levelEl = document.getElementById('sentimentLevel');
+            levelEl.textContent = getLevelLabel(sentiment.overallLevel);
+            levelEl.className = `px-3 py-1 rounded-full text-sm font-medium ${getLevelClass(sentiment.overallLevel)}`;
+
+            document.getElementById('positiveRate').textContent = (sentiment.positive.rate * 100).toFixed(1) + '%';
+            document.getElementById('positiveCount').textContent = `${sentiment.positive.count} 条`;
+            document.getElementById('neutralRate').textContent = (sentiment.neutral.rate * 100).toFixed(1) + '%';
+            document.getElementById('neutralCount').textContent = `${sentiment.neutral.count} 条`;
+            document.getElementById('negativeRate').textContent = (sentiment.negative.rate * 100).toFixed(1) + '%';
+            document.getElementById('negativeCount').textContent = `${sentiment.negative.count} 条`;
+
+            // Score gauge
+            renderScoreGauge(sentiment.overallScore);
+
+            // Trend
+            renderTrendChart(report.trends);
+            const trendEl = document.getElementById('trendDirection');
+            trendEl.textContent = getTrendLabel(report.trends.trendDirection);
+            trendEl.className = `px-3 py-1 rounded-full text-sm font-medium ${getTrendClass(report.trends.trendDirection)}`;
+            document.getElementById('trendAnalysis').textContent = report.trends.analysis;
+
+            // Platform
+            renderPlatformChart(report.platformBreakdown);
+
+            // Competitors
+            renderCompetitors(report.competitorComparisons);
+
+            // Keywords
+            renderKeywords(report.keywords);
+
+            // Categories
+            renderCategories(sentiment.categories);
+
+            // Suggestions
+            renderSuggestions(report.suggestions);
+        }
+
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '';
+
+            (alerts || []).forEach(alert => {
+                const alertClass = {
+                    'critical': 'bg-red-50 border-red-200 text-red-800',
+                    'warning': 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                    'info': 'bg-blue-50 border-blue-200 text-blue-800'
+                }[alert.level] || 'bg-gray-50 border-gray-200 text-gray-800';
+
+                const iconClass = {
+                    'critical': 'fa-exclamation-circle text-red-600',
+                    'warning': 'fa-exclamation-triangle text-yellow-600',
+                    'info': 'fa-info-circle text-blue-600'
+                }[alert.level] || 'fa-info-circle text-gray-600';
+
+                container.innerHTML += `
+                    <div class="border rounded-lg p-4 ${alertClass}">
+                        <div class="flex items-start">
+                            <i class="fas ${iconClass} mt-0.5 mr-3"></i>
+                            <div class="flex-1">
+                                <h4 class="font-medium">${alert.title}</h4>
+                                <p class="text-sm mt-1 opacity-80">${alert.description}</p>
+                                <p class="text-sm mt-2"><strong>建议:</strong> ${alert.suggestedAction}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderScoreGauge(score) {
+            const ctx = document.getElementById('scoreGauge').getContext('2d');
+            if (scoreGauge) scoreGauge.destroy();
+
+            const normalizedScore = (score + 1) / 2;
+            const color = score > 0.2 ? '#10B981' : score < -0.2 ? '#EF4444' : '#6B7280';
+
+            scoreGauge = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [normalizedScore, 1 - normalizedScore],
+                        backgroundColor: [color, '#E5E7EB'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    rotation: -90,
+                    circumference: 180,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+        }
+
+        function renderTrendChart(trends) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+
+            const dataPoints = trends.dataPoints || [];
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataPoints.map(p => new Date(p.date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })),
+                    datasets: [
+                        {
+                            label: '情感评分',
+                            data: dataPoints.map(p => p.averageScore),
+                            borderColor: '#8B5CF6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '正面率',
+                            data: dataPoints.map(p => p.positiveRate),
+                            borderColor: '#10B981',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        y: { min: -1, max: 1 }
+                    }
+                }
+            });
+        }
+
+        function renderPlatformChart(platforms) {
+            const ctx = document.getElementById('platformChart').getContext('2d');
+            if (platformChart) platformChart.destroy();
+
+            platformChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: (platforms || []).map(p => p.platform),
+                    datasets: [
+                        {
+                            label: '正面',
+                            data: (platforms || []).map(p => p.positiveRate * 100),
+                            backgroundColor: '#10B981'
+                        },
+                        {
+                            label: '中性',
+                            data: (platforms || []).map(p => p.neutralRate * 100),
+                            backgroundColor: '#6B7280'
+                        },
+                        {
+                            label: '负面',
+                            data: (platforms || []).map(p => p.negativeRate * 100),
+                            backgroundColor: '#EF4444'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, max: 100 }
+                    }
+                }
+            });
+        }
+
+        function renderCompetitors(comparisons) {
+            const section = document.getElementById('competitorSection');
+            const container = document.getElementById('competitorComparisons');
+
+            if (!comparisons || comparisons.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            container.innerHTML = '';
+
+            comparisons.forEach(comp => {
+                const verdictClass = {
+                    'leading': 'bg-green-100 text-green-700',
+                    'tied': 'bg-gray-100 text-gray-700',
+                    'trailing': 'bg-red-100 text-red-700'
+                }[comp.verdict] || 'bg-gray-100 text-gray-700';
+
+                const verdictLabel = {
+                    'leading': '领先',
+                    'tied': '持平',
+                    'trailing': '落后'
+                }[comp.verdict] || comp.verdict;
+
+                container.innerHTML += `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium text-gray-900">vs ${comp.competitor}</span>
+                            <span class="px-2 py-1 rounded text-sm ${verdictClass}">${verdictLabel}</span>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">我们的评分</span>
+                                <span class="font-medium ${comp.ourScore > 0 ? 'text-green-600' : 'text-red-600'}">${comp.ourScore.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">竞品评分</span>
+                                <span class="font-medium ${comp.competitorScore > 0 ? 'text-green-600' : 'text-red-600'}">${comp.competitorScore.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">差距</span>
+                                <span class="font-medium ${comp.gap > 0 ? 'text-green-600' : 'text-red-600'}">${comp.gap > 0 ? '+' : ''}${comp.gap.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderKeywords(keywords) {
+            const positiveContainer = document.getElementById('positiveKeywords');
+            const negativeContainer = document.getElementById('negativeKeywords');
+
+            positiveContainer.innerHTML = '';
+            negativeContainer.innerHTML = '';
+
+            (keywords || []).filter(k => k.sentiment === 'positive').forEach(kw => {
+                positiveContainer.innerHTML += `
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                        ${kw.keyword} <span class="text-green-500">(${kw.count})</span>
+                    </span>
+                `;
+            });
+
+            (keywords || []).filter(k => k.sentiment === 'negative').forEach(kw => {
+                negativeContainer.innerHTML += `
+                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
+                        ${kw.keyword} <span class="text-red-500">(${kw.count})</span>
+                    </span>
+                `;
+            });
+        }
+
+        function renderCategories(categories) {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            (categories || []).forEach(cat => {
+                const scoreClass = cat.score > 0 ? 'text-green-600' : cat.score < 0 ? 'text-red-600' : 'text-gray-600';
+                container.innerHTML += `
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">${cat.label}</p>
+                        <p class="text-xl font-bold ${scoreClass}">${cat.score.toFixed(2)}</p>
+                        <p class="text-xs text-gray-400">${cat.count} 次提及</p>
+                    </div>
+                `;
+            });
+        }
+
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestionsContainer');
+            container.innerHTML = '';
+
+            (suggestions || []).forEach(suggestion => {
+                const typeClass = {
+                    'reduce_negative': 'bg-red-100 text-red-700',
+                    'leverage_strength': 'bg-green-100 text-green-700',
+                    'improve_positive': 'bg-blue-100 text-blue-700',
+                    'address_concern': 'bg-yellow-100 text-yellow-700'
+                }[suggestion.type] || 'bg-gray-100 text-gray-700';
+
+                const typeLabel = {
+                    'reduce_negative': '降低负面',
+                    'leverage_strength': '利用优势',
+                    'improve_positive': '提升正面',
+                    'address_concern': '解决问题'
+                }[suggestion.type] || suggestion.type;
+
+                container.innerHTML += `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center">
+                                    <span class="px-2 py-1 rounded text-xs font-medium mr-2 ${typeClass}">${typeLabel}</span>
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">优先级: ${suggestion.priority}</span>
+                                </div>
+                                <h4 class="font-medium text-gray-900 mt-2">${suggestion.title}</h4>
+                                <p class="text-sm text-gray-600 mt-1">${suggestion.description}</p>
+                                <div class="mt-3">
+                                    <ul class="space-y-1">
+                                        ${(suggestion.actionSteps || []).map(step => 
+                                            `<li class="text-sm text-gray-600 flex items-start">
+                                                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>${step}
+                                            </li>`
+                                        ).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function getLevelLabel(level) {
+            const labels = {
+                'very_positive': '非常正面',
+                'positive': '正面',
+                'neutral': '中性',
+                'negative': '负面',
+                'very_negative': '非常负面'
+            };
+            return labels[level] || level;
+        }
+
+        function getLevelClass(level) {
+            const classes = {
+                'very_positive': 'bg-green-100 text-green-700',
+                'positive': 'bg-green-50 text-green-600',
+                'neutral': 'bg-gray-100 text-gray-700',
+                'negative': 'bg-red-50 text-red-600',
+                'very_negative': 'bg-red-100 text-red-700'
+            };
+            return classes[level] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getTrendLabel(direction) {
+            const labels = { 'improving': '上升趋势', 'stable': '稳定', 'declining': '下降趋势' };
+            return labels[direction] || direction;
+        }
+
+        function getTrendClass(direction) {
+            const classes = {
+                'improving': 'bg-green-100 text-green-700',
+                'stable': 'bg-gray-100 text-gray-700',
+                'declining': 'bg-red-100 text-red-700'
+            };
+            return classes[direction] || 'bg-gray-100 text-gray-700';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分发工具箱 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <div class="flex-1 overflow-auto">
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">分发工具箱</h1>
+                    <p class="text-sm text-gray-500 mt-1">Phase 5: 内容适配 + Reddit 专项 + 效果追踪</p>
+                </div>
+            </header>
+
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('video')" id="tab-video" class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-video mr-2"></i>视频脚本
+                    </button>
+                    <button onclick="switchTab('clips')" id="tab-clips" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-cut mr-2"></i>短视频切片
+                    </button>
+                    <button onclick="switchTab('carousel')" id="tab-carousel" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-images mr-2"></i>图文卡片
+                    </button>
+                    <button onclick="switchTab('posting')" id="tab-posting" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-clock mr-2"></i>发布时间
+                    </button>
+                    <button onclick="switchTab('reddit')" id="tab-reddit" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fab fa-reddit mr-2"></i>Reddit 专项
+                    </button>
+                    <button onclick="switchTab('roi')" id="tab-roi" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-chart-line mr-2"></i>ROI 追踪
+                    </button>
+                </nav>
+            </div>
+
+            <main class="p-6">
+                <!-- Tab: Video Script -->
+                <div id="content-video" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-file-alt text-blue-500 mr-2"></i>文章转视频脚本
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">文章内容</label>
+                                    <textarea id="videoArticle" rows="8" placeholder="粘贴文章内容..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">视频类型</label>
+                                        <select id="videoType" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                            <option value="long">长视频 (10-20分钟)</option>
+                                            <option value="short">短视频 (1-3分钟)</option>
+                                            <option value="tutorial">教程视频</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">目标时长 (分钟)</label>
+                                        <input type="number" id="videoDuration" value="10" min="1" max="60" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                </div>
+                                <button onclick="generateVideoScript()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                                    <i class="fas fa-magic mr-2"></i>生成视频脚本
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">生成结果</h3>
+                            <div id="videoScriptResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入文章内容后生成脚本</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Short Clips -->
+                <div id="content-clips" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-cut text-purple-500 mr-2"></i>短视频切片建议
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">视频文字稿</label>
+                                    <textarea id="clipTranscript" rows="8" placeholder="粘贴视频文字稿..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">最大切片数</label>
+                                        <input type="number" id="maxClips" value="5" min="1" max="10" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">切片时长 (秒)</label>
+                                        <input type="number" id="clipDuration" value="60" min="15" max="180" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                </div>
+                                <button onclick="suggestClips()" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium">
+                                    <i class="fas fa-cut mr-2"></i>识别切片机会
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">切片建议</h3>
+                            <div id="clipsResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入视频文字稿后识别切片</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Carousel -->
+                <div id="content-carousel" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-images text-green-500 mr-2"></i>图文卡片生成
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">文章内容</label>
+                                    <textarea id="carouselArticle" rows="6" placeholder="粘贴文章内容..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">目标平台</label>
+                                        <select id="carouselPlatform" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                            <option value="instagram">Instagram</option>
+                                            <option value="linkedin">LinkedIn</option>
+                                            <option value="xiaohongshu">小红书</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">风格</label>
+                                        <select id="carouselStyle" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                            <option value="professional">专业</option>
+                                            <option value="casual">休闲</option>
+                                            <option value="bold">大胆</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button onclick="generateCarousel()" class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium">
+                                    <i class="fas fa-images mr-2"></i>生成卡片
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">卡片预览</h3>
+                            <div id="carouselResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入内容后生成卡片</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Posting Time -->
+                <div id="content-posting" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-clock text-orange-500 mr-2"></i>发布时间建议
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">平台</label>
+                                    <select id="postingPlatform" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="instagram">Instagram</option>
+                                        <option value="tiktok">TikTok</option>
+                                        <option value="youtube">YouTube</option>
+                                        <option value="linkedin">LinkedIn</option>
+                                        <option value="twitter">X/Twitter</option>
+                                        <option value="reddit">Reddit</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">目标受众</label>
+                                    <select id="postingAudience" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="global">全球</option>
+                                        <option value="us">美国</option>
+                                        <option value="china">中国</option>
+                                        <option value="europe">欧洲</option>
+                                    </select>
+                                </div>
+                                <button onclick="getPostingTime()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition font-medium">
+                                    <i class="fas fa-clock mr-2"></i>获取建议
+                                </button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">最佳发布时间</h3>
+                            <div id="postingResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">选择平台后获取建议</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Reddit -->
+                <div id="content-reddit" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fab fa-reddit text-orange-500 mr-2"></i>Reddit 工具
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">功能</label>
+                                    <select id="redditFunction" class="w-full border border-gray-300 rounded-lg px-4 py-2" onchange="toggleRedditInputs()">
+                                        <option value="match">板块匹配</option>
+                                        <option value="check">规则检查</option>
+                                        <option value="plan">账号养成计划</option>
+                                    </select>
+                                </div>
+                                <div id="redditMatchInputs">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">行业</label>
+                                        <input type="text" id="redditIndustry" placeholder="tech/marketing/ai..." class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">内容类型</label>
+                                        <select id="redditContentType" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                            <option value="discussion">讨论</option>
+                                            <option value="question">问题</option>
+                                            <option value="resource">资源</option>
+                                            <option value="news">新闻</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="redditCheckInputs" class="hidden">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Subreddit</label>
+                                        <input type="text" id="redditSubreddit" placeholder="r/technology" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
+                                        <input type="text" id="redditTitle" placeholder="帖子标题" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                                        <textarea id="redditContent" rows="4" placeholder="帖子内容..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                    </div>
+                                </div>
+                                <div id="redditPlanInputs" class="hidden">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">行业</label>
+                                        <input type="text" id="redditPlanIndustry" placeholder="tech/marketing/ai..." class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">计划天数</label>
+                                        <input type="number" id="redditPlanDays" value="14" min="7" max="30" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                </div>
+                                <button onclick="executeRedditFunction()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition font-medium">
+                                    <i class="fab fa-reddit mr-2"></i>执行
+                                </button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">结果</h3>
+                            <div id="redditResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">选择功能后执行</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: ROI -->
+                <div id="content-roi" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-chart-line text-indigo-500 mr-2"></i>ROI 计算
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">平台</label>
+                                    <select id="roiPlatform" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="instagram">Instagram</option>
+                                        <option value="tiktok">TikTok</option>
+                                        <option value="youtube">YouTube</option>
+                                        <option value="linkedin">LinkedIn</option>
+                                        <option value="reddit">Reddit</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">浏览量</label>
+                                        <input type="number" id="roiViews" value="10000" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">互动数</label>
+                                        <input type="number" id="roiEngagements" value="500" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">点击数</label>
+                                        <input type="number" id="roiClicks" value="200" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">转化数</label>
+                                        <input type="number" id="roiConversions" value="10" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">投入时间 (小时)</label>
+                                        <input type="number" id="roiTime" value="5" step="0.5" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">投入成本 ($)</label>
+                                        <input type="number" id="roiCost" value="50" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                    </div>
+                                </div>
+                                <button onclick="calculateROI()" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-medium">
+                                    <i class="fas fa-calculator mr-2"></i>计算 ROI
+                                </button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">ROI 分析</h3>
+                            <div id="roiResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入数据后计算 ROI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 5.15 视频脚本生成
+        async function generateVideoScript() {
+            const article = document.getElementById('videoArticle').value;
+            if (!article) { alert('请输入文章内容'); return; }
+
+            try {
+                const response = await fetch('/api/content-adapter/video/script', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        articleContent: article,
+                        videoType: document.getElementById('videoType').value,
+                        targetDurationMinutes: parseInt(document.getElementById('videoDuration').value)
+                    })
+                });
+                const data = await response.json();
+                renderVideoScript(data);
+            } catch (error) { alert('生成失败: ' + error.message); }
+        }
+
+        function renderVideoScript(data) {
+            document.getElementById('videoScriptResult').innerHTML = `
+                <div class="p-4 bg-blue-50 rounded-lg mb-4">
+                    <h4 class="font-semibold text-blue-900">${data.title}</h4>
+                    <p class="text-sm text-blue-700 mt-1">预计时长: ${Math.floor(data.estimatedDurationSeconds / 60)}分${data.estimatedDurationSeconds % 60}秒</p>
+                </div>
+                <div class="space-y-3 max-h-80 overflow-y-auto">
+                    ${data.sections.map(s => `
+                        <div class="p-3 border rounded-lg">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium text-gray-900">${s.title}</span>
+                                <span class="text-xs text-gray-500">${s.timestamp} (${s.durationSeconds}秒)</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2">${s.narration}</p>
+                            <p class="text-xs text-green-600"><i class="fas fa-film mr-1"></i>${s.visualSuggestion}</p>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="mt-4 p-3 bg-yellow-50 rounded-lg">
+                    <p class="text-sm font-medium text-yellow-800">B-Roll 建议:</p>
+                    <p class="text-sm text-yellow-700">${data.bRollSuggestions.join(', ')}</p>
+                </div>
+            `;
+        }
+
+        // 5.16 短视频切片
+        async function suggestClips() {
+            const transcript = document.getElementById('clipTranscript').value;
+            if (!transcript) { alert('请输入视频文字稿'); return; }
+
+            try {
+                const response = await fetch('/api/content-adapter/video/clips', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoTranscript: transcript,
+                        maxClips: parseInt(document.getElementById('maxClips').value),
+                        clipDurationSeconds: parseInt(document.getElementById('clipDuration').value)
+                    })
+                });
+                const data = await response.json();
+                renderClips(data);
+            } catch (error) { alert('识别失败: ' + error.message); }
+        }
+
+        function renderClips(data) {
+            document.getElementById('clipsResult').innerHTML = `
+                <p class="text-sm text-gray-600 mb-4">${data.summary}</p>
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                    ${data.clips.map(c => `
+                        <div class="p-4 border rounded-lg ${c.viralPotentialScore > 70 ? 'border-purple-300 bg-purple-50' : ''}">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium text-gray-900">${c.title}</span>
+                                <span class="px-2 py-1 rounded text-xs ${c.viralPotentialScore > 70 ? 'bg-purple-200 text-purple-800' : 'bg-gray-200 text-gray-700'}">
+                                    病毒潜力: ${c.viralPotentialScore.toFixed(0)}%
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2">${c.hook}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-500">
+                                <span><i class="fas fa-clock mr-1"></i>${c.startTimestamp} - ${c.endTimestamp}</span>
+                                <span class="px-2 py-1 bg-gray-100 rounded">${c.targetPlatform}</span>
+                            </div>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                ${c.hashtags.map(h => `<span class="text-xs text-blue-600">${h}</span>`).join(' ')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 5.17 图文卡片
+        async function generateCarousel() {
+            const article = document.getElementById('carouselArticle').value;
+            if (!article) { alert('请输入文章内容'); return; }
+
+            try {
+                const response = await fetch('/api/content-adapter/carousel/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        articleContent: article,
+                        platform: document.getElementById('carouselPlatform').value,
+                        style: document.getElementById('carouselStyle').value,
+                        maxCards: 10
+                    })
+                });
+                const data = await response.json();
+                renderCarousel(data);
+            } catch (error) { alert('生成失败: ' + error.message); }
+        }
+
+        function renderCarousel(data) {
+            document.getElementById('carouselResult').innerHTML = `
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600">${data.coverSuggestion}</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        ${data.hashtags.map(h => `<span class="text-xs text-blue-600">${h}</span>`).join(' ')}
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+                    ${data.cards.map(c => `
+                        <div class="p-3 rounded-lg border" style="background-color: ${c.backgroundColor}20">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-lg">${c.iconSuggestion}</span>
+                                <span class="text-xs text-gray-500">卡片 ${c.cardNumber}</span>
+                            </div>
+                            <p class="font-medium text-gray-900 text-sm mb-1">${c.headline}</p>
+                            <p class="text-xs text-gray-600">${c.bodyText}</p>
+                            <p class="text-xs text-green-600 mt-2"><i class="fas fa-image mr-1"></i>${c.visualSuggestion}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 5.20 发布时间
+        async function getPostingTime() {
+            try {
+                const response = await fetch('/api/content-adapter/posting-time', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform: document.getElementById('postingPlatform').value,
+                        targetAudience: document.getElementById('postingAudience').value
+                    })
+                });
+                const data = await response.json();
+                renderPostingTime(data);
+            } catch (error) { alert('获取失败: ' + error.message); }
+        }
+
+        function renderPostingTime(data) {
+            document.getElementById('postingResult').innerHTML = `
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    ${data.bestTimes.map((t, i) => `
+                        <div class="p-4 rounded-lg ${i === 0 ? 'bg-green-50 border-2 border-green-300' : 'bg-gray-50'}">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium text-gray-900">${t.dayOfWeek}</span>
+                                <span class="px-2 py-1 rounded text-xs ${i === 0 ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700'}">
+                                    ${t.engagementScore}分
+                                </span>
+                            </div>
+                            <p class="text-lg font-bold text-gray-900">${t.timeRange}</p>
+                            <p class="text-xs text-gray-500">${t.timezone}</p>
+                            <p class="text-xs text-gray-600 mt-2">${t.reason}</p>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="p-4 bg-blue-50 rounded-lg mb-4">
+                    <p class="text-sm text-blue-800">${data.rationale}</p>
+                </div>
+                <div class="p-4 bg-red-50 rounded-lg">
+                    <p class="text-sm font-medium text-red-800 mb-2">避免发布时间:</p>
+                    <p class="text-sm text-red-700">${data.avoidTimes.join(', ')}</p>
+                </div>
+            `;
+        }
+
+        // Reddit 功能切换
+        function toggleRedditInputs() {
+            const func = document.getElementById('redditFunction').value;
+            document.getElementById('redditMatchInputs').classList.toggle('hidden', func !== 'match');
+            document.getElementById('redditCheckInputs').classList.toggle('hidden', func !== 'check');
+            document.getElementById('redditPlanInputs').classList.toggle('hidden', func !== 'plan');
+        }
+
+        // 5.24-5.26 Reddit 专项
+        async function executeRedditFunction() {
+            const func = document.getElementById('redditFunction').value;
+            let endpoint, body;
+
+            if (func === 'match') {
+                endpoint = '/api/content-adapter/reddit/match';
+                body = {
+                    industry: document.getElementById('redditIndustry').value,
+                    contentType: document.getElementById('redditContentType').value
+                };
+            } else if (func === 'check') {
+                endpoint = '/api/content-adapter/reddit/check-rules';
+                body = {
+                    subreddit: document.getElementById('redditSubreddit').value,
+                    title: document.getElementById('redditTitle').value,
+                    content: document.getElementById('redditContent').value
+                };
+            } else {
+                endpoint = '/api/content-adapter/reddit/account-plan';
+                body = {
+                    industry: document.getElementById('redditPlanIndustry').value,
+                    planDays: parseInt(document.getElementById('redditPlanDays').value)
+                };
+            }
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                renderRedditResult(func, data);
+            } catch (error) { alert('执行失败: ' + error.message); }
+        }
+
+        function renderRedditResult(func, data) {
+            let html = '';
+            if (func === 'match') {
+                html = `
+                    <p class="text-sm text-gray-600 mb-4">${data.summary}</p>
+                    <div class="space-y-3">
+                        ${data.recommendations.map(r => `
+                            <div class="p-4 border rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-orange-600">${r.subreddit}</span>
+                                    <span class="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">匹配度: ${r.matchScore}%</span>
+                                </div>
+                                <p class="text-sm text-gray-600">${r.rationale}</p>
+                                <div class="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                                    <span><i class="fas fa-users mr-1"></i>${(r.subscribers / 1000000).toFixed(1)}M</span>
+                                    <span><i class="fas fa-clock mr-1"></i>${r.bestPostingTime}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (func === 'check') {
+                html = `
+                    <div class="p-4 rounded-lg mb-4 ${data.isCompliant ? 'bg-green-50' : 'bg-red-50'}">
+                        <p class="font-medium ${data.isCompliant ? 'text-green-800' : 'text-red-800'}">
+                            ${data.isCompliant ? '✅ 内容合规' : '❌ 存在违规'}
+                        </p>
+                    </div>
+                    ${data.violations.length > 0 ? `
+                        <div class="mb-4">
+                            <p class="font-medium text-red-800 mb-2">违规项:</p>
+                            ${data.violations.map(v => `
+                                <div class="p-3 bg-red-50 rounded mb-2">
+                                    <p class="font-medium text-red-700">${v.rule}</p>
+                                    <p class="text-sm text-red-600">${v.description}</p>
+                                    <p class="text-sm text-green-600 mt-1">修复: ${v.fix}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    <div>
+                        <p class="font-medium text-gray-800 mb-2">建议:</p>
+                        ${data.suggestions.map(s => `<p class="text-sm text-gray-600">• ${s}</p>`).join('')}
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="p-4 bg-orange-50 rounded-lg mb-4">
+                        <p class="font-medium text-orange-800">${data.karmaGoal}</p>
+                    </div>
+                    <div class="space-y-3 max-h-80 overflow-y-auto">
+                        ${data.dailyPlans.slice(0, 7).map(d => `
+                            <div class="p-3 border rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-900">Day ${d.day}</span>
+                                    <span class="text-xs text-gray-500">${d.focus}</span>
+                                </div>
+                                ${d.tasks.map(t => `
+                                    <p class="text-sm text-gray-600">• ${t.description} (${t.count}次)</p>
+                                `).join('')}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p class="font-medium text-blue-800 mb-2">通用提示:</p>
+                        ${data.generalTips.slice(0, 3).map(t => `<p class="text-sm text-blue-700">• ${t}</p>`).join('')}
+                    </div>
+                `;
+            }
+            document.getElementById('redditResult').innerHTML = html;
+        }
+
+        // 5.27 ROI 计算
+        async function calculateROI() {
+            try {
+                const response = await fetch('/api/content-adapter/roi/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform: document.getElementById('roiPlatform').value,
+                        views: parseInt(document.getElementById('roiViews').value),
+                        engagements: parseInt(document.getElementById('roiEngagements').value),
+                        clicks: parseInt(document.getElementById('roiClicks').value),
+                        conversions: parseInt(document.getElementById('roiConversions').value),
+                        timeInvestedHours: parseFloat(document.getElementById('roiTime').value),
+                        costUSD: parseFloat(document.getElementById('roiCost').value)
+                    })
+                });
+                const data = await response.json();
+                renderROI(data);
+            } catch (error) { alert('计算失败: ' + error.message); }
+        }
+
+        function renderROI(data) {
+            const gradeColors = { A: 'green', B: 'blue', C: 'yellow', D: 'orange', F: 'red' };
+            const color = gradeColors[data.roiGrade] || 'gray';
+            
+            document.getElementById('roiResult').innerHTML = `
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-24 h-24 rounded-full bg-${color}-100 flex items-center justify-center">
+                        <span class="text-4xl font-bold text-${color}-600">${data.roiGrade}</span>
+                    </div>
+                    <div class="ml-6">
+                        <p class="text-3xl font-bold text-gray-900">${data.roiScore}</p>
+                        <p class="text-sm text-gray-500">ROI 分数</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="p-4 bg-gray-50 rounded-lg text-center">
+                        <p class="text-2xl font-bold text-gray-900">${data.engagementRate}%</p>
+                        <p class="text-xs text-gray-500">参与率</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-lg text-center">
+                        <p class="text-2xl font-bold text-gray-900">${data.clickThroughRate}%</p>
+                        <p class="text-xs text-gray-500">点击率</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-lg text-center">
+                        <p class="text-2xl font-bold text-gray-900">${data.conversionRate}%</p>
+                        <p class="text-xs text-gray-500">转化率</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="p-3 bg-blue-50 rounded-lg text-center">
+                        <p class="text-lg font-bold text-blue-900">$${data.costPerEngagement}</p>
+                        <p class="text-xs text-blue-600">每互动成本</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-lg text-center">
+                        <p class="text-lg font-bold text-blue-900">$${data.costPerClick}</p>
+                        <p class="text-xs text-blue-600">每点击成本</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-lg text-center">
+                        <p class="text-lg font-bold text-blue-900">$${data.costPerConversion}</p>
+                        <p class="text-xs text-blue-600">每转化成本</p>
+                    </div>
+                </div>
+                <div class="p-4 bg-green-50 rounded-lg mb-4">
+                    <p class="font-medium text-green-800 mb-2">洞察:</p>
+                    ${data.insights.map(i => `<p class="text-sm text-green-700">• ${i}</p>`).join('')}
+                </div>
+                <div class="p-4 bg-yellow-50 rounded-lg">
+                    <p class="font-medium text-yellow-800 mb-2">建议:</p>
+                    ${data.recommendations.map(r => `<p class="text-sm text-yellow-700">• ${r}</p>`).join('')}
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+        });
+    </script>
+</body>
+</html>

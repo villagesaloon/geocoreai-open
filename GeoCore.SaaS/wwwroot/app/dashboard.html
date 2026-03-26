@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCore AI 可见度平台 - 统一仪表盘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .workflow-step { transition: all 0.3s; }
+        .workflow-step.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+        .workflow-step.completed { background: #10b981; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 主内容区 -->
+    <main class="ml-60">
+        <!-- 顶部栏 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">统一仪表盘</h2>
+                    <p class="text-sm text-gray-500">AI 可见度优化闭环概览</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="currentProjectInfo" class="text-right hidden">
+                        <p id="headerProjectName" class="text-sm font-medium text-gray-900"></p>
+                        <p id="headerProjectUrl" class="text-xs text-gray-500"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-indigo-600"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- ========== 无项目时的引导界面 ========== -->
+            <div id="noProjectGuide" class="hidden">
+                <!-- 欢迎横幅 -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-8 mb-6 text-white text-center">
+                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-rocket text-4xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">欢迎使用 GeoCore AI</h2>
+                    <p class="text-white/80 mb-6 max-w-lg mx-auto">让 AI 主动推荐你的品牌。创建第一个项目，30 秒开始检测你的 AI 可见度。</p>
+                    <a href="setup-wizard.html" class="inline-flex items-center px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg">
+                        <i class="fas fa-plus-circle mr-2"></i>创建第一个项目
+                    </a>
+                </div>
+
+                <!-- 3 步引导 -->
+                <div class="bg-white rounded-xl p-6 mb-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">3 步开始你的 GEO 优化之旅</h3>
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="text-center p-4">
+                            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-xl font-bold text-indigo-600">1</span>
+                            </div>
+                            <h4 class="font-medium text-gray-900 mb-1">创建项目</h4>
+                            <p class="text-sm text-gray-500">输入品牌名称和网站，系统自动识别行业</p>
+                        </div>
+                        <div class="text-center p-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-xl font-bold text-purple-600">2</span>
+                            </div>
+                            <h4 class="font-medium text-gray-900 mb-1">AI 检测</h4>
+                            <p class="text-sm text-gray-500">检测 5 大 AI 平台是否提及你的品牌</p>
+                        </div>
+                        <div class="text-center p-4">
+                            <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span class="text-xl font-bold text-emerald-600">3</span>
+                            </div>
+                            <h4 class="font-medium text-gray-900 mb-1">获取建议</h4>
+                            <p class="text-sm text-gray-500">获得具体的优化步骤，提升 AI 可见度</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 或者先免费检测 -->
+                <div class="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-1">还不确定？先免费检测一下</h4>
+                            <p class="text-sm text-gray-500">无需注册，30 秒了解你的品牌在 AI 中的表现</p>
+                        </div>
+                        <a href="../index.html#detect" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                            <i class="fas fa-search mr-2"></i>免费检测
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 快速工具（不需要项目） -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">独立工具（无需创建项目）</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <a href="llms-txt.html" class="p-4 bg-amber-50 rounded-lg text-center hover:bg-amber-100 transition-colors">
+                            <i class="fas fa-file-code text-amber-600 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">llms.txt 生成</p>
+                            <p class="text-xs text-gray-500 mt-1">帮助 AI 理解你的网站</p>
+                        </a>
+                        <a href="persona.html" class="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors">
+                            <i class="fas fa-user-tag text-purple-600 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">买家角色</p>
+                            <p class="text-xs text-gray-500 mt-1">了解目标用户画像</p>
+                        </a>
+                        <a href="../docs.html" class="p-4 bg-emerald-50 rounded-lg text-center hover:bg-emerald-100 transition-colors">
+                            <i class="fas fa-book text-emerald-600 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">文档中心</p>
+                            <p class="text-xs text-gray-500 mt-1">学习 GEO 优化知识</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 有项目时的正常界面 ========== -->
+            <div id="hasProjectView" class="hidden">
+            <!-- 核心指标卡片（用户语言） -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <!-- 提及率 -->
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500">AI 提及率</span>
+                        <span class="cursor-help text-gray-400 text-xs" title="你的品牌在 AI 回答中被提及的频率">ⓘ</span>
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <p id="mentionRate" class="text-3xl font-bold text-indigo-600">--%</p>
+                        <span id="mentionTrend" class="text-sm text-green-500 mb-1">
+                            <i class="fas fa-arrow-up"></i> +5%
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">较上周</p>
+                </div>
+                <!-- 准确率 -->
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500">信息准确率</span>
+                        <span class="cursor-help text-gray-400 text-xs" title="AI 对你品牌描述的准确程度">ⓘ</span>
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <p id="accuracyRate" class="text-3xl font-bold text-emerald-600">--%</p>
+                        <span id="accuracyTrend" class="text-sm text-green-500 mb-1">
+                            <i class="fas fa-arrow-up"></i> +3%
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">较上周</p>
+                </div>
+                <!-- 声量份额 -->
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500">声量份额</span>
+                        <span class="cursor-help text-gray-400 text-xs" title="在行业 AI 推荐中你占的比例">ⓘ</span>
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <p id="sovRate" class="text-3xl font-bold text-purple-600">--%</p>
+                        <span id="sovTrend" class="text-sm text-red-500 mb-1">
+                            <i class="fas fa-arrow-down"></i> -2%
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">较上周</p>
+                </div>
+                <!-- 综合评分 -->
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500">综合评分</span>
+                        <span class="cursor-help text-gray-400 text-xs" title="基于 SHEEP 模型的 AI 可见度综合评分">ⓘ</span>
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <p id="overallScore" class="text-3xl font-bold text-amber-600">--</p>
+                        <span class="text-gray-400 text-lg mb-1">/100</span>
+                    </div>
+                    <div class="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="scoreBar" class="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 需要关注的问题 + 推荐行动 -->
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <!-- 需要关注的问题 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-exclamation-circle text-amber-500 mr-2"></i>需要关注
+                        </h3>
+                        <span id="issueCount" class="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">0 个问题</span>
+                    </div>
+                    <div id="issuesList" class="space-y-3">
+                        <div class="text-center py-6 text-gray-400">
+                            <i class="fas fa-check-circle text-3xl mb-2 text-green-400"></i>
+                            <p>暂无需要关注的问题</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 推荐行动 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-bolt text-indigo-500 mr-2"></i>推荐行动
+                        </h3>
+                        <a href="strategy-center.html" class="text-sm text-indigo-600 hover:underline">查看全部 →</a>
+                    </div>
+                    <div id="actionsList" class="space-y-3">
+                        <div class="text-center py-6 text-gray-400">
+                            <i class="fas fa-tasks text-3xl mb-2"></i>
+                            <p>完成检测后将显示优化建议</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 趋势图表 -->
+            <div class="bg-white rounded-xl p-6 mb-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-chart-line text-indigo-500 mr-2"></i>AI 可见度趋势
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="setTrendPeriod('7d')" class="trend-btn px-3 py-1 text-sm rounded-lg bg-indigo-100 text-indigo-600">7 天</button>
+                        <button onclick="setTrendPeriod('30d')" class="trend-btn px-3 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-100">30 天</button>
+                    </div>
+                </div>
+                <div class="h-48">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+            </div><!-- 关闭 hasProjectView -->
+
+            <!-- 项目级数据区域（需要选择项目后显示） -->
+            <div id="projectDataSection" class="hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-4 mb-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-80">当前项目</p>
+                            <p id="currentProjectName" class="text-xl font-bold"></p>
+                        </div>
+                        <a href="project-detail.html" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition text-sm">
+                            <i class="fas fa-external-link-alt mr-2"></i>查看详情
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 闭环流程进度 -->
+                <div class="bg-white rounded-xl p-6 mb-8 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">优化闭环进度</h3>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 flex-1">
+                            <div id="step1" class="workflow-step bg-gray-200 text-gray-500 w-12 h-12 rounded-full flex items-center justify-center">
+                                <span class="font-bold">1</span>
+                            </div>
+                            <div id="line1" class="flex-1 h-1 bg-gray-200"></div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-1">
+                            <div id="step2" class="workflow-step bg-gray-200 text-gray-500 w-12 h-12 rounded-full flex items-center justify-center">
+                                <span class="font-bold">2</span>
+                            </div>
+                            <div id="line2" class="flex-1 h-1 bg-gray-200"></div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-1">
+                            <div id="step3" class="workflow-step bg-gray-200 text-gray-500 w-12 h-12 rounded-full flex items-center justify-center">
+                                <span class="font-bold">3</span>
+                            </div>
+                            <div id="line3" class="flex-1 h-1 bg-gray-200"></div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-1">
+                            <div id="step4" class="workflow-step bg-gray-200 text-gray-500 w-12 h-12 rounded-full flex items-center justify-center">
+                                <span class="font-bold">4</span>
+                            </div>
+                            <div id="line4" class="flex-1 h-1 bg-gray-200"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div id="step5" class="workflow-step bg-gray-200 text-gray-500 w-12 h-12 rounded-full flex items-center justify-center">
+                                <span class="font-bold">5</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between mt-3 text-sm">
+                        <span id="label1" class="text-gray-400">配置</span>
+                        <span id="label2" class="text-gray-400">检测</span>
+                        <span id="label3" class="text-gray-400">分析</span>
+                        <span id="label4" class="text-gray-400">优化</span>
+                        <span id="label5" class="text-gray-400">监控</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 最近项目列表 -->
+            <div class="bg-white rounded-xl p-6 mb-8 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">最近项目</h3>
+                    <a href="projects.html" class="text-sm text-indigo-600 hover:underline">查看全部 →</a>
+                </div>
+                <div id="recentProjectsList" class="space-y-3">
+                    <p class="text-gray-500 text-center py-4">暂无项目</p>
+                </div>
+            </div>
+
+            <!-- 底部区域 -->
+            <div class="grid grid-cols-2 gap-6">
+                <!-- 快速操作 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="setup-wizard.html" class="p-4 bg-indigo-50 rounded-lg text-center hover:bg-indigo-100 transition-colors">
+                            <i class="fas fa-plus-circle text-indigo-600 text-xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">新建项目</p>
+                        </a>
+                        <a href="projects.html" class="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors">
+                            <i class="fas fa-folder text-purple-600 text-xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">项目管理</p>
+                        </a>
+                        <a href="../docs.html" class="p-4 bg-emerald-50 rounded-lg text-center hover:bg-emerald-100 transition-colors">
+                            <i class="fas fa-book text-emerald-600 text-xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">文档中心</p>
+                        </a>
+                        <a href="llms-txt.html" class="p-4 bg-amber-50 rounded-lg text-center hover:bg-amber-100 transition-colors">
+                            <i class="fas fa-file-code text-amber-600 text-xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">llms.txt 生成</p>
+                        </a>
+                        <a href="citation-tracker.html" class="p-4 bg-rose-50 rounded-lg text-center hover:bg-rose-100 transition-colors">
+                            <i class="fas fa-link text-rose-600 text-xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">引用追踪</p>
+                        </a>
+                        <a href="content-quality.html" class="p-4 bg-cyan-50 rounded-lg text-center hover:bg-cyan-100 transition-colors">
+                            <i class="fas fa-check-double text-cyan-600 text-xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">内容评估</p>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 平台说明 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">GEO 优化闭环</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm font-bold text-indigo-600">1</div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">配置项目</p>
+                                <p class="text-xs text-gray-500">设置品牌、目标模型、问题集</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm font-bold text-purple-600">2</div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">检测分析</p>
+                                <p class="text-xs text-gray-500">SHEEP 评分、SOV 分析、竞品对比</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-sm font-bold text-emerald-600">3</div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">优化执行</p>
+                                <p class="text-xs text-gray-500">策略生成、内容优化、测试验证</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-sm font-bold text-amber-600">4</div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">效果监控</p>
+                                <p class="text-xs text-gray-500">持续追踪、迭代优化</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let trendChart = null;
+
+        // 初始化视图：根据是否有项目显示不同界面
+        function initDashboardView() {
+            const projects = JSON.parse(localStorage.getItem('geo_projects') || '[]');
+            const currentProject = JSON.parse(localStorage.getItem('geo_current_project') || 'null');
+            const hasProjects = projects.length > 0;
+            
+            const noProjectGuide = document.getElementById('noProjectGuide');
+            const hasProjectView = document.getElementById('hasProjectView');
+            
+            if (hasProjects) {
+                // 有项目：显示正常仪表盘
+                noProjectGuide.classList.add('hidden');
+                hasProjectView.classList.remove('hidden');
+                
+                // 加载数据
+                loadCoreMetrics();
+                loadIssues();
+                loadActions();
+                initTrendChart();
+            } else {
+                // 无项目：显示引导界面
+                noProjectGuide.classList.remove('hidden');
+                hasProjectView.classList.add('hidden');
+            }
+        }
+
+        // 加载核心指标
+        function loadCoreMetrics() {
+            const projects = JSON.parse(localStorage.getItem('geo_projects') || '[]');
+            const freeResult = JSON.parse(localStorage.getItem('free_detect_result') || 'null');
+            
+            let mentionRate = 0, accuracyRate = 0, sovRate = 0, overallScore = 0;
+            let hasData = false;
+
+            // 优先使用项目数据
+            if (projects.length > 0) {
+                let totalMention = 0, totalAccuracy = 0, totalSov = 0, totalScore = 0, count = 0;
+                projects.forEach(p => {
+                    if (p.sheepScore) {
+                        totalScore += p.sheepScore;
+                        totalMention += p.mentionRate || (p.sheepScore * 0.8);
+                        totalAccuracy += p.accuracyRate || 85;
+                        totalSov += p.sovPercent || (p.sheepScore * 0.3);
+                        count++;
+                    }
+                });
+                if (count > 0) {
+                    mentionRate = Math.round(totalMention / count);
+                    accuracyRate = Math.round(totalAccuracy / count);
+                    sovRate = Math.round(totalSov / count);
+                    overallScore = Math.round(totalScore / count);
+                    hasData = true;
+                }
+            }
+            
+            // 使用免费检测结果
+            if (!hasData && freeResult) {
+                mentionRate = freeResult.isKnown ? Math.min(100, Math.round(freeResult.sovPercent * 2 + 20)) : 0;
+                accuracyRate = freeResult.isKnown ? (freeResult.sheepScore >= 70 ? 90 : 75) : 0;
+                sovRate = freeResult.sovPercent || 0;
+                overallScore = freeResult.sheepScore || 0;
+                hasData = true;
+            }
+
+            // 更新 UI
+            document.getElementById('mentionRate').textContent = hasData ? mentionRate + '%' : '--%';
+            document.getElementById('accuracyRate').textContent = hasData ? accuracyRate + '%' : '--%';
+            document.getElementById('sovRate').textContent = hasData ? sovRate + '%' : '--%';
+            document.getElementById('overallScore').textContent = hasData ? overallScore : '--';
+            document.getElementById('scoreBar').style.width = (hasData ? overallScore : 0) + '%';
+
+            // 模拟趋势（实际应从后端获取）
+            if (hasData) {
+                updateTrend('mentionTrend', Math.floor(Math.random() * 10) - 3);
+                updateTrend('accuracyTrend', Math.floor(Math.random() * 6) - 1);
+                updateTrend('sovTrend', Math.floor(Math.random() * 8) - 4);
+            }
+        }
+
+        // 更新趋势显示
+        function updateTrend(elementId, change) {
+            const el = document.getElementById(elementId);
+            if (change > 0) {
+                el.innerHTML = `<i class="fas fa-arrow-up"></i> +${change}%`;
+                el.className = 'text-sm text-green-500 mb-1';
+            } else if (change < 0) {
+                el.innerHTML = `<i class="fas fa-arrow-down"></i> ${change}%`;
+                el.className = 'text-sm text-red-500 mb-1';
+            } else {
+                el.innerHTML = `<i class="fas fa-minus"></i> 0%`;
+                el.className = 'text-sm text-gray-400 mb-1';
+            }
+        }
+
+        // 加载需要关注的问题
+        function loadIssues() {
+            const projects = JSON.parse(localStorage.getItem('geo_projects') || '[]');
+            const freeResult = JSON.parse(localStorage.getItem('free_detect_result') || 'null');
+            const container = document.getElementById('issuesList');
+            const countEl = document.getElementById('issueCount');
+            
+            const issues = [];
+
+            // 从项目中检测问题
+            projects.forEach(p => {
+                if (p.sheepScore && p.sheepScore < 50) {
+                    issues.push({
+                        type: 'warning',
+                        icon: 'fa-chart-line',
+                        text: `项目 "${p.project?.name}" 评分较低 (${p.sheepScore})`,
+                        action: `project-detail.html?id=${p.id}`,
+                        actionText: '查看详情'
+                    });
+                }
+            });
+
+            // 从免费检测结果检测问题
+            if (freeResult) {
+                if (!freeResult.isKnown) {
+                    issues.push({
+                        type: 'error',
+                        icon: 'fa-eye-slash',
+                        text: 'AI 尚未收录你的品牌',
+                        action: 'setup-wizard.html',
+                        actionText: '开始优化'
+                    });
+                }
+                if (freeResult.weaknesses && freeResult.weaknesses.length > 0) {
+                    issues.push({
+                        type: 'warning',
+                        icon: 'fa-exclamation-triangle',
+                        text: freeResult.weaknesses[0],
+                        action: 'content-quality.html',
+                        actionText: '修复'
+                    });
+                }
+                if (freeResult.sovPercent < 10) {
+                    issues.push({
+                        type: 'info',
+                        icon: 'fa-users',
+                        text: '声量份额低于行业平均',
+                        action: 'competitors.html',
+                        actionText: '查看竞品'
+                    });
+                }
+            }
+
+            countEl.textContent = issues.length + ' 个问题';
+
+            if (issues.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-gray-400">
+                        <i class="fas fa-check-circle text-3xl mb-2 text-green-400"></i>
+                        <p>暂无需要关注的问题</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const typeConfig = {
+                'error': { bg: 'bg-red-50', border: 'border-red-200', icon: 'text-red-500' },
+                'warning': { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-500' },
+                'info': { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-500' }
+            };
+
+            container.innerHTML = issues.slice(0, 4).map(issue => {
+                const config = typeConfig[issue.type] || typeConfig['info'];
+                return `
+                    <div class="flex items-center justify-between p-3 ${config.bg} border ${config.border} rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <i class="fas ${issue.icon} ${config.icon}"></i>
+                            <span class="text-sm text-gray-700">${issue.text}</span>
+                        </div>
+                        <a href="${issue.action}" class="text-xs text-indigo-600 hover:underline">${issue.actionText}</a>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 加载推荐行动
+        function loadActions() {
+            const projects = JSON.parse(localStorage.getItem('geo_projects') || '[]');
+            const freeResult = JSON.parse(localStorage.getItem('free_detect_result') || 'null');
+            const container = document.getElementById('actionsList');
+            
+            const actions = [];
+
+            // 根据数据生成推荐行动
+            if (projects.length === 0 && !freeResult) {
+                actions.push({
+                    title: '免费检测 AI 可见度',
+                    desc: '30 秒了解你的品牌在 AI 中的表现',
+                    impact: '基础',
+                    href: '../index.html#detect'
+                });
+            }
+
+            if (freeResult && !freeResult.isKnown) {
+                actions.push({
+                    title: '建立品牌基础信息',
+                    desc: '在官网添加清晰的品牌介绍',
+                    impact: '+30%',
+                    href: 'content-quality.html'
+                });
+            }
+
+            if (freeResult && freeResult.sheepScore < 60) {
+                actions.push({
+                    title: '添加结构化数据',
+                    desc: '添加 Organization、Product Schema',
+                    impact: '+25%',
+                    href: 'schema-generator.html'
+                });
+            }
+
+            if (projects.length === 0) {
+                actions.push({
+                    title: '创建监控项目',
+                    desc: '持续追踪 AI 可见度变化',
+                    impact: '持续',
+                    href: 'setup-wizard.html'
+                });
+            }
+
+            actions.push({
+                title: '生成 llms.txt',
+                desc: '帮助 AI 更好地理解你的网站',
+                impact: '+15%',
+                href: 'llms-txt.html'
+            });
+
+            if (actions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-gray-400">
+                        <i class="fas fa-check-circle text-3xl mb-2 text-green-400"></i>
+                        <p>所有优化任务已完成</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = actions.slice(0, 4).map((action, i) => `
+                <a href="${action.href}" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-indigo-50 transition group">
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-sm flex items-center justify-center font-medium">${i + 1}</span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900 group-hover:text-indigo-600">${action.title}</p>
+                            <p class="text-xs text-gray-500">${action.desc}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-emerald-600 font-medium">${action.impact}</span>
+                </a>
+            `).join('');
+        }
+
+        // 初始化趋势图表
+        function initTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const labels = [];
+            const data = [];
+            
+            // 生成过去 7 天的日期和模拟数据
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push((date.getMonth() + 1) + '/' + date.getDate());
+                
+                // 模拟数据（实际应从后端获取）
+                const baseScore = JSON.parse(localStorage.getItem('free_detect_result') || '{}').sheepScore || 50;
+                data.push(Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10)));
+            }
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'AI 可见度评分',
+                        data: data,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: '#f3f4f6' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 切换趋势周期
+        function setTrendPeriod(period) {
+            document.querySelectorAll('.trend-btn').forEach(btn => {
+                btn.className = 'trend-btn px-3 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-100';
+            });
+            event.target.className = 'trend-btn px-3 py-1 text-sm rounded-lg bg-indigo-100 text-indigo-600';
+            
+            // 更新图表数据（实际应从后端获取）
+            const days = period === '7d' ? 7 : 30;
+            const labels = [];
+            const data = [];
+            
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push((date.getMonth() + 1) + '/' + date.getDate());
+                const baseScore = JSON.parse(localStorage.getItem('free_detect_result') || '{}').sheepScore || 50;
+                data.push(Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10)));
+            }
+
+            trendChart.data.labels = labels;
+            trendChart.data.datasets[0].data = data;
+            trendChart.update();
+        }
+
+        // 加载最近项目
+        function loadRecentProjects() {
+            const projects = JSON.parse(localStorage.getItem('geo_projects') || '[]');
+            const container = document.getElementById('recentProjectsList');
+            
+            if (projects.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无项目，<a href="setup-wizard.html" class="text-indigo-600 hover:underline">创建第一个项目</a></p>';
+                return;
+            }
+
+            const recentProjects = projects
+                .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+                .slice(0, 5);
+
+            const statusConfig = {
+                'draft': { label: '草稿', class: 'bg-gray-100 text-gray-600' },
+                'pending': { label: '待检测', class: 'bg-amber-100 text-amber-700' },
+                'detecting': { label: '检测中', class: 'bg-blue-100 text-blue-700' },
+                'completed': { label: '已完成', class: 'bg-green-100 text-green-700' }
+            };
+
+            container.innerHTML = recentProjects.map(p => {
+                const status = statusConfig[p.status] || statusConfig['draft'];
+                const models = p.project?.models || [];
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer" onclick="selectProject('${p.id}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-folder text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${p.project?.name || '未命名项目'}</p>
+                                <p class="text-xs text-gray-500">${models.slice(0, 3).join(', ')}${models.length > 3 ? '...' : ''}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 ${status.class} rounded-full text-xs">${status.label}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 选择项目
+        function selectProject(projectId) {
+            const projects = JSON.parse(localStorage.getItem('geo_projects') || '[]');
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+                localStorage.setItem('geo_current_project', JSON.stringify(project));
+                window.location.href = 'project-detail.html?id=' + projectId;
+            }
+        }
+
+        // 检查当前项目并更新UI
+        function checkCurrentProject() {
+            const currentProject = JSON.parse(localStorage.getItem('geo_current_project') || 'null');
+            
+            if (currentProject) {
+                document.getElementById('projectDataSection').classList.remove('hidden');
+                document.getElementById('currentProjectName').textContent = currentProject.project?.name || currentProject.brandName || '未命名项目';
+                document.getElementById('currentProjectInfo').classList.remove('hidden');
+                document.getElementById('headerProjectName').textContent = currentProject.project?.name || currentProject.brandName || '';
+                document.getElementById('headerProjectUrl').textContent = currentProject.project?.url || currentProject.websiteUrl || '';
+                updateWorkflowProgress(currentProject.status);
+            } else {
+                document.getElementById('projectDataSection').classList.add('hidden');
+            }
+        }
+
+        // 更新工作流进度
+        function updateWorkflowProgress(status) {
+            const steps = { 'draft': 1, 'pending': 2, 'detecting': 3, 'completed': 5 };
+            const currentStep = steps[status] || 1;
+
+            for (let i = 1; i <= 5; i++) {
+                const stepEl = document.getElementById('step' + i);
+                const labelEl = document.getElementById('label' + i);
+                const lineEl = document.getElementById('line' + i);
+
+                if (i < currentStep) {
+                    stepEl.className = 'workflow-step completed w-12 h-12 rounded-full flex items-center justify-center';
+                    stepEl.innerHTML = '<i class="fas fa-check"></i>';
+                    labelEl.className = 'text-emerald-600 font-medium';
+                    if (lineEl) lineEl.className = 'flex-1 h-1 bg-emerald-500';
+                } else if (i === currentStep) {
+                    stepEl.className = 'workflow-step active w-12 h-12 rounded-full flex items-center justify-center';
+                    labelEl.className = 'text-indigo-600 font-medium';
+                } else {
+                    stepEl.className = 'workflow-step bg-gray-200 text-gray-500 w-12 h-12 rounded-full flex items-center justify-center';
+                    labelEl.className = 'text-gray-400';
+                }
+            }
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboardView();  // 根据是否有项目显示不同界面
+            loadRecentProjects();
+            checkCurrentProject();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHEEP 五维评估模型 - GeoCore AI GEO 生成式引擎优化平台</title>
+    <meta name="description" content="SHEEP 是 GeoCore AI 独创的 GEO 评估框架，从 Source、Helpfulness、Expertise、Engagement、Presentation 五个维度评估品牌被 AI 主动推荐的潜力。">
+    <meta name="keywords" content="SHEEP模型,GEO评估框架,AI推荐潜力评估,Generative Engine Optimization,Source,Helpfulness,Expertise,Engagement,Presentation">
+    <link rel="canonical" href="https://gcore.ai/sheep-model">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#6366f1', secondary: '#8b5cf6' } } }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <img src="images/logo.svg" alt="GeoCore AI" class="h-9">
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-8">
+                        <a href="features.html" class="text-gray-500 hover:text-gray-900">功能特性</a>
+                        <a href="sheep-model.html" class="text-primary font-medium">SHEEP 模型</a>
+                        <a href="workflow.html" class="text-gray-500 hover:text-gray-900">工作流程</a>
+                        <a href="pricing.html" class="text-gray-500 hover:text-gray-900">定价</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="login.html" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90">登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="gradient-bg text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h1 class="text-4xl font-bold mb-4">SHEEP 五维评估模型</h1>
+            <p class="text-xl text-purple-100">行业领先的 GEO 评估框架，全面衡量品牌 AI 可见度</p>
+        </div>
+    </section>
+
+    <!-- What is SHEEP -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="max-w-3xl mx-auto text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">什么是 SHEEP？</h2>
+                <p class="text-gray-600 text-lg">
+                    SHEEP 是 GCore 独创的 AI 可见度评估框架，通过五个核心维度全面评估品牌在 AI 生态系统中的表现。
+                    每个维度都有详细的评分标准和优化建议，帮助品牌系统性地提升 AI 可见度。
+                </p>
+            </div>
+
+            <!-- Radar Chart -->
+            <div class="max-w-md mx-auto mb-16">
+                <canvas id="sheepRadar"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Five Dimensions -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">五大评估维度</h2>
+            
+            <div class="space-y-8">
+                <!-- Source -->
+                <article class="bg-white rounded-xl p-8 shadow-sm card-hover transition">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-4xl font-bold text-blue-600">S</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-2">Source - 来源权威性</h3>
+                            <p class="text-gray-600 mb-4">
+                                评估品牌内容的来源可信度和权威性。AI 模型更倾向于引用来自权威来源的信息，
+                                包括官方网站、权威媒体报道、学术引用、行业认证等。
+                            </p>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">评估指标</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 域名权威度 (Domain Authority)</li>
+                                        <li>• 外部权威引用数量</li>
+                                        <li>• 媒体报道覆盖度</li>
+                                        <li>• 行业认证和奖项</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">优化建议</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 获取权威媒体报道</li>
+                                        <li>• 建立行业合作关系</li>
+                                        <li>• 申请相关认证</li>
+                                        <li>• 发布研究报告</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Helpfulness -->
+                <article class="bg-white rounded-xl p-8 shadow-sm card-hover transition">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                                <span class="text-4xl font-bold text-green-600">H</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-2">Helpfulness - 内容有用性</h3>
+                            <p class="text-gray-600 mb-4">
+                                评估品牌内容对用户的实际帮助程度。AI 模型优先推荐能够直接解决用户问题、
+                                提供实用信息的内容，而非纯营销性质的内容。
+                            </p>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">评估指标</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 问题解决覆盖率</li>
+                                        <li>• FAQ 完整度</li>
+                                        <li>• 教程和指南质量</li>
+                                        <li>• 用户评价和反馈</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">优化建议</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 创建详细的 FAQ</li>
+                                        <li>• 编写操作指南</li>
+                                        <li>• 提供案例研究</li>
+                                        <li>• 收集用户反馈</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Expertise -->
+                <article class="bg-white rounded-xl p-8 shadow-sm card-hover transition">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center">
+                                <span class="text-4xl font-bold text-purple-600">E</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-2">Expertise - 专业深度</h3>
+                            <p class="text-gray-600 mb-4">
+                                评估品牌在特定领域的专业程度和深度。AI 模型更信任展现出深厚专业知识的内容，
+                                包括技术细节、行业洞察、专家观点等。
+                            </p>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">评估指标</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 技术内容深度</li>
+                                        <li>• 行业术语使用准确性</li>
+                                        <li>• 专家背书和引用</li>
+                                        <li>• 原创研究和数据</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">优化建议</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 发布深度技术文章</li>
+                                        <li>• 邀请专家撰稿</li>
+                                        <li>• 进行原创研究</li>
+                                        <li>• 参与行业标准制定</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Engagement -->
+                <article class="bg-white rounded-xl p-8 shadow-sm card-hover transition">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
+                                <span class="text-4xl font-bold text-amber-600">E</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-2">Engagement - 用户互动</h3>
+                            <p class="text-gray-600 mb-4">
+                                评估品牌内容的用户互动程度和社区活跃度。高互动度表明内容受到用户认可，
+                                AI 模型会将此作为内容质量的重要信号。
+                            </p>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">评估指标</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 社交媒体互动率</li>
+                                        <li>• 用户评论和讨论</li>
+                                        <li>• 内容分享次数</li>
+                                        <li>• 社区活跃度</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">优化建议</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 建立用户社区</li>
+                                        <li>• 鼓励用户评价</li>
+                                        <li>• 创建可分享内容</li>
+                                        <li>• 积极回应用户</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Presentation -->
+                <article class="bg-white rounded-xl p-8 shadow-sm card-hover transition">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+                                <span class="text-4xl font-bold text-red-600">P</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-2">Presentation - 呈现质量</h3>
+                            <p class="text-gray-600 mb-4">
+                                评估品牌内容的结构化程度和呈现质量。良好的内容结构有助于 AI 模型理解和提取信息，
+                                包括 Schema 标记、清晰的层次结构等。
+                            </p>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">评估指标</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• Schema 标记完整度</li>
+                                        <li>• 内容结构清晰度</li>
+                                        <li>• llms.txt 配置</li>
+                                        <li>• 多媒体内容质量</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">优化建议</h4>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• 添加结构化数据</li>
+                                        <li>• 优化内容层次</li>
+                                        <li>• 配置 llms.txt</li>
+                                        <li>• 提升页面体验</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-16 gradient-bg">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">开始您的 SHEEP 评估</h2>
+            <p class="text-purple-100 mb-8">免费获取您品牌的 SHEEP 评分报告</p>
+            <a href="login.html" class="inline-block px-8 py-3 bg-white text-primary font-semibold rounded-lg hover:bg-gray-100 transition">
+                <i class="fas fa-chart-pie mr-2"></i>立即评估
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-12">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">G</span>
+                        </div>
+                        <span class="text-xl font-bold text-white">GCore</span>
+                    </div>
+                    <p class="text-sm">让您的品牌成为 AI 的"标准答案"</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">产品</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="features.html" class="hover:text-white">功能特性</a></li>
+                        <li><a href="pricing.html" class="hover:text-white">定价方案</a></li>
+                        <li><a href="docs.html" class="hover:text-white">API 文档</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">资源</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="sheep-model.html" class="hover:text-white">SHEEP 模型</a></li>
+                        <li><a href="workflow.html" class="hover:text-white">工作流程</a></li>
+                        <li><a href="#" class="hover:text-white">案例研究</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">公司</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white">关于我们</a></li>
+                        <li><a href="#" class="hover:text-white">联系我们</a></li>
+                        <li><a href="#" class="hover:text-white">隐私政策</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
+                <p>© 2026 GCore. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        new Chart(document.getElementById('sheepRadar'), {
+            type: 'radar',
+            data: {
+                labels: ['Source', 'Helpfulness', 'Expertise', 'Engagement', 'Presentation'],
+                datasets: [{
+                    label: '示例品牌',
+                    data: [75, 82, 68, 71, 85],
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    borderColor: '#6366f1',
+                    pointBackgroundColor: '#6366f1'
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { stepSize: 20 }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>

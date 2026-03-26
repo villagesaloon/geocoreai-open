@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站 GEO/SEO 审计 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- Main Content -->
+    <main class="ml-60 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">网站 GEO/SEO 审计</h1>
+                        <p class="text-sm text-gray-500 mt-1">Phase 6: 技术层 + 内容层 + E-E-A-T 全面检测</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Input Section -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">输入网站 URL</h3>
+                    <div class="flex gap-4">
+                        <input type="url" id="auditUrl" placeholder="https://example.com/page" 
+                               class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 text-lg">
+                        <button onclick="runAudit()" id="auditBtn"
+                                class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                            <i class="fas fa-search mr-2"></i>开始审计
+                        </button>
+                    </div>
+                    <div class="mt-4 flex gap-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="includeTechnical" checked class="mr-2">
+                            <span class="text-sm text-gray-600">技术层检测</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="includeContent" checked class="mr-2">
+                            <span class="text-sm text-gray-600">内容层检测</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="includeEEAT" checked class="mr-2">
+                            <span class="text-sm text-gray-600">E-E-A-T 检测</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading" class="hidden text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                    <p class="text-gray-600">正在审计网站，请稍候...</p>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="hidden space-y-6">
+                    <!-- Overall Score -->
+                    <div id="scoreCard" class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-xl font-semibold mb-2">
+                                    <i class="fas fa-chart-pie mr-2"></i>综合评分
+                                </h2>
+                                <p id="auditedUrl" class="text-blue-100 text-sm"></p>
+                            </div>
+                            <div class="text-right">
+                                <div id="overallScore" class="text-6xl font-bold"></div>
+                                <div id="grade" class="text-2xl font-semibold mt-1"></div>
+                            </div>
+                        </div>
+                        <div class="mt-6 grid grid-cols-3 gap-4">
+                            <div class="bg-white/20 rounded-lg p-3 text-center">
+                                <p class="text-blue-100 text-sm">技术层</p>
+                                <p id="technicalScore" class="text-2xl font-bold"></p>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-3 text-center">
+                                <p class="text-blue-100 text-sm">内容层</p>
+                                <p id="contentScore" class="text-2xl font-bold"></p>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-3 text-center">
+                                <p class="text-blue-100 text-sm">E-E-A-T</p>
+                                <p id="eeatScore" class="text-2xl font-bold"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Issues Summary -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>发现的问题
+                        </h3>
+                        <div id="issuesSummary" class="grid grid-cols-4 gap-4 mb-4"></div>
+                        <div id="issuesList" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Technical Details -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <button onclick="toggleSection('technical')" class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100">
+                            <span class="font-semibold text-gray-900">
+                                <i class="fas fa-cog text-blue-500 mr-2"></i>技术层详情
+                            </span>
+                            <i id="technical-icon" class="fas fa-chevron-down text-gray-400"></i>
+                        </button>
+                        <div id="technical-content" class="hidden p-6 space-y-4">
+                            <!-- robots.txt -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">robots.txt AI 爬虫检测</h4>
+                                <div id="robotsTxtResult"></div>
+                            </div>
+                            <!-- Core Web Vitals -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">Core Web Vitals</h4>
+                                <div id="cwvResult"></div>
+                            </div>
+                            <!-- JS Rendering -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">JS 渲染检测</h4>
+                                <div id="jsRenderResult"></div>
+                            </div>
+                            <!-- HTTPS/Canonical -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">HTTPS / Canonical</h4>
+                                <div id="httpsResult"></div>
+                            </div>
+                            <!-- Sitemap -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">Sitemap</h4>
+                                <div id="sitemapResult"></div>
+                            </div>
+                            <!-- llms.txt -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">llms.txt</h4>
+                                <div id="llmsTxtResult"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Details -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <button onclick="toggleSection('content')" class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100">
+                            <span class="font-semibold text-gray-900">
+                                <i class="fas fa-file-alt text-green-500 mr-2"></i>内容层详情
+                            </span>
+                            <i id="content-icon" class="fas fa-chevron-down text-gray-400"></i>
+                        </button>
+                        <div id="content-content" class="hidden p-6 space-y-4">
+                            <!-- Answer Capsules -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">答案胶囊检测 (40-60 词)</h4>
+                                <div id="capsuleResult"></div>
+                            </div>
+                            <!-- Paragraph Length -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">段落长度分析 (120-180 词最佳)</h4>
+                                <div id="paragraphResult"></div>
+                            </div>
+                            <!-- Heading Structure -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">标题层级结构</h4>
+                                <div id="headingResult"></div>
+                            </div>
+                            <!-- Schema -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">Schema 结构化数据</h4>
+                                <div id="schemaResult"></div>
+                            </div>
+                            <!-- Meta Tags -->
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">Meta 标签</h4>
+                                <div id="metaResult"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- E-E-A-T Details -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <button onclick="toggleSection('eeat')" class="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100">
+                            <span class="font-semibold text-gray-900">
+                                <i class="fas fa-user-check text-purple-500 mr-2"></i>E-E-A-T 详情
+                            </span>
+                            <i id="eeat-icon" class="fas fa-chevron-down text-gray-400"></i>
+                        </button>
+                        <div id="eeat-content" class="hidden p-6">
+                            <div id="eeatResult"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>优化建议
+                        </h3>
+                        <div id="recommendations" class="space-y-3"></div>
+                    </div>
+                </div>
+            </main>
+
+    <script>
+        function toggleSection(section) {
+            const content = document.getElementById(`${section}-content`);
+            const icon = document.getElementById(`${section}-icon`);
+            content.classList.toggle('hidden');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        async function runAudit() {
+            const url = document.getElementById('auditUrl').value;
+            if (!url) {
+                alert('请输入网站 URL');
+                return;
+            }
+
+            const btn = document.getElementById('auditBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>审计中...';
+
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/site-audit/audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url,
+                        includeTechnical: document.getElementById('includeTechnical').checked,
+                        includeContent: document.getElementById('includeContent').checked,
+                        includeEEAT: document.getElementById('includeEEAT').checked
+                    })
+                });
+                const data = await response.json();
+                renderResults(data);
+            } catch (error) {
+                alert('审计失败: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search mr-2"></i>开始审计';
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function renderResults(data) {
+            document.getElementById('results').classList.remove('hidden');
+
+            // Score card
+            document.getElementById('auditedUrl').textContent = data.url;
+            document.getElementById('overallScore').textContent = data.overallScore;
+            document.getElementById('grade').textContent = `Grade ${data.grade}`;
+            document.getElementById('technicalScore').textContent = data.technical?.score || 0;
+            document.getElementById('contentScore').textContent = data.content?.score || 0;
+            document.getElementById('eeatScore').textContent = data.eeat?.score || 0;
+
+            // Update score card color based on grade
+            const scoreCard = document.getElementById('scoreCard');
+            const gradeColors = {
+                'A': 'from-green-600 to-emerald-600',
+                'B': 'from-blue-600 to-indigo-600',
+                'C': 'from-yellow-600 to-orange-600',
+                'D': 'from-orange-600 to-red-600',
+                'F': 'from-red-600 to-red-800'
+            };
+            scoreCard.className = `bg-gradient-to-r ${gradeColors[data.grade] || gradeColors['B']} rounded-xl p-6 text-white`;
+
+            // Issues summary
+            const criticalCount = data.issues.filter(i => i.severity === 'Critical').length;
+            const highCount = data.issues.filter(i => i.severity === 'High').length;
+            const mediumCount = data.issues.filter(i => i.severity === 'Medium').length;
+            const lowCount = data.issues.filter(i => i.severity === 'Low').length;
+
+            document.getElementById('issuesSummary').innerHTML = `
+                <div class="bg-red-50 rounded-lg p-3 text-center">
+                    <p class="text-2xl font-bold text-red-600">${criticalCount}</p>
+                    <p class="text-xs text-red-500">严重</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-3 text-center">
+                    <p class="text-2xl font-bold text-orange-600">${highCount}</p>
+                    <p class="text-xs text-orange-500">高</p>
+                </div>
+                <div class="bg-yellow-50 rounded-lg p-3 text-center">
+                    <p class="text-2xl font-bold text-yellow-600">${mediumCount}</p>
+                    <p class="text-xs text-yellow-500">中</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                    <p class="text-2xl font-bold text-gray-600">${lowCount}</p>
+                    <p class="text-xs text-gray-500">低</p>
+                </div>
+            `;
+
+            // Issues list
+            document.getElementById('issuesList').innerHTML = data.issues.map(issue => `
+                <div class="flex items-start p-3 rounded-lg ${getSeverityBg(issue.severity)}">
+                    <i class="fas fa-${getSeverityIcon(issue.severity)} ${getSeverityColor(issue.severity)} mt-1 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">${issue.title}</p>
+                        <p class="text-sm text-gray-600">${issue.description}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // Technical details
+            if (data.technical) {
+                renderTechnicalDetails(data.technical);
+            }
+
+            // Content details
+            if (data.content) {
+                renderContentDetails(data.content);
+            }
+
+            // E-E-A-T details
+            if (data.eeat) {
+                renderEEATDetails(data.eeat);
+            }
+
+            // Recommendations
+            document.getElementById('recommendations').innerHTML = data.recommendations.map(rec => `
+                <div class="flex items-start p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-arrow-right text-blue-500 mt-1 mr-3"></i>
+                    <p class="text-gray-700">${rec}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderTechnicalDetails(tech) {
+            // robots.txt
+            const robots = tech.robotsTxt;
+            document.getElementById('robotsTxtResult').innerHTML = `
+                <div class="flex items-center mb-2">
+                    ${statusBadge(robots.exists, 'robots.txt 存在')}
+                    ${statusBadge(robots.allAICrawlersAllowed, '所有 AI 爬虫允许')}
+                </div>
+                ${robots.blockedCrawlers.length > 0 ? `
+                    <p class="text-sm text-red-600 mb-2">被阻止的爬虫: ${robots.blockedCrawlers.join(', ')}</p>
+                ` : ''}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                    ${robots.crawlerAccess.slice(0, 8).map(c => `
+                        <div class="text-xs p-2 rounded ${c.isAllowed ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}">
+                            ${c.crawlerName}: ${c.isAllowed ? '✓' : '✗'}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Core Web Vitals
+            const cwv = tech.coreWebVitals;
+            document.getElementById('cwvResult').innerHTML = `
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center p-3 rounded-lg ${getMetricBg(cwv.lcpStatus)}">
+                        <p class="text-2xl font-bold">${cwv.lcp}s</p>
+                        <p class="text-xs">LCP</p>
+                    </div>
+                    <div class="text-center p-3 rounded-lg ${getMetricBg(cwv.inpStatus)}">
+                        <p class="text-2xl font-bold">${cwv.inp}ms</p>
+                        <p class="text-xs">INP</p>
+                    </div>
+                    <div class="text-center p-3 rounded-lg ${getMetricBg(cwv.clsStatus)}">
+                        <p class="text-2xl font-bold">${cwv.cls}</p>
+                        <p class="text-xs">CLS</p>
+                    </div>
+                </div>
+            `;
+
+            // JS Rendering
+            const js = tech.jsRendering;
+            document.getElementById('jsRenderResult').innerHTML = `
+                ${statusBadge(!js.criticalContentInJS, 'AI 爬虫可访问内容')}
+                ${js.hasJSRenderedContent ? `<p class="text-sm text-yellow-600 mt-2">检测到 JS 框架渲染</p>` : ''}
+                ${js.recommendation ? `<p class="text-sm text-gray-600 mt-2">${js.recommendation}</p>` : ''}
+            `;
+
+            // HTTPS/Canonical
+            const https = tech.httpsCanonical;
+            document.getElementById('httpsResult').innerHTML = `
+                <div class="flex gap-2">
+                    ${statusBadge(https.isHttps, 'HTTPS')}
+                    ${statusBadge(https.hasCanonical, 'Canonical')}
+                </div>
+                ${https.canonicalUrl ? `<p class="text-sm text-gray-600 mt-2">Canonical: ${https.canonicalUrl}</p>` : ''}
+            `;
+
+            // Sitemap
+            const sitemap = tech.sitemap;
+            document.getElementById('sitemapResult').innerHTML = `
+                ${statusBadge(sitemap.exists, 'sitemap.xml 存在')}
+                ${sitemap.exists ? `<p class="text-sm text-gray-600 mt-2">URL 数量: ${sitemap.urlCount}</p>` : ''}
+            `;
+
+            // llms.txt
+            const llms = tech.llmsTxt;
+            document.getElementById('llmsTxtResult').innerHTML = `
+                ${statusBadge(llms.exists, 'llms.txt 存在')}
+                ${llms.exists ? `<p class="text-sm text-gray-600 mt-2">条目数: ${llms.entryCount}</p>` : ''}
+            `;
+        }
+
+        function renderContentDetails(content) {
+            // Answer Capsules
+            const capsule = content.answerCapsule;
+            document.getElementById('capsuleResult').innerHTML = `
+                <div class="flex items-center gap-4 mb-2">
+                    ${statusBadge(capsule.hasAnswerCapsules, '有答案胶囊')}
+                    <span class="text-sm text-gray-600">覆盖率: ${capsule.coveragePercentage.toFixed(0)}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: ${capsule.coveragePercentage}%"></div>
+                </div>
+            `;
+
+            // Paragraph Length
+            const para = content.paragraphLength;
+            document.getElementById('paragraphResult').innerHTML = `
+                <div class="grid grid-cols-4 gap-2 mb-2">
+                    <div class="text-center p-2 bg-gray-50 rounded">
+                        <p class="font-bold">${para.totalParagraphs}</p>
+                        <p class="text-xs text-gray-500">总段落</p>
+                    </div>
+                    <div class="text-center p-2 bg-green-50 rounded">
+                        <p class="font-bold text-green-600">${para.optimalLengthCount}</p>
+                        <p class="text-xs text-gray-500">最佳长度</p>
+                    </div>
+                    <div class="text-center p-2 bg-yellow-50 rounded">
+                        <p class="font-bold text-yellow-600">${para.tooShortCount}</p>
+                        <p class="text-xs text-gray-500">过短</p>
+                    </div>
+                    <div class="text-center p-2 bg-red-50 rounded">
+                        <p class="font-bold text-red-600">${para.tooLongCount}</p>
+                        <p class="text-xs text-gray-500">过长</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600">平均长度: ${para.averageLength.toFixed(0)} 词</p>
+            `;
+
+            // Heading Structure
+            const heading = content.headingStructure;
+            document.getElementById('headingResult').innerHTML = `
+                <div class="flex gap-2 mb-2">
+                    ${statusBadge(heading.hasH1, 'H1')}
+                    ${statusBadge(heading.hasProperHierarchy, '层级正确')}
+                </div>
+                <div class="flex gap-4 text-sm">
+                    <span>H1: ${heading.h1Count}</span>
+                    <span>H2: ${heading.h2Count}</span>
+                    <span>H3: ${heading.h3Count}</span>
+                    <span>H4: ${heading.h4Count}</span>
+                </div>
+            `;
+
+            // Schema
+            const schema = content.schema;
+            document.getElementById('schemaResult').innerHTML = `
+                <div class="flex gap-2 mb-2">
+                    ${statusBadge(schema.hasSchema, 'JSON-LD')}
+                    ${statusBadge(schema.hasArticleSchema, 'Article')}
+                    ${statusBadge(schema.hasFAQSchema, 'FAQ')}
+                </div>
+                ${schema.schemas.length > 0 ? `
+                    <p class="text-sm text-gray-600">检测到: ${schema.schemas.map(s => s.type).join(', ')}</p>
+                ` : ''}
+            `;
+
+            // Meta Tags
+            const meta = content.metaTags;
+            document.getElementById('metaResult').innerHTML = `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm">Title (${meta.titleLength} 字符)</span>
+                        ${statusBadge(meta.titleOptimal, '< 60')}
+                    </div>
+                    ${meta.title ? `<p class="text-xs text-gray-500 truncate">${meta.title}</p>` : ''}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm">Description (${meta.descriptionLength} 字符)</span>
+                        ${statusBadge(meta.descriptionOptimal, '< 160')}
+                    </div>
+                    <div class="flex gap-2">
+                        ${statusBadge(meta.hasOgTags, 'OG Tags')}
+                        ${statusBadge(meta.hasTwitterCards, 'Twitter Cards')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEEATDetails(eeat) {
+            document.getElementById('eeatResult').innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="p-3 border rounded-lg">
+                        <p class="text-sm text-gray-500 mb-1">作者信息</p>
+                        ${statusBadge(eeat.hasAuthorInfo, '有作者信息')}
+                    </div>
+                    <div class="p-3 border rounded-lg">
+                        <p class="text-sm text-gray-500 mb-1">发布日期</p>
+                        ${statusBadge(eeat.hasPublishDate, '有发布日期')}
+                    </div>
+                    <div class="p-3 border rounded-lg">
+                        <p class="text-sm text-gray-500 mb-1">更新日期</p>
+                        ${statusBadge(eeat.hasUpdateDate, '有更新日期')}
+                    </div>
+                    <div class="p-3 border rounded-lg">
+                        <p class="text-sm text-gray-500 mb-1">外部引用</p>
+                        <p class="font-medium">${eeat.citationCount} 个链接</p>
+                    </div>
+                    <div class="p-3 border rounded-lg">
+                        <p class="text-sm text-gray-500 mb-1">引用充足</p>
+                        ${statusBadge(eeat.hasCitations, '≥ 3 个引用')}
+                    </div>
+                </div>
+                ${eeat.recommendations.length > 0 ? `
+                    <div class="mt-4 pt-4 border-t">
+                        <p class="text-sm font-medium text-gray-700 mb-2">E-E-A-T 建议:</p>
+                        ${eeat.recommendations.map(r => `<p class="text-sm text-gray-600">• ${r}</p>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function statusBadge(passed, label) {
+            return `<span class="px-2 py-1 rounded text-xs font-medium ${passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                ${passed ? '✓' : '✗'} ${label}
+            </span>`;
+        }
+
+        function getSeverityBg(severity) {
+            return { Critical: 'bg-red-50', High: 'bg-orange-50', Medium: 'bg-yellow-50', Low: 'bg-gray-50' }[severity] || 'bg-gray-50';
+        }
+
+        function getSeverityColor(severity) {
+            return { Critical: 'text-red-500', High: 'text-orange-500', Medium: 'text-yellow-500', Low: 'text-gray-500' }[severity] || 'text-gray-500';
+        }
+
+        function getSeverityIcon(severity) {
+            return { Critical: 'times-circle', High: 'exclamation-circle', Medium: 'exclamation-triangle', Low: 'info-circle' }[severity] || 'info-circle';
+        }
+
+        function getMetricBg(status) {
+            return { good: 'bg-green-100', 'needs-improvement': 'bg-yellow-100', poor: 'bg-red-100' }[status] || 'bg-gray-100';
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>渠道优化器 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .channel-card { transition: all 0.3s; }
+        .channel-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .channel-card.selected { border-color: #6366f1; background: #eef2ff; }
+        .tab-btn.active { border-bottom: 2px solid #6366f1; color: #6366f1; }
+        .engine-badge { transition: all 0.2s; }
+        .engine-badge:hover { transform: scale(1.05); }
+        .engine-badge.selected { box-shadow: 0 0 0 2px #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 主内容 -->
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">渠道优化器</h2>
+                    <p class="text-sm text-gray-500">根据行业和目标引擎，推荐最佳发布渠道</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="projectSelect" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">选择项目...</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 配置区域 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-cog text-indigo-600 mr-2"></i>优化配置
+                </h3>
+                <div class="grid grid-cols-4 gap-6">
+                    <!-- 行业选择 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">目标行业</label>
+                        <select id="industrySelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="tech.ai">人工智能</option>
+                            <option value="tech.saas">SaaS 软件</option>
+                            <option value="ecommerce">电子商务</option>
+                            <option value="finance">金融科技</option>
+                            <option value="healthcare">医疗健康</option>
+                            <option value="education">在线教育</option>
+                            <option value="pets">宠物行业</option>
+                            <option value="automotive">汽车出行</option>
+                        </select>
+                    </div>
+                    <!-- 目标市场 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">目标市场</label>
+                        <select id="marketSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="CN">中国大陆</option>
+                            <option value="US">美国</option>
+                            <option value="Global">全球</option>
+                            <option value="JP">日本</option>
+                            <option value="DE">德国</option>
+                        </select>
+                    </div>
+                    <!-- 品牌网址 -->
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">品牌网址（用于引用源建设）</label>
+                        <input type="url" id="brandUrl" placeholder="https://www.example.com" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                </div>
+                
+                <!-- 目标引擎选择 -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">目标 AI 引擎（可多选）</label>
+                    <div class="flex flex-wrap gap-3" id="engineSelector">
+                        <button class="engine-badge selected px-4 py-2 rounded-lg border-2 border-indigo-600 bg-indigo-50 text-indigo-700 text-sm font-medium" data-engine="chatgpt">
+                            <i class="fas fa-robot mr-2"></i>ChatGPT
+                        </button>
+                        <button class="engine-badge selected px-4 py-2 rounded-lg border-2 border-indigo-600 bg-indigo-50 text-indigo-700 text-sm font-medium" data-engine="claude">
+                            <i class="fas fa-brain mr-2"></i>Claude
+                        </button>
+                        <button class="engine-badge px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm" data-engine="gemini">
+                            <i class="fas fa-gem mr-2"></i>Gemini
+                        </button>
+                        <button class="engine-badge px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm" data-engine="perplexity">
+                            <i class="fas fa-search mr-2"></i>Perplexity
+                        </button>
+                        <button class="engine-badge px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm" data-engine="wenxin">
+                            <i class="fas fa-comment-dots mr-2"></i>文心一言
+                        </button>
+                        <button class="engine-badge px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm" data-engine="qianwen">
+                            <i class="fas fa-comments mr-2"></i>通义千问
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button onclick="generateRecommendations()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                        <i class="fas fa-magic mr-2"></i>生成渠道推荐
+                    </button>
+                </div>
+            </div>
+
+            <!-- 推荐结果 -->
+            <div id="recommendationResults" class="space-y-6">
+                <!-- 渠道推荐卡片 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-star text-amber-500 mr-2"></i>推荐发布渠道
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">基于您的行业和目标引擎，以下渠道最可能被 AI 引用</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- 第一梯队 -->
+                        <div class="mb-8">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">第一梯队</span>
+                                <span class="text-sm text-gray-500">高优先级 - 引用概率 &gt; 70%</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4" id="tier1Channels">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 第二梯队 -->
+                        <div class="mb-8">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">第二梯队</span>
+                                <span class="text-sm text-gray-500">中优先级 - 引用概率 40-70%</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4" id="tier2Channels">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 第三梯队 -->
+                        <div>
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">第三梯队</span>
+                                <span class="text-sm text-gray-500">补充渠道 - 引用概率 &lt; 40%</span>
+                            </div>
+                            <div class="grid grid-cols-4 gap-3" id="tier3Channels">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 引擎偏好分析 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-chart-bar text-indigo-600 mr-2"></i>引擎偏好分析
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 gap-6" id="engineAnalysis">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 网站引用源建设指南 -->
+                <div id="websiteGuide" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-globe text-amber-600 mr-2"></i>网站引用源建设指南
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">如何让您的网站 <span id="displayBrandUrl" class="font-mono text-indigo-600"></span> 成为 AI 引用源</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 gap-6">
+                            <!-- 技术优化 -->
+                            <div class="space-y-4">
+                                <h4 class="font-semibold text-gray-900 flex items-center gap-2">
+                                    <i class="fas fa-code text-blue-600"></i>技术优化
+                                </h4>
+                                <div class="space-y-3">
+                                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span class="text-white font-bold text-sm">1</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-900">实现 llms.txt</p>
+                                                <p class="text-sm text-gray-600 mt-1">在网站根目录添加 llms.txt 文件，类似 robots.txt，专门给 AI 爬虫提供结构化信息</p>
+                                                <a href="llms-txt.html" class="text-sm text-blue-600 hover:underline mt-2 inline-block">
+                                                    <i class="fas fa-arrow-right mr-1"></i>去生成 llms.txt
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span class="text-white font-bold text-sm">2</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-900">Schema.org 结构化数据</p>
+                                                <p class="text-sm text-gray-600 mt-1">添加 Organization、Article、FAQ 等结构化标记，帮助 AI 理解内容</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span class="text-white font-bold text-sm">3</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-900">提升 Domain Authority</p>
+                                                <p class="text-sm text-gray-600 mt-1">获取高质量外链、优化页面速度、确保 HTTPS</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 内容策略 -->
+                            <div class="space-y-4">
+                                <h4 class="font-semibold text-gray-900 flex items-center gap-2">
+                                    <i class="fas fa-file-alt text-green-600"></i>内容策略
+                                </h4>
+                                <div class="space-y-3">
+                                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span class="text-white font-bold text-sm">1</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-900">权威内容创作</p>
+                                                <p class="text-sm text-gray-600 mt-1">发布有引用来源、数据支撑、专家背书的深度内容</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span class="text-white font-bold text-sm">2</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-900">FAQ 页面优化</p>
+                                                <p class="text-sm text-gray-600 mt-1">创建结构化的 FAQ 页面，直接回答用户常见问题</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span class="text-white font-bold text-sm">3</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-900">多渠道分发</p>
+                                                <p class="text-sm text-gray-600 mt-1">在高信任度渠道发布内容并链接回官网，形成引用网络</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 测试引用状态 -->
+                        <div class="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-gray-900">测试您的网站是否被 AI 引用</p>
+                                    <p class="text-sm text-gray-600 mt-1">我们将向多个 AI 引擎发送测试查询，检测您的网站是否出现在回答中</p>
+                                </div>
+                                <button onclick="testCitationStatus()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition">
+                                    <i class="fas fa-vial mr-2"></i>开始测试
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 渠道数据库
+        const channelDatabase = {
+            'CN': {
+                tier1: [
+                    { name: '知乎', domain: 'zhihu.com', type: 'Community', trustScore: 0.65, icon: 'fa-z', color: 'blue', 
+                      engines: ['chatgpt', 'claude', 'qianwen'], desc: '专业问答社区，中文 AI 高频引用' },
+                    { name: '百度百科', domain: 'baike.baidu.com', type: 'Encyclopedia', trustScore: 0.72, icon: 'fa-book', color: 'blue',
+                      engines: ['wenxin', 'qianwen'], desc: '百度生态核心，文心一言优先引用', ecosystem: 'Baidu' },
+                    { name: '微信公众号', domain: 'mp.weixin.qq.com', type: 'Media', trustScore: 0.68, icon: 'fa-weixin', color: 'green',
+                      engines: ['chatgpt', 'wenxin'], desc: '中文内容主阵地，高传播性' },
+                ],
+                tier2: [
+                    { name: '36氪', domain: '36kr.com', type: 'Media', trustScore: 0.70, icon: 'fa-newspaper', color: 'blue',
+                      engines: ['chatgpt', 'claude'], desc: '科技创投媒体' },
+                    { name: '虎嗅', domain: 'huxiu.com', type: 'Media', trustScore: 0.68, icon: 'fa-tiger', color: 'orange',
+                      engines: ['chatgpt', 'claude'], desc: '商业科技媒体' },
+                    { name: 'CSDN', domain: 'csdn.net', type: 'Community', trustScore: 0.62, icon: 'fa-code', color: 'red',
+                      engines: ['chatgpt', 'qianwen'], desc: '技术开发者社区' },
+                    { name: '掘金', domain: 'juejin.cn', type: 'Community', trustScore: 0.60, icon: 'fa-gem', color: 'blue',
+                      engines: ['chatgpt'], desc: '开发者技术社区' },
+                    { name: '小红书', domain: 'xiaohongshu.com', type: 'Community', trustScore: 0.55, icon: 'fa-book-open', color: 'red',
+                      engines: ['chatgpt'], desc: '生活方式社区，年轻用户' },
+                ],
+                tier3: [
+                    { name: '今日头条', domain: 'toutiao.com', type: 'Media', trustScore: 0.58, icon: 'fa-newspaper', color: 'red' },
+                    { name: '百家号', domain: 'baijiahao.baidu.com', type: 'Media', trustScore: 0.55, icon: 'fa-pen', color: 'blue', ecosystem: 'Baidu' },
+                    { name: 'B站', domain: 'bilibili.com', type: 'Video', trustScore: 0.52, icon: 'fa-tv', color: 'pink' },
+                    { name: '简书', domain: 'jianshu.com', type: 'Blog', trustScore: 0.48, icon: 'fa-feather', color: 'orange' },
+                ]
+            },
+            'US': {
+                tier1: [
+                    { name: 'Wikipedia', domain: 'wikipedia.org', type: 'Encyclopedia', trustScore: 0.82, icon: 'fa-wikipedia-w', color: 'gray',
+                      engines: ['chatgpt', 'claude', 'gemini', 'perplexity'], desc: '全球最高引用率的知识库' },
+                    { name: 'GitHub', domain: 'github.com', type: 'Community', trustScore: 0.75, icon: 'fa-github', color: 'gray',
+                      engines: ['chatgpt', 'claude', 'gemini'], desc: '技术文档和开源项目' },
+                    { name: 'LinkedIn', domain: 'linkedin.com', type: 'Professional', trustScore: 0.68, icon: 'fa-linkedin', color: 'blue',
+                      engines: ['chatgpt', 'perplexity'], desc: '商业洞察和行业分析' },
+                ],
+                tier2: [
+                    { name: 'Medium', domain: 'medium.com', type: 'Blog', trustScore: 0.63, icon: 'fa-medium', color: 'gray',
+                      engines: ['chatgpt', 'claude'], desc: '技术博客和思想领导力' },
+                    { name: 'Reddit', domain: 'reddit.com', type: 'Community', trustScore: 0.58, icon: 'fa-reddit', color: 'orange',
+                      engines: ['chatgpt', 'perplexity'], desc: '社区讨论和用户反馈' },
+                    { name: 'YouTube', domain: 'youtube.com', type: 'Video', trustScore: 0.70, icon: 'fa-youtube', color: 'red',
+                      engines: ['gemini'], desc: 'Google 生态，Gemini 优先', ecosystem: 'Google' },
+                    { name: 'Quora', domain: 'quora.com', type: 'Q&A', trustScore: 0.60, icon: 'fa-quora', color: 'red',
+                      engines: ['chatgpt', 'perplexity'], desc: '专业问答平台' },
+                ],
+                tier3: [
+                    { name: 'Twitter/X', domain: 'x.com', type: 'Social', trustScore: 0.45, icon: 'fa-x-twitter', color: 'gray' },
+                    { name: 'Stack Overflow', domain: 'stackoverflow.com', type: 'Q&A', trustScore: 0.72, icon: 'fa-stack-overflow', color: 'orange' },
+                    { name: 'Dev.to', domain: 'dev.to', type: 'Blog', trustScore: 0.55, icon: 'fa-dev', color: 'gray' },
+                    { name: 'Hacker News', domain: 'news.ycombinator.com', type: 'Community', trustScore: 0.58, icon: 'fa-y-combinator', color: 'orange' },
+                ]
+            },
+            'Global': {
+                tier1: [
+                    { name: 'Wikipedia', domain: 'wikipedia.org', type: 'Encyclopedia', trustScore: 0.82, icon: 'fa-wikipedia-w', color: 'gray',
+                      engines: ['chatgpt', 'claude', 'gemini', 'perplexity'], desc: '全球最高引用率' },
+                    { name: 'GitHub', domain: 'github.com', type: 'Community', trustScore: 0.75, icon: 'fa-github', color: 'gray',
+                      engines: ['chatgpt', 'claude', 'gemini'], desc: '技术项目首选' },
+                    { name: 'arXiv', domain: 'arxiv.org', type: 'Academic', trustScore: 0.89, icon: 'fa-graduation-cap', color: 'red',
+                      engines: ['claude', 'chatgpt'], desc: '学术预印本，AI/ML 领域核心' },
+                ],
+                tier2: [
+                    { name: 'LinkedIn', domain: 'linkedin.com', type: 'Professional', trustScore: 0.68, icon: 'fa-linkedin', color: 'blue',
+                      engines: ['chatgpt', 'perplexity'], desc: '商业内容' },
+                    { name: 'Medium', domain: 'medium.com', type: 'Blog', trustScore: 0.63, icon: 'fa-medium', color: 'gray',
+                      engines: ['chatgpt', 'claude'], desc: '技术博客' },
+                    { name: 'YouTube', domain: 'youtube.com', type: 'Video', trustScore: 0.70, icon: 'fa-youtube', color: 'red',
+                      engines: ['gemini'], desc: 'Gemini 优先', ecosystem: 'Google' },
+                ],
+                tier3: [
+                    { name: 'Reddit', domain: 'reddit.com', type: 'Community', trustScore: 0.58, icon: 'fa-reddit', color: 'orange' },
+                    { name: 'Quora', domain: 'quora.com', type: 'Q&A', trustScore: 0.60, icon: 'fa-quora', color: 'red' },
+                    { name: 'Twitter/X', domain: 'x.com', type: 'Social', trustScore: 0.45, icon: 'fa-x-twitter', color: 'gray' },
+                ]
+            }
+        };
+
+        // 引擎特性
+        const engineFeatures = {
+            chatgpt: { name: 'ChatGPT', color: 'green', preferences: ['训练数据高频来源', 'Wikipedia', '知名技术博客'] },
+            claude: { name: 'Claude', color: 'orange', preferences: ['学术来源', '官方文档', '事实性强的内容'] },
+            gemini: { name: 'Gemini', color: 'blue', preferences: ['Google 生态', 'YouTube', '高 PageRank 网站'] },
+            perplexity: { name: 'Perplexity', color: 'cyan', preferences: ['实时新闻', '明确引用来源', '可验证信息'] },
+            wenxin: { name: '文心一言', color: 'blue', preferences: ['百度生态', '百度百科', '中文权威来源'] },
+            qianwen: { name: '通义千问', color: 'purple', preferences: ['阿里生态', '中文学术', '知乎'] }
+        };
+
+        // 选中的引擎
+        let selectedEngines = ['chatgpt', 'claude'];
+
+        // 引擎选择器
+        document.getElementById('engineSelector').addEventListener('click', function(e) {
+            const btn = e.target.closest('.engine-badge');
+            if (!btn) return;
+            
+            const engine = btn.dataset.engine;
+            const idx = selectedEngines.indexOf(engine);
+            
+            if (idx > -1) {
+                selectedEngines.splice(idx, 1);
+                btn.classList.remove('selected', 'border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+                btn.classList.add('border-gray-300', 'text-gray-600');
+            } else {
+                selectedEngines.push(engine);
+                btn.classList.add('selected', 'border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+                btn.classList.remove('border-gray-300', 'text-gray-600');
+            }
+        });
+
+        // 生成推荐
+        function generateRecommendations() {
+            const market = document.getElementById('marketSelect').value;
+            const industry = document.getElementById('industrySelect').value;
+            const brandUrl = document.getElementById('brandUrl').value;
+            
+            const channels = channelDatabase[market] || channelDatabase['Global'];
+            
+            // 根据选中的引擎过滤和排序渠道
+            const filterByEngines = (channelList) => {
+                return channelList.map(ch => {
+                    const matchCount = ch.engines ? ch.engines.filter(e => selectedEngines.includes(e)).length : 0;
+                    return { ...ch, matchScore: matchCount / selectedEngines.length };
+                }).sort((a, b) => b.matchScore - a.matchScore);
+            };
+            
+            // 渲染第一梯队
+            const tier1 = filterByEngines(channels.tier1);
+            document.getElementById('tier1Channels').innerHTML = tier1.map(ch => renderChannelCard(ch, 'large')).join('');
+            
+            // 渲染第二梯队
+            const tier2 = filterByEngines(channels.tier2);
+            document.getElementById('tier2Channels').innerHTML = tier2.map(ch => renderChannelCard(ch, 'medium')).join('');
+            
+            // 渲染第三梯队
+            const tier3 = channels.tier3;
+            document.getElementById('tier3Channels').innerHTML = tier3.map(ch => renderChannelCard(ch, 'small')).join('');
+            
+            // 渲染引擎分析
+            renderEngineAnalysis();
+            
+            // 显示网站建设指南
+            if (brandUrl) {
+                document.getElementById('websiteGuide').classList.remove('hidden');
+                document.getElementById('displayBrandUrl').textContent = brandUrl;
+            } else {
+                document.getElementById('websiteGuide').classList.add('hidden');
+            }
+        }
+
+        // 渲染渠道卡片
+        function renderChannelCard(channel, size) {
+            const colorMap = {
+                blue: 'bg-blue-100 text-blue-600',
+                green: 'bg-green-100 text-green-600',
+                red: 'bg-red-100 text-red-600',
+                orange: 'bg-orange-100 text-orange-600',
+                gray: 'bg-gray-100 text-gray-600',
+                pink: 'bg-pink-100 text-pink-600',
+                purple: 'bg-purple-100 text-purple-600',
+                cyan: 'bg-cyan-100 text-cyan-600'
+            };
+            
+            const iconColor = colorMap[channel.color] || colorMap.gray;
+            const matchScore = channel.matchScore || 0;
+            const matchPercent = Math.round(matchScore * 100);
+            
+            if (size === 'large') {
+                return `
+                    <div class="channel-card p-5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-indigo-300">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 ${iconColor} rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fab ${channel.icon} text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-semibold text-gray-900">${channel.name}</h4>
+                                    <span class="text-sm font-bold ${matchPercent > 50 ? 'text-green-600' : 'text-gray-500'}">${matchPercent}% 匹配</span>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">${channel.desc || channel.domain}</p>
+                                <div class="flex items-center gap-2 mt-3">
+                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">${channel.type}</span>
+                                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded text-xs">信任分 ${channel.trustScore}</span>
+                                    ${channel.ecosystem ? `<span class="px-2 py-0.5 bg-amber-100 text-amber-600 rounded text-xs">${channel.ecosystem} 生态</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (size === 'medium') {
+                return `
+                    <div class="channel-card p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${iconColor} rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fab ${channel.icon}"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-medium text-gray-900 truncate">${channel.name}</h4>
+                                    <span class="text-xs font-medium ${matchPercent > 50 ? 'text-green-600' : 'text-gray-400'}">${matchPercent}%</span>
+                                </div>
+                                <p class="text-xs text-gray-500 truncate">${channel.desc || channel.domain}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="channel-card p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300">
+                        <div class="flex items-center gap-2">
+                            <i class="fab ${channel.icon} ${iconColor} text-sm"></i>
+                            <span class="text-sm text-gray-700">${channel.name}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染引擎分析
+        function renderEngineAnalysis() {
+            const container = document.getElementById('engineAnalysis');
+            container.innerHTML = selectedEngines.map(engineId => {
+                const engine = engineFeatures[engineId];
+                if (!engine) return '';
+                
+                return `
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 bg-${engine.color}-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-robot text-${engine.color}-600"></i>
+                            </div>
+                            <h4 class="font-semibold text-gray-900">${engine.name}</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">偏好的内容来源：</p>
+                        <ul class="space-y-1">
+                            ${engine.preferences.map(p => `
+                                <li class="text-sm text-gray-700 flex items-center gap-2">
+                                    <i class="fas fa-check text-green-500 text-xs"></i>${p}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 测试引用状态
+        function testCitationStatus() {
+            const brandUrl = document.getElementById('brandUrl').value;
+            if (!brandUrl) {
+                alert('请先输入品牌网址');
+                return;
+            }
+            
+            // 跳转到引用追踪页面
+            window.location.href = `citation-tracker.html?url=${encodeURIComponent(brandUrl)}`;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            generateRecommendations();
+            
+            // 监听配置变化
+            ['industrySelect', 'marketSelect'].forEach(id => {
+                document.getElementById(id).addEventListener('change', generateRecommendations);
+            });
+            
+            document.getElementById('brandUrl').addEventListener('blur', generateRecommendations);
+        });
+    </script>
+</body>
+</html>
+
+

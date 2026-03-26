@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目详情 - GEO AI Trust System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .sidebar-item:hover { background: rgba(99, 102, 241, 0.1); }
+        .sidebar-item.active { background: rgba(99, 102, 241, 0.2); border-left: 3px solid #6366f1; }
+        .expandable-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .expandable-content.expanded { max-height: 500px; }
+        .question-row:hover { background: rgba(99, 102, 241, 0.05); }
+        .layer-badge { font-size: 10px; padding: 2px 6px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 主内容区 -->
+    <main class="ml-60 overflow-auto">
+        <!-- 顶部导航 -->
+        <header class="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <a href="projects.html" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div>
+                        <h1 id="headerProjectName" class="text-xl font-bold text-gray-900">项目详情</h1>
+                        <p id="headerProjectUrl" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="projectStatus" class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                        待检测
+                    </span>
+                    <!-- 临时测试按钮 -->
+                    <button onclick="testGenerateSellingPoints()" class="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-sm">
+                        <i class="fas fa-flask mr-1"></i>测试卖点
+                    </button>
+                    <button onclick="testGenerateAudience()" class="px-3 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition text-sm">
+                        <i class="fas fa-flask mr-1"></i>测试受众
+                    </button>
+                    <!-- 正式按钮 -->
+                    <button onclick="startSheepAnalysis()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                        <i class="fas fa-play mr-2"></i>开始检测
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 项目概览卡片 -->
+            <div id="overviewSection" class="mb-8">
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">问题总数</p>
+                                <p id="totalQuestions" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-question-circle text-indigo-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">目标模型</p>
+                                <p id="totalModels" class="text-2xl font-bold text-blue-600 mt-1">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-robot text-blue-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">已测试</p>
+                                <p id="testedQuestions" class="text-2xl font-bold text-green-600 mt-1">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">AI 可见度</p>
+                                <p id="avgVisibility" class="text-2xl font-bold text-purple-600 mt-1">--%</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-eye text-purple-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目配置摘要 -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- 左侧：品牌信息 -->
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4 flex items-center gap-2">
+                            <i class="fas fa-building text-indigo-500"></i>品牌信息
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <span class="text-xs text-gray-400 w-16 shrink-0">品牌名称</span>
+                                <span id="brandNameDisplay" class="text-sm font-medium text-gray-900">--</span>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-xs text-gray-400 w-16 shrink-0">产品/服务</span>
+                                <span id="productNameDisplay" class="text-sm text-gray-700">--</span>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-xs text-gray-400 w-16 shrink-0">监控 URL</span>
+                                <a id="monitorUrlDisplay" href="#" target="_blank" class="text-sm text-indigo-600 hover:underline truncate">--</a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 右侧：竞品分析 -->
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-4 flex items-center gap-2">
+                            <i class="fas fa-users text-orange-500"></i>竞品品牌
+                        </h3>
+                        <div id="competitorsList" class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-400">未设置竞品</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <i class="fas fa-globe text-blue-500"></i>目标国家/语言
+                        </h3>
+                        <div id="countriesList" class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-400">未设置</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <i class="fas fa-bullseye text-green-500"></i>核心卖点
+                        </h3>
+                        <div id="sellingPointsList" class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-400">未设置</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <i class="fas fa-user-tag text-purple-500"></i>目标受众
+                        </h3>
+                        <div id="audienceList" class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-400">未设置</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <i class="fas fa-heart text-red-500"></i>核心诉求
+                        </h3>
+                        <div id="coreNeedsList" class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-400">未设置</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 border border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <i class="fas fa-robot text-cyan-500"></i>目标模型
+                        </h3>
+                        <div id="modelsList" class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-400">未设置</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 问题集管理（v1.3 风格） -->
+            <div id="questionsSection" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-semibold text-gray-900">
+                            <i class="fas fa-list-ul mr-2 text-indigo-500"></i>问题集管理
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportQuestions()" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition text-sm">
+                                <i class="fas fa-download mr-1"></i>导出
+                            </button>
+                            <button onclick="refreshQuestions()" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i>刷新
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 筛选器（v1.3 风格增强版） -->
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-medium text-gray-700">筛选条件</span>
+                        <button onclick="resetFilters()" class="text-xs text-indigo-600 hover:underline">重置筛选</button>
+                    </div>
+                    <div class="grid grid-cols-8 gap-3">
+                        <div class="col-span-2">
+                            <input type="text" id="searchInput" placeholder="搜索问题内容..." 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <select id="filterPersona" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">所有画像</option>
+                        </select>
+                        <select id="filterStage" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">所有阶段</option>
+                            <option value="aware">🔍 认知</option>
+                            <option value="consider">🤔 考虑</option>
+                            <option value="decide">✅ 决策</option>
+                            <option value="purchase">🛒 购买</option>
+                            <option value="retain">🔄 留存</option>
+                        </select>
+                        <select id="filterIntent" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">所有意图</option>
+                            <option value="recommend">推荐类</option>
+                            <option value="compare">对比类</option>
+                            <option value="review">评测类</option>
+                            <option value="problem">问题解决类</option>
+                            <option value="purchase">购买决策类</option>
+                        </select>
+                        <select id="filterQuality" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">质量: 全部</option>
+                            <option value="90">质量 ≥ 90 (优秀)</option>
+                            <option value="80">质量 ≥ 80 (良好)</option>
+                            <option value="70">质量 ≥ 70 (合格)</option>
+                            <option value="0">质量 < 70 (待优化)</option>
+                        </select>
+                        <select id="filterStatus" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">所有状态</option>
+                            <option value="pending">待测试</option>
+                            <option value="tested">已测试</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 问题列表表格（v1.3 增强版） -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10">
+                                    <input type="checkbox" id="selectAll" class="rounded text-indigo-600">
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">问题内容</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">意图</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">蒸馏路径</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">质量分</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">状态</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questionList" class="divide-y divide-gray-100">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <p id="questionStats" class="text-sm text-gray-500">显示 0 条，共 0 条</p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="prevPage()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">上一页</button>
+                        <span id="pageInfo" class="text-sm text-gray-600">1 / 1</span>
+                        <button onclick="nextPage()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">下一页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 问题详情模态框 -->
+    <div id="questionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">问题详情</h3>
+                <button onclick="closeQuestionModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="questionModalContent" class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模型颜色映射
+        const modelColors = {
+            'gpt4o': { bg: 'bg-green-100', text: 'text-green-700', name: 'GPT-4o' },
+            'claude': { bg: 'bg-orange-100', text: 'text-orange-700', name: 'Claude 3.5' },
+            'deepseek': { bg: 'bg-blue-100', text: 'text-blue-700', name: 'DeepSeek' },
+            'gemini': { bg: 'bg-purple-100', text: 'text-purple-700', name: 'Gemini 2.0' },
+            'perplexity': { bg: 'bg-cyan-100', text: 'text-cyan-700', name: 'Perplexity' },
+            'copilot': { bg: 'bg-rose-100', text: 'text-rose-700', name: 'Copilot' }
+        };
+
+        // 蒸馏层级颜色
+        const layerColors = {
+            'L1': 'bg-purple-100 text-purple-700',
+            'L2': 'bg-blue-100 text-blue-700',
+            'L3': 'bg-cyan-100 text-cyan-700',
+            'L4': 'bg-green-100 text-green-700',
+            'L5': 'bg-rose-100 text-rose-700'
+        };
+
+        // 国家旗帜映射
+        function getCountryFlag(code) {
+            const flags = {
+                'CN': '🇨🇳 中国', 'US': '🇺🇸 美国', 'GB': '🇬🇧 英国', 'JP': '🇯🇵 日本',
+                'KR': '🇰🇷 韩国', 'DE': '🇩🇪 德国', 'FR': '🇫🇷 法国', 'TW': '🇹🇼 台湾',
+                'HK': '🇭🇰 香港', 'SG': '🇸🇬 新加坡', 'AU': '🇦🇺 澳大利亚', 'CA': '🇨🇦 加拿大',
+                'ES': '🇪🇸 西班牙', 'IT': '🇮🇹 意大利', 'BR': '🇧🇷 巴西', 'MX': '🇲🇽 墨西哥'
+            };
+            return flags[code] || code;
+        }
+
+        let currentProject = null;
+        let currentPage = 1;
+        const pageSize = 20;
+        let filteredQuestions = [];
+        let allQuestions = [];  // 从数据库加载的问题
+
+        // 加载项目（从后端 API）
+        async function loadProject() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+            const action = urlParams.get('action');
+
+            if (!projectId) {
+                alert('缺少项目 ID');
+                window.location.href = 'projects.html';
+                return;
+            }
+
+            try {
+                // 获取用户 ID（从 Firebase 认证）
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const userId = user?.dbId;
+                
+                if (!userId) {
+                    console.error('❌ 用户未登录');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+                
+                // 从后端 API 获取项目详情
+                const response = await fetch(`/api/project/${projectId}`, {
+                    headers: {
+                        'X-User-Id': userId
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    currentProject = data.data;
+                    console.log('✅ 从数据库加载项目:', currentProject.brandName);
+                } else {
+                    console.error('❌ 加载项目失败:', data.message);
+                    alert('项目不存在或加载失败');
+                    window.location.href = 'projects.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ API 调用失败:', error);
+                alert('加载项目失败: ' + error.message);
+                window.location.href = 'projects.html';
+                return;
+            }
+
+            // 设置当前项目到 localStorage，以便导航组件识别
+            localStorage.setItem('geo_current_project', JSON.stringify(currentProject));
+            
+            // 重新渲染导航以显示项目级菜单
+            if (typeof GCoreNav !== 'undefined') {
+                GCoreNav.renderNav('sidebar');
+            }
+
+            // 先加载问题数据，再更新页面信息（统计需要问题数据）
+            await loadQuestionsFromApi();
+            updateProjectInfo();
+            populateFilters();
+
+            // 如果有 action=detect，自动开始检测
+            if (action === 'detect') {
+                setTimeout(() => startSheepAnalysis(), 500);
+            }
+        }
+
+        // 更新项目信息（适配后端 API 数据结构）
+        function updateProjectInfo() {
+            const p = currentProject;
+            
+            // 顶部 - 兼容新旧数据结构
+            const projectName = p.brandName || p.project?.name || '项目详情';
+            const monitorUrl = p.monitorUrl || p.project?.monitorUrl || '';
+            document.getElementById('headerProjectName').textContent = projectName;
+            document.getElementById('headerProjectUrl').textContent = monitorUrl;
+            
+            // 状态
+            const statusMap = {
+                'draft': { label: '草稿', class: 'bg-gray-100 text-gray-600' },
+                'pending': { label: '待检测', class: 'bg-amber-100 text-amber-700' },
+                'active': { label: '活跃', class: 'bg-green-100 text-green-700' },
+                'detecting': { label: '检测中', class: 'bg-blue-100 text-blue-700' },
+                'completed': { label: '已完成', class: 'bg-green-100 text-green-700' }
+            };
+            const status = statusMap[p.status] || statusMap.pending;
+            document.getElementById('projectStatus').textContent = status.label;
+            document.getElementById('projectStatus').className = `px-3 py-1 rounded-full text-sm font-medium ${status.class}`;
+
+            // 统计 - 使用 allQuestions（从 API 加载）
+            const models = p.config?.models || p.project?.models || [];
+            // 已测试 = 有回答的问题数量
+            const tested = allQuestions.filter(q => q.answers && q.answers.length > 0).length;
+            
+            document.getElementById('totalQuestions').textContent = allQuestions.length;
+            document.getElementById('totalModels').textContent = models.length;
+            document.getElementById('testedQuestions').textContent = tested;
+            
+            // 计算 AI 可见度（行业标准 GEO 指标）
+            const questionsWithAnswers = allQuestions.filter(q => q.answers && q.answers.length > 0);
+            let visibilityText = '--%';
+            if (questionsWithAnswers.length > 0 && p.brandName) {
+                const brandName = p.brandName.toLowerCase();
+                let brandMentionCount = 0;
+                
+                questionsWithAnswers.forEach(q => {
+                    const answer = q.answers[0];
+                    if (answer) {
+                        const answerText = (answer.answer || '').toLowerCase();
+                        if (answerText.includes(brandName)) {
+                            brandMentionCount++;
+                        }
+                    }
+                });
+                
+                // AI 可见度 = 品牌被提及的回答数 / 总回答数 * 100
+                const visibility = Math.round(brandMentionCount / questionsWithAnswers.length * 100);
+                visibilityText = visibility + '%';
+            }
+            document.getElementById('avgVisibility').textContent = visibilityText;
+
+            // 品牌信息
+            document.getElementById('brandNameDisplay').textContent = p.brandName || '--';
+            document.getElementById('productNameDisplay').textContent = p.productName || p.description || '--';
+            const monitorUrlEl = document.getElementById('monitorUrlDisplay');
+            if (monitorUrl) {
+                monitorUrlEl.textContent = monitorUrl;
+                monitorUrlEl.href = monitorUrl.startsWith('http') ? monitorUrl : `https://${monitorUrl}`;
+            } else {
+                monitorUrlEl.textContent = '--';
+                monitorUrlEl.href = '#';
+            }
+
+            // 竞品列表
+            const competitorsList = document.getElementById('competitorsList');
+            const competitors = p.competitors || [];
+            if (competitors.length > 0) {
+                competitorsList.innerHTML = competitors.map(c => {
+                    const name = typeof c === 'string' ? c : (c.name || c.brandName || '');
+                    return `<span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">${name}</span>`;
+                }).join('');
+            } else {
+                competitorsList.innerHTML = '<span class="text-sm text-gray-400">未设置竞品</span>';
+            }
+
+            // 目标国家/语言 - 国家和语言一一对应，显示为 CN(zh-CN) 格式
+            const countriesList = document.getElementById('countriesList');
+            const markets = p.config?.markets || p.countries || [];
+            const languages = p.config?.languages || [];
+            if (markets.length > 0) {
+                let html = '';
+                // 国家和语言一一对应显示
+                markets.forEach((m, idx) => {
+                    const lang = languages[idx] || '';
+                    const display = lang ? `${m}(${lang})` : m;
+                    html += `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${display}</span>`;
+                });
+                countriesList.innerHTML = html;
+            } else {
+                countriesList.innerHTML = '<span class="text-sm text-gray-400">未设置</span>';
+            }
+
+            // 卖点 - 按国家分组显示
+            const sellingPointsList = document.getElementById('sellingPointsList');
+            const sellingPoints = p.sellingPoints || [];
+            if (sellingPoints.length > 0) {
+                // 按国家分组
+                const groupedSP = {};
+                sellingPoints.forEach(sp => {
+                    const country = sp.country || 'CN';
+                    if (!groupedSP[country]) groupedSP[country] = [];
+                    const content = typeof sp === 'string' ? sp : (sp.point || sp.content || '');
+                    if (content && !groupedSP[country].includes(content)) {
+                        groupedSP[country].push(content);
+                    }
+                });
+                
+                let spHtml = '';
+                for (const [country, points] of Object.entries(groupedSP)) {
+                    const flag = getCountryFlag(country);
+                    spHtml += `<div class="w-full mb-2"><span class="text-xs text-gray-500">${flag}</span></div>`;
+                    spHtml += points.map(pt => 
+                        `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${pt}</span>`
+                    ).join('');
+                }
+                sellingPointsList.innerHTML = spHtml;
+            } else {
+                sellingPointsList.innerHTML = '<span class="text-sm text-gray-400">未设置</span>';
+            }
+
+            // 受众 - 按国家分组显示
+            const audienceList = document.getElementById('audienceList');
+            const personas = p.personas || p.audience?.personas || [];
+            if (personas.length > 0) {
+                // 按国家分组
+                const groupedPersonas = {};
+                personas.forEach(a => {
+                    const country = a.country || 'CN';
+                    if (!groupedPersonas[country]) groupedPersonas[country] = [];
+                    const name = typeof a === 'string' ? a : a.name;
+                    if (name && !groupedPersonas[country].includes(name)) {
+                        groupedPersonas[country].push(name);
+                    }
+                });
+                
+                let personaHtml = '';
+                for (const [country, names] of Object.entries(groupedPersonas)) {
+                    const flag = getCountryFlag(country);
+                    personaHtml += `<div class="w-full mb-2"><span class="text-xs text-gray-500">${flag}</span></div>`;
+                    personaHtml += names.map(name => 
+                        `<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${name}</span>`
+                    ).join('');
+                }
+                audienceList.innerHTML = personaHtml;
+            } else {
+                audienceList.innerHTML = '<span class="text-sm text-gray-400">未设置</span>';
+            }
+
+            // 核心诉求
+            const coreNeedsList = document.getElementById('coreNeedsList');
+            const coreNeeds = p.config?.coreNeeds || [];
+            if (coreNeeds.length > 0) {
+                coreNeedsList.innerHTML = coreNeeds.map(need => 
+                    `<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">${need}</span>`
+                ).join('');
+            } else {
+                coreNeedsList.innerHTML = '<span class="text-sm text-gray-400">未设置</span>';
+            }
+
+            // 模型
+            const modelsList = document.getElementById('modelsList');
+            if (models.length > 0) {
+                modelsList.innerHTML = models.map(m => {
+                    const mc = modelColors[m] || { bg: 'bg-gray-100', text: 'text-gray-600', name: m };
+                    return `<span class="px-2 py-1 ${mc.bg} ${mc.text} rounded text-xs">${mc.name}</span>`;
+                }).join('');
+            } else {
+                modelsList.innerHTML = '<span class="text-sm text-gray-400">未设置</span>';
+            }
+        }
+
+        // 填充筛选器选项（适配后端 API 数据结构）
+        function populateFilters() {
+            const p = currentProject;
+            
+            // 画像筛选
+            const personaFilter = document.getElementById('filterPersona');
+            const personas = p.personas || p.audience?.personas || [];
+            personas.forEach(persona => {
+                const opt = document.createElement('option');
+                const name = typeof persona === 'string' ? persona : persona.name;
+                opt.value = name;
+                opt.textContent = name;
+                personaFilter.appendChild(opt);
+            });
+
+            // 模型筛选（如果存在）
+            const modelFilter = document.getElementById('filterModel');
+            if (modelFilter) {
+                const models = p.config?.models || p.project?.models || [];
+                models.forEach(m => {
+                    const mc = modelColors[m] || { name: m };
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = mc.name;
+                    modelFilter.appendChild(opt);
+                });
+            }
+        }
+
+        // 从后端 API 加载问题列表
+        async function loadQuestionsFromApi() {
+            const projectId = currentProject?.id;
+            if (!projectId) {
+                allQuestions = [];
+                filteredQuestions = [];
+                renderQuestions();
+                return;
+            }
+
+            try {
+                // 获取用户 ID（从 Firebase 认证）
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const userId = user?.dbId;
+                
+                if (!userId) {
+                    console.error('❌ 用户未登录，无法加载问题');
+                    return;
+                }
+                
+                console.log('📡 加载问题 API: projectId=', projectId, ', userId=', userId);
+                const response = await fetch(`/api/project/${projectId}/questions`, {
+                    headers: {
+                        'X-User-Id': userId
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    allQuestions = data.data;
+                    console.log('✅ 从数据库加载问题:', allQuestions.length, '个');
+                } else {
+                    console.warn('⚠️ 加载问题失败或无问题:', data.message);
+                    allQuestions = [];
+                }
+            } catch (error) {
+                console.error('❌ 加载问题 API 调用失败:', error);
+                allQuestions = [];
+            }
+
+            filteredQuestions = filterQuestions(allQuestions);
+            renderQuestions();
+            
+            // 更新统计信息
+            updateProjectInfo();
+        }
+
+        // 加载问题列表（本地筛选）
+        function loadQuestions() {
+            filteredQuestions = filterQuestions(allQuestions);
+            renderQuestions();
+        }
+
+        // 筛选问题（适配后端 API 数据结构）
+        function filterQuestions(questions) {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const persona = document.getElementById('filterPersona').value;
+            const stage = document.getElementById('filterStage').value;
+            const intent = document.getElementById('filterIntent').value;
+            const qualityFilter = document.getElementById('filterQuality').value;
+            const status = document.getElementById('filterStatus').value;
+
+            return questions.filter(q => {
+                // 搜索 - 兼容后端 Question 字段
+                const questionText = q.question || '';
+                if (search && !questionText.toLowerCase().includes(search)) return false;
+                
+                // 画像筛选 - 后端返回字符串
+                if (persona && q.persona !== persona) return false;
+                
+                // 阶段筛选 - 后端返回字符串
+                if (stage && q.stage !== stage) return false;
+                
+                // 意图筛选
+                if (intent && q.intent !== intent) return false;
+                
+                // 质量分筛选 - 从 Answers 数组获取 searchIndex 和 brandFitIndex
+                if (qualityFilter) {
+                    const firstAnswer = q.answers?.[0];
+                    const searchIdx = firstAnswer?.searchIndex || 0;
+                    const brandIdx = firstAnswer?.brandFitIndex || 0;
+                    const quality = searchIdx && brandIdx ? Math.round(searchIdx * brandIdx / 100) : 75;
+                    if (qualityFilter === '90' && quality < 90) return false;
+                    if (qualityFilter === '80' && quality < 80) return false;
+                    if (qualityFilter === '70' && quality < 70) return false;
+                    if (qualityFilter === '0' && quality >= 70) return false;
+                }
+                
+                // 状态筛选 - 检查是否有回答
+                const hasTested = q.answers && q.answers.length > 0;
+                if (status === 'tested' && !hasTested) return false;
+                if (status === 'pending' && hasTested) return false;
+                
+                return true;
+            });
+        }
+
+        // 意图标签映射
+        const intentMap = {
+            'recommend': { label: '推荐', class: 'bg-blue-100 text-blue-700' },
+            'compare': { label: '对比', class: 'bg-purple-100 text-purple-700' },
+            'review': { label: '评测', class: 'bg-cyan-100 text-cyan-700' },
+            'problem': { label: '问题', class: 'bg-amber-100 text-amber-700' },
+            'purchase': { label: '购买', class: 'bg-green-100 text-green-700' }
+        };
+
+        // 渲染问题列表（v1.3 增强版，适配后端 API 数据结构）
+        function renderQuestions() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageQuestions = filteredQuestions.slice(start, end);
+            const totalPages = Math.ceil(filteredQuestions.length / pageSize) || 1;
+
+            const tbody = document.getElementById('questionList');
+            tbody.innerHTML = pageQuestions.map((q, i) => {
+                const globalIndex = start + i;
+                // 适配后端 GeoQuestionDto 数据结构
+                const questionText = q.question || '';
+                const persona = q.persona || '';
+                const stage = q.stage || '';
+                const sellingPoint = q.sellingPoint || '';
+                const country = q.country || 'CN';
+                const countryFlag = getCountryFlag(country);
+                
+                // 从 Answers 数组获取数据（支持多个模型回答）
+                const answers = q.answers || [];
+                const firstAnswer = answers[0];
+                const searchIdx = firstAnswer?.searchIndex || 0;
+                const brandIdx = firstAnswer?.brandFitIndex || 0;
+                
+                const tested = answers.length > 0;
+                const intent = intentMap[q.intent] || { label: '通用', class: 'bg-gray-100 text-gray-600' };
+                // 使用真实数据：searchIndex 和 brandFitIndex
+                const quality = searchIdx && brandIdx ? Math.round(searchIdx * brandIdx / 100) : (searchIdx || brandIdx || 75);
+                const qualityClass = quality >= 90 ? 'text-green-600' : quality >= 80 ? 'text-blue-600' : quality >= 70 ? 'text-amber-600' : 'text-red-600';
+                
+                // 生成模型标签（支持多个模型）
+                const modelTags = answers.map(a => {
+                    const mc = modelColors[a.model] || { bg: 'bg-gray-100', text: 'text-gray-600', name: a.model || '-' };
+                    return `<span class="px-1.5 py-0.5 ${mc.bg} ${mc.text} rounded text-xs">${mc.name}</span>`;
+                }).join(' ');
+                
+                return `
+                <tr class="question-row hover:bg-gray-50 cursor-pointer" onclick="toggleExpand('expand-${globalIndex}')">
+                    <td class="px-4 py-3" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="question-checkbox rounded text-indigo-600" data-index="${globalIndex}">
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg" title="${country}">${countryFlag}</span>
+                            <div>
+                                <p class="text-sm text-gray-900 line-clamp-2">"${questionText}"</p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    ${persona ? persona + ' → ' : ''}${stage ? stage + ' → ' : ''}${sellingPoint}
+                                    ${modelTags ? `<span class="ml-2">${modelTags}</span>` : ''}
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 ${intent.class} rounded text-xs font-medium">${intent.label}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <span class="layer-badge ${layerColors['L1']} rounded">L1</span>
+                            <span class="text-gray-300">→</span>
+                            <span class="layer-badge ${layerColors['L3']} rounded">L3</span>
+                            <span class="text-gray-300">→</span>
+                            <span class="layer-badge ${layerColors['L5']} rounded">L5</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-center">
+                            <span class="font-bold ${qualityClass}">${quality}</span>
+                            ${q.searchIndex && q.brandFitIndex ? `
+                            <div class="text-xs text-gray-400 mt-0.5">${q.searchIndex}×${q.brandFitIndex}</div>
+                            ` : ''}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        ${tested 
+                            ? '<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">已测试</span>'
+                            : '<span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">待测试</span>'
+                        }
+                    </td>
+                    <td class="px-4 py-3">
+                        <button onclick="event.stopPropagation(); toggleExpand('expand-${globalIndex}')" class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition" title="展开详情">
+                            <i class="fas fa-chevron-down expand-icon-${globalIndex}"></i>
+                        </button>
+                    </td>
+                </tr>
+                <!-- 可展开详情行 -->
+                <tr id="expand-${globalIndex}" class="hidden bg-indigo-50/30">
+                    <td colspan="7" class="px-4 py-0">
+                        <div class="py-4 border-l-4 border-indigo-500 pl-4">
+                            <div class="grid grid-cols-4 gap-4">
+                                <!-- 质量分详情 -->
+                                <div class="bg-white rounded-lg p-4 shadow-sm">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">📊 质量分详情</h4>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between"><span class="text-gray-500">搜索热度</span><span class="text-green-600">${searchIdx || '-'}</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-500">品牌植入</span><span class="text-blue-600">${brandIdx || '-'}</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-500">综合得分</span><span class="font-bold ${qualityClass}">${quality}</span></div>
+                                        ${q.googleTrendsHeat ? `<div class="flex justify-between"><span class="text-gray-500">Google趋势</span><span class="text-purple-600">${q.googleTrendsHeat}</span></div>` : ''}
+                                    </div>
+                                </div>
+                                <!-- 蒸馏路径 -->
+                                <div class="bg-white rounded-lg p-4 shadow-sm">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">🔗 完整蒸馏路径</h4>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <span class="layer-badge ${layerColors['L1']} rounded px-2 py-0.5">L1</span>
+                                            <span class="text-gray-700">${persona || '用户画像'}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 pl-3">
+                                            <span class="text-gray-400">↳</span>
+                                            <span class="layer-badge ${layerColors['L2']} rounded px-2 py-0.5">L2</span>
+                                            <span class="text-gray-700">${sellingPoint || '关键词'}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 pl-6">
+                                            <span class="text-gray-400">↳</span>
+                                            <span class="layer-badge ${layerColors['L3']} rounded px-2 py-0.5">L3</span>
+                                            <span class="text-gray-700">${stage || '决策阶段'}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 pl-9">
+                                            <span class="text-gray-400">↳</span>
+                                            <span class="layer-badge ${layerColors['L5']} rounded px-2 py-0.5">L5</span>
+                                            <span class="text-gray-700">口语化转换</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 数据源引用 -->
+                                <div class="bg-white rounded-lg p-4 shadow-sm">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">📚 问题来源</h4>
+                                    <div class="space-y-2 text-sm">
+                                        ${q.questionSource === 'real' ? `
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-green-500">•</span>
+                                            <div>
+                                                <span class="text-gray-700">真实问题来源</span>
+                                                <span class="text-gray-400 text-xs ml-1">(${q.sourceDetail || '论坛'})</span>
+                                            </div>
+                                        </div>
+                                        ${q.sourceUrl ? `<a href="${q.sourceUrl}" target="_blank" class="text-xs text-indigo-600 hover:underline block truncate">${q.sourceUrl}</a>` : ''}
+                                        ` : `
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-blue-500">•</span>
+                                            <div>
+                                                <span class="text-gray-700">AI 生成问题</span>
+                                                <span class="text-gray-400 text-xs ml-1">(${answers[0]?.model || 'AI'})</span>
+                                            </div>
+                                        </div>
+                                        `}
+                                        ${q.sources && q.sources.length > 0 ? q.sources.slice(0, 3).map(s => `
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-green-500">•</span>
+                                            <div>
+                                                <span class="text-gray-700">${s.title || s.domain || '来源'}</span>
+                                                <span class="text-gray-400 text-xs ml-1">(${s.sourceType || 'web'})</span>
+                                            </div>
+                                        </div>
+                                        `).join('') : ''}
+                                        ${(!q.sources || q.sources.length === 0) && q.questionSource !== 'real' ? `
+                                        <div class="text-center py-2 text-gray-400 text-xs">
+                                            暂无来源数据
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <!-- 测试结果（支持多个模型回答） -->
+                                <div class="bg-white rounded-lg p-4 shadow-sm">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">🎯 测试结果 (${answers.length} 个模型)</h4>
+                                    ${tested ? `
+                                    <div class="space-y-3 text-sm max-h-48 overflow-y-auto">
+                                        ${answers.map(a => {
+                                            const amc = modelColors[a.model] || { bg: 'bg-gray-100', text: 'text-gray-600', name: a.model || '-' };
+                                            return `
+                                            <div class="p-2 bg-gray-50 rounded">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="px-1.5 py-0.5 ${amc.bg} ${amc.text} rounded text-xs">${amc.name}</span>
+                                                    <span class="text-green-600 font-bold">${a.score || '-'}</span>
+                                                </div>
+                                                <div class="text-xs text-gray-500 truncate" title="${(a.answer || '').substring(0, 200)}">${(a.answer || '').substring(0, 60)}...</div>
+                                            </div>`;
+                                        }).join('')}
+                                    </div>
+                                    ` : `
+                                    <div class="text-center py-4 text-gray-400">
+                                        <i class="fas fa-clock text-2xl mb-2"></i>
+                                        <p class="text-sm">待测试</p>
+                                    </div>
+                                    `}
+                                </div>
+                            </div>
+                            <!-- 操作按钮 -->
+                            <div class="mt-4 flex items-center gap-3">
+                                <button onclick="event.stopPropagation(); generateArticle(${globalIndex})" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
+                                    <i class="fas fa-magic mr-2"></i>生成软文
+                                </button>
+                                <button onclick="event.stopPropagation(); copyQuestion(${globalIndex})" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
+                                    <i class="fas fa-copy mr-2"></i>复制问题
+                                </button>
+                                <button onclick="event.stopPropagation(); generateVariant(${globalIndex})" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
+                                    <i class="fas fa-random mr-2"></i>生成变体
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+
+            // 更新统计
+            document.getElementById('questionStats').textContent = 
+                `显示 ${pageQuestions.length} 条，共 ${filteredQuestions.length} 条`;
+            document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
+        }
+
+        // 切换展开/收起
+        function toggleExpand(id) {
+            const row = document.getElementById(id);
+            if (row) {
+                row.classList.toggle('hidden');
+            }
+        }
+
+        // 重置筛选器
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterPersona').value = '';
+            document.getElementById('filterStage').value = '';
+            document.getElementById('filterIntent').value = '';
+            document.getElementById('filterQuality').value = '';
+            document.getElementById('filterStatus').value = '';
+            loadQuestions();
+        }
+
+        // 生成软文（适配后端 API 数据结构）
+        function generateArticle(index) {
+            const q = filteredQuestions[index];
+            if (!q) return;
+            
+            const questionText = q.question || '';
+            
+            // 显示生成软文模态框
+            const articleModal = document.createElement('div');
+            articleModal.id = 'articleModal';
+            articleModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+            articleModal.innerHTML = `
+                <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden mx-4">
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-magic text-indigo-600 mr-2"></i>AI 软文生成
+                        </h3>
+                        <button onclick="document.getElementById('articleModal').remove()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                        <div class="mb-4 p-4 bg-indigo-50 rounded-lg">
+                            <p class="text-sm text-gray-500 mb-1">基于问题</p>
+                            <p class="text-gray-900 font-medium">"${questionText}"</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">软文类型</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button class="px-3 py-2 border-2 border-indigo-600 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium">知乎回答</button>
+                                <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">小红书笔记</button>
+                                <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">公众号文章</button>
+                                <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">产品评测</button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">生成预览</label>
+                            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-[200px]">
+                                <div class="animate-pulse space-y-3">
+                                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-full"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-full"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                                </div>
+                                <p class="text-center text-gray-400 mt-4">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>正在生成软文...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                        <button onclick="document.getElementById('articleModal').remove()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition">取消</button>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            <i class="fas fa-copy mr-2"></i>复制软文
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(articleModal);
+        }
+
+        // 复制问题（适配后端 API 数据结构）
+        function copyQuestion(index) {
+            const q = filteredQuestions[index];
+            if (!q) return;
+            
+            const questionText = q.question || '';
+            navigator.clipboard.writeText(questionText).then(() => {
+                // 显示复制成功提示
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                toast.innerHTML = '<i class="fas fa-check mr-2"></i>问题已复制到剪贴板';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            });
+        }
+
+        // 生成变体（适配后端 API 数据结构）
+        function generateVariant(index) {
+            const q = filteredQuestions[index];
+            if (!q) return;
+            
+            const questionText = q.question || '';
+            
+            // 显示生成变体模态框
+            const variantModal = document.createElement('div');
+            variantModal.id = 'variantModal';
+            variantModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+            variantModal.innerHTML = `
+                <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden mx-4">
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-random text-indigo-600 mr-2"></i>生成问题变体
+                        </h3>
+                        <button onclick="document.getElementById('variantModal').remove()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4 p-4 bg-indigo-50 rounded-lg">
+                            <p class="text-sm text-gray-500 mb-1">原始问题</p>
+                            <p class="text-gray-900 font-medium">"${questionText}"</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">变体类型</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button class="px-3 py-2 border-2 border-indigo-600 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium">口语化</button>
+                                <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">正式化</button>
+                                <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">简化</button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="text-sm font-medium text-gray-700">生成的变体</p>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+                                <span class="text-gray-700">"${questionText.replace('?', '呢？').replace('？', '呢？')}"</span>
+                                <button class="text-indigo-600 hover:text-indigo-800"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+                                <span class="text-gray-700">"想问一下，${questionText}"</span>
+                                <button class="text-indigo-600 hover:text-indigo-800"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+                                <span class="text-gray-700">"大家觉得${questionText}"</span>
+                                <button class="text-indigo-600 hover:text-indigo-800"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                        <button onclick="document.getElementById('variantModal').remove()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition">关闭</button>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            <i class="fas fa-plus mr-2"></i>添加选中变体
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(variantModal);
+        }
+
+        // 显示问题详情（适配后端 API 数据结构）
+        function showQuestionDetail(index) {
+            const q = filteredQuestions[index];
+            if (!q) return;
+
+            // 适配后端 GeoQuestionDto 数据结构
+            const questionText = q.question || '';
+            const firstAnswer = q.answers?.[0];
+            const model = firstAnswer?.model || '';
+            const persona = q.persona || '-';
+            const stage = q.stage || '-';
+            const sellingPoint = q.sellingPoint || '-';
+            
+            const mc = modelColors[model] || { bg: 'bg-gray-100', text: 'text-gray-600', name: model || '-' };
+
+            document.getElementById('questionModalContent').innerHTML = `
+                <div class="space-y-6">
+                    <!-- 问题文本 -->
+                    <div class="p-4 bg-indigo-50 rounded-xl">
+                        <p class="text-lg text-gray-900 font-medium">"${questionText}"</p>
+                    </div>
+
+                    <!-- 元数据 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <p class="text-xs text-gray-500 mb-1">目标模型</p>
+                            <span class="px-3 py-1.5 ${mc.bg} ${mc.text} rounded-lg text-sm font-medium">${mc.name}</span>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <p class="text-xs text-gray-500 mb-1">关联卖点</p>
+                            <span class="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-sm">${sellingPoint}</span>
+                        </div>
+                    </div>
+
+                    <!-- 蒸馏路径 -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">🔗 完整蒸馏路径</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="layer-badge ${layerColors['L1']} rounded px-2 py-1">L1 用户画像</span>
+                                <span class="text-gray-900">${persona}</span>
+                            </div>
+                            <div class="flex items-center gap-2 pl-4">
+                                <span class="text-gray-400">↳</span>
+                                <span class="layer-badge ${layerColors['L2']} rounded px-2 py-1">L2 关键词</span>
+                                <span class="text-gray-900">${sellingPoint}</span>
+                            </div>
+                            <div class="flex items-center gap-2 pl-8">
+                                <span class="text-gray-400">↳</span>
+                                <span class="layer-badge ${layerColors['L3']} rounded px-2 py-1">L3 决策阶段</span>
+                                <span class="text-gray-900">${stage}</span>
+                            </div>
+                            <div class="flex items-center gap-2 pl-12">
+                                <span class="text-gray-400">↳</span>
+                                <span class="layer-badge ${layerColors['L5']} rounded px-2 py-1">L5 口语化</span>
+                                <span class="text-gray-900">最终问题</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI 回答（如果有） -->
+                    ${firstAnswer && firstAnswer.answer ? `
+                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <h4 class="text-sm font-medium text-green-700 mb-2">📝 AI 回答 (${mc.name})</h4>
+                        <p class="text-sm text-gray-700">${firstAnswer.answer}</p>
+                        <div class="mt-3 flex items-center gap-4">
+                            <span class="text-xs text-gray-500">综合评分: <strong class="text-green-600">${firstAnswer.score || '-'}</strong></span>
+                            <span class="text-xs text-gray-500">搜索热度: <strong>${firstAnswer.searchIndex || '-'}</strong></span>
+                            <span class="text-xs text-gray-500">品牌植入: <strong>${firstAnswer.brandFitIndex || '-'}</strong></span>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                        <p class="text-gray-500 text-sm">尚未测试，点击「开始检测」获取 AI 回答</p>
+                    </div>
+                    `}
+                </div>
+            `;
+
+            document.getElementById('questionModal').classList.remove('hidden');
+        }
+
+        // 关闭问题详情模态框
+        function closeQuestionModal() {
+            document.getElementById('questionModal').classList.add('hidden');
+        }
+
+        // 分页
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderQuestions();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredQuestions.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderQuestions();
+            }
+        }
+
+        // 刷新问题列表
+        function refreshQuestions() {
+            currentPage = 1;
+            loadQuestions();
+        }
+
+        // 导出问题（适配后端 API 数据结构）
+        function exportQuestions() {
+            const questions = filteredQuestions.map(q => q.question);
+            const blob = new Blob([questions.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const projectName = currentProject?.brandName || 'questions';
+            a.download = `${projectName}_问题集.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 开始可见度分析（原 SHEEP 分析）
+        // 代码借鉴自 setup-wizard.html（已验证可用）
+        async function startSheepAnalysis() {
+            const btn = document.querySelector('button[onclick="startSheepAnalysis()"]');
+            const originalText = btn.innerHTML;
+            
+            // 获取用户 ID
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const userId = user?.dbId;
+            
+            if (!userId) {
+                alert('请先登录');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // 检查是否有问题
+            if (allQuestions.length === 0) {
+                // 没有问题，先生成问题
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成问题中...';
+                btn.disabled = true;
+                
+                try {
+                    const projId = currentProject.id || currentProject.projectId;
+                    const brandName = currentProject.brandName || currentProject.name || '';
+                    
+                    // Step 1: 创建任务（借鉴 setup-wizard.html）
+                    console.log('🚀 创建问题生成任务');
+                    
+                    // 从项目配置中获取数据
+                    const config = currentProject.config || {};
+                    const sellingPoints = (currentProject.sellingPoints || []).map(sp => 
+                        typeof sp === 'string' ? sp : (sp.point || sp.content || '')
+                    ).filter(s => s);
+                    const personas = (currentProject.personas || []).map(p => 
+                        typeof p === 'string' ? p : (p.name || '')
+                    ).filter(s => s);
+                    const stages = (currentProject.stages || []).map(s => 
+                        typeof s === 'string' ? s : (s.name || '')
+                    ).filter(s => s);
+                    const competitors = (currentProject.competitors || []).map(c => 
+                        typeof c === 'string' ? c : (c.name || '')
+                    ).filter(s => s);
+                    const models = config.models || ['perplexity'];
+                    const markets = config.markets || ['CN'];
+                    const languages = config.languages || ['zh-CN'];
+                    
+                    console.log('📋 项目配置:', { sellingPoints, personas, stages, competitors, models, markets, languages });
+                    
+                    const createResponse = await fetch('/api/distillation/questions', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            ...(userId ? { 'X-User-Id': String(userId) } : {})
+                        },
+                        body: JSON.stringify({
+                            brandName: brandName,
+                            productName: currentProject.productName || currentProject.description || '',
+                            industry: currentProject.industry || '',
+                            sellingPoints: sellingPoints,
+                            personas: personas,
+                            stages: stages,
+                            models: models,
+                            competitors: competitors,
+                            enableGoogleTrends: config.enableGoogleTrends || false,
+                            enableRedditSearch: config.enableRedditSearch || false,
+                            enableLightweightMode: config.enableLightweightMode || false,
+                            answerMode: config.answerMode || 'simulation',
+                            markets: markets,
+                            languages: languages,
+                            language: languages[0] || 'zh-CN',
+                            projectId: projId
+                        })
+                    });
+                    
+                    console.log('📡 createResponse status:', createResponse.status);
+                    if (!createResponse.ok) {
+                        const errorText = await createResponse.text();
+                        console.error('❌ HTTP 错误:', createResponse.status, errorText);
+                        throw new Error(`HTTP ${createResponse.status}: ${errorText}`);
+                    }
+                    
+                    const createData = await createResponse.json();
+                    console.log('📦 createData:', JSON.stringify(createData));
+                    if (!createData.success || !createData.taskId) {
+                        throw new Error(createData.message || '任务创建失败');
+                    }
+                    
+                    const taskId = createData.taskId;
+                    console.log('✅ 任务已创建, taskId:', taskId);
+                    
+                    // Step 2: 轮询任务状态（借鉴 setup-wizard.html）
+                    const maxPolls = 200;
+                    let pollCount = 0;
+                    
+                    while (pollCount < maxPolls) {
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        pollCount++;
+                        
+                        let statusData;
+                        try {
+                            const statusResponse = await fetch(`/api/distillation/questions/status/${taskId}`);
+                            if (!statusResponse.ok) {
+                                if (statusResponse.status === 404) {
+                                    throw new Error('任务已丢失（后端可能已重启），请刷新页面后重新生成');
+                                }
+                                console.warn(`⚠️ [${pollCount}] 轮询 HTTP ${statusResponse.status}，继续重试...`);
+                                continue;
+                            }
+                            const contentType = statusResponse.headers.get('content-type') || '';
+                            if (!contentType.includes('application/json')) {
+                                console.warn(`⚠️ [${pollCount}] 轮询返回非 JSON (${contentType})，继续重试...`);
+                                continue;
+                            }
+                            statusData = await statusResponse.json();
+                        } catch (pollErr) {
+                            console.warn(`⚠️ [${pollCount}] 轮询请求异常: ${pollErr.message}，继续重试...`);
+                            continue;
+                        }
+                        
+                        if (!statusData.success) {
+                            console.error('❌ 查询状态失败:', statusData.message);
+                            continue;
+                        }
+                        
+                        // 更新进度显示
+                        const progress = statusData.progress || 0;
+                        const message = statusData.message || '处理中...';
+                        btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${progress}% - ${message}`;
+                        
+                        // 检查是否完成
+                        if (statusData.status === 'completed') {
+                            console.log('🎉 任务完成！');
+                            break;
+                        }
+                        
+                        if (statusData.status === 'failed') {
+                            throw new Error(statusData.message || '任务执行失败');
+                        }
+                    }
+                    
+                    // 刷新问题列表（从 API 重新加载）
+                    await loadQuestionsFromApi();
+                    
+                } catch (error) {
+                    console.error('生成问题失败:', error);
+                    alert('生成问题失败: ' + error.message);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+                
+                // 问题生成成功，恢复按钮状态
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                // 检查是否真的生成了问题
+                if (allQuestions.length === 0) {
+                    alert('问题生成完成，但没有生成任何问题，请检查项目配置');
+                    return;
+                }
+            }
+            
+            // 跳转到分析页面
+            localStorage.setItem('geo_current_project', JSON.stringify(currentProject));
+            window.location.href = 'visibility-analysis.html';
+        }
+
+        // 筛选器事件
+        document.getElementById('searchInput').addEventListener('input', refreshQuestions);
+        document.getElementById('filterPersona').addEventListener('change', refreshQuestions);
+        document.getElementById('filterStage').addEventListener('change', refreshQuestions);
+        document.getElementById('filterIntent').addEventListener('change', refreshQuestions);
+        document.getElementById('filterQuality').addEventListener('change', refreshQuestions);
+        document.getElementById('filterStatus').addEventListener('change', refreshQuestions);
+
+        // 全选
+        document.getElementById('selectAll').addEventListener('change', function() {
+            document.querySelectorAll('.question-checkbox').forEach(cb => cb.checked = this.checked);
+        });
+
+        // ========== 临时测试函数（不保存到数据库）==========
+        
+        // 测试生成卖点
+        async function testGenerateSellingPoints() {
+            if (!currentProject) {
+                alert('请先加载项目');
+                return;
+            }
+            
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>生成中...';
+            btn.disabled = true;
+            
+            try {
+                console.log('🔍 [测试卖点] 开始生成...');
+                console.log('🔍 [测试卖点] 项目数据:', JSON.stringify({
+                    brandName: currentProject.brandName,
+                    industry: currentProject.industry,
+                    markets: currentProject.config?.markets,
+                    languages: currentProject.config?.languages
+                }));
+                
+                const response = await fetch('/api/distillation/selling-points', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        brandName: currentProject.brandName,
+                        productName: currentProject.productName || '',
+                        industry: currentProject.industry || '',
+                        description: currentProject.description || '',
+                        monitorUrl: currentProject.monitorUrl || '',
+                        markets: currentProject.config?.markets || ['CN'],
+                        languages: currentProject.config?.languages || ['zh-CN']
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('📦 [测试卖点] 响应:', JSON.stringify(data));
+                
+                if (data.success && data.data) {
+                    // 显示结果弹窗
+                    const points = data.data;
+                    let html = '<div style="max-height:400px;overflow:auto;text-align:left;">';
+                    html += `<p><strong>生成了 ${points.length} 个卖点：</strong></p><ul style="margin-top:10px;">`;
+                    points.forEach((p, i) => {
+                        html += `<li style="margin-bottom:8px;"><strong>${i+1}. ${p.point || p.title || p}</strong>`;
+                        if (p.description) html += `<br><span style="color:#666;font-size:12px;">${p.description}</span>`;
+                        if (p.weight) html += ` <span style="color:#999;font-size:11px;">(权重: ${p.weight})</span>`;
+                        html += '</li>';
+                    });
+                    html += '</ul></div>';
+                    
+                    // 简单弹窗显示
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+                    modal.innerHTML = `
+                        <div style="background:white;padding:24px;border-radius:12px;max-width:600px;width:90%;">
+                            <h3 style="margin-bottom:16px;font-size:18px;font-weight:bold;">✅ 卖点生成成功</h3>
+                            ${html}
+                            <button onclick="this.closest('div').parentElement.remove()" style="margin-top:16px;padding:8px 24px;background:#6366f1;color:white;border:none;border-radius:6px;cursor:pointer;">关闭</button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                } else {
+                    alert('生成失败: ' + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('❌ [测试卖点] 错误:', error);
+                alert('请求失败: ' + error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        // 测试生成目标受众
+        async function testGenerateAudience() {
+            if (!currentProject) {
+                alert('请先加载项目');
+                return;
+            }
+            
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>生成中...';
+            btn.disabled = true;
+            
+            try {
+                console.log('🔍 [测试受众] 开始生成...');
+                console.log('🔍 [测试受众] 项目数据:', JSON.stringify({
+                    brandName: currentProject.brandName,
+                    industry: currentProject.industry
+                }));
+                
+                const response = await fetch('/api/distillation/audience', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        brandName: currentProject.brandName,
+                        productName: currentProject.productName || '',
+                        industry: currentProject.industry || '',
+                        description: currentProject.description || '',
+                        sellingPoints: [] // 暂时不传卖点
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('📦 [测试受众] 响应:', JSON.stringify(data));
+                
+                if (data.success && data.data) {
+                    const audience = data.data;
+                    console.log('📦 [测试受众] audience 结构:', JSON.stringify(audience));
+                    let html = '<div style="max-height:400px;overflow:auto;text-align:left;">';
+                    
+                    // API 返回: userTypes, roles, needs（不是 personas/stages）
+                    // 显示用户类型
+                    if (audience.userTypes && audience.userTypes.length > 0) {
+                        html += `<p><strong>用户类型 (${audience.userTypes.length})：</strong></p><ul style="margin:10px 0;">`;
+                        audience.userTypes.forEach((t, i) => {
+                            html += `<li style="margin-bottom:6px;">${i+1}. ${t}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    // 显示角色
+                    if (audience.roles && audience.roles.length > 0) {
+                        html += `<p><strong>目标角色 (${audience.roles.length})：</strong></p><ul style="margin:10px 0;">`;
+                        audience.roles.forEach((r, i) => {
+                            html += `<li style="margin-bottom:6px;">${i+1}. ${r}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    // 显示核心需求
+                    if (audience.needs && audience.needs.length > 0) {
+                        html += `<p><strong>核心需求 (${audience.needs.length})：</strong></p><ul style="margin:10px 0;">`;
+                        audience.needs.forEach((n, i) => {
+                            html += `<li style="margin-bottom:6px;">${i+1}. ${n}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    // 如果都为空，显示原始数据
+                    if ((!audience.userTypes || audience.userTypes.length === 0) && 
+                        (!audience.roles || audience.roles.length === 0) && 
+                        (!audience.needs || audience.needs.length === 0)) {
+                        html += `<p>原始数据：</p><pre style="font-size:12px;background:#f5f5f5;padding:10px;border-radius:4px;overflow:auto;">${JSON.stringify(audience, null, 2)}</pre>`;
+                    }
+                    
+                    html += '</div>';
+                    
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+                    modal.innerHTML = `
+                        <div style="background:white;padding:24px;border-radius:12px;max-width:600px;width:90%;">
+                            <h3 style="margin-bottom:16px;font-size:18px;font-weight:bold;">✅ 目标受众生成成功</h3>
+                            ${html}
+                            <button onclick="this.closest('div').parentElement.remove()" style="margin-top:16px;padding:8px 24px;background:#6366f1;color:white;border:none;border-radius:6px;cursor:pointer;">关闭</button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                } else {
+                    alert('生成失败: ' + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('❌ [测试受众] 错误:', error);
+                alert('请求失败: ' + error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // 初始化
+        loadProject();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引用来源分析 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">引用来源分析</h1>
+                        <p class="text-sm text-gray-500 mt-1">追踪和分析 AI 引用的来源分布</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <select id="taskSelect" class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">选择监测任务...</option>
+                        </select>
+                        <input type="text" id="brandInput" placeholder="品牌名称" 
+                               class="border border-gray-300 rounded-lg px-4 py-2 w-48 focus:ring-2 focus:ring-blue-500">
+                        <button onclick="generateReport()" 
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-chart-pie mr-2"></i>生成报告
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden">
+                    <div class="flex items-center justify-center h-64">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                            <p class="text-gray-600">正在分析引用来源...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-16">
+                    <i class="fas fa-link text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-600 mb-2">选择任务开始分析</h3>
+                    <p class="text-gray-500">选择一个监测任务并输入品牌名称，生成引用来源分析报告</p>
+                </div>
+
+                <!-- Report Content -->
+                <div id="reportContent" class="hidden space-y-6">
+                    <!-- Summary Card -->
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2 class="text-xl font-semibold mb-2">
+                                    <i class="fas fa-chart-line mr-2"></i>报告摘要
+                                </h2>
+                                <p id="reportSummary" class="text-blue-100 leading-relaxed"></p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-blue-200">生成时间</p>
+                                <p id="reportTime" class="font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">来源数量</p>
+                                    <p id="totalSources" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-globe text-blue-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">集中度指数</p>
+                                    <p id="concentrationIndex" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bullseye text-purple-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">多样性评分</p>
+                                    <p id="diversityScore" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-layer-group text-green-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Reddit 占比</p>
+                                    <p id="redditRate" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <i class="fab fa-reddit text-orange-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Source Distribution -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-chart-pie text-blue-600 mr-2"></i>来源分布
+                            </h3>
+                            <div class="h-64">
+                                <canvas id="sourceChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Source Types -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-tags text-purple-600 mr-2"></i>来源类型
+                            </h3>
+                            <div class="h-64">
+                                <canvas id="typeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Source Details -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-list text-green-600 mr-2"></i>来源详情
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">来源</th>
+                                        <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">类型</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">引用次数</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">占比</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">信任度</th>
+                                        <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">引用平台</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sourceTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Reddit Activity -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fab fa-reddit text-orange-600 mr-2"></i>Reddit 活跃度分析
+                        </h3>
+                        <div id="redditContent" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-medium text-gray-700 mb-3">活跃社区</h4>
+                                <div id="activeSubreddits" class="space-y-2"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-700 mb-3">推荐参与</h4>
+                                <div id="recommendedSubreddits" class="space-y-2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suggestions -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>优化建议
+                        </h3>
+                        <div id="suggestionsContainer" class="space-y-4"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/navigation.js"></script>
+    <script>
+        let sourceChart = null;
+        let typeChart = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTasks();
+        });
+
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/citation-monitoring/tasks');
+                const data = await response.json();
+                const select = document.getElementById('taskSelect');
+                
+                if (data.success && data.data) {
+                    data.data.forEach(task => {
+                        const option = document.createElement('option');
+                        option.value = task.id;
+                        option.textContent = `${task.brand} - ${task.name || '监测任务'}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+            }
+        }
+
+        async function generateReport() {
+            const taskId = document.getElementById('taskSelect').value;
+            const brand = document.getElementById('brandInput').value.trim();
+
+            if (!taskId) {
+                alert('请选择监测任务');
+                return;
+            }
+            if (!brand) {
+                alert('请输入品牌名称');
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('reportContent').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/citation-sources/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskId: parseInt(taskId), brand })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    renderReport(data.data);
+                } else {
+                    alert(data.error || '生成报告失败');
+                    document.getElementById('emptyState').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to generate report:', error);
+                alert('生成报告失败，请重试');
+                document.getElementById('emptyState').classList.remove('hidden');
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        function renderReport(report) {
+            document.getElementById('reportContent').classList.remove('hidden');
+
+            // Summary
+            document.getElementById('reportSummary').textContent = report.summary;
+            document.getElementById('reportTime').textContent = new Date(report.generatedAt).toLocaleString('zh-CN');
+
+            // Stats
+            document.getElementById('totalSources').textContent = report.sourceStats?.length || 0;
+            document.getElementById('concentrationIndex').textContent = 
+                (report.concentration?.concentrationIndex * 100).toFixed(1) + '%';
+            document.getElementById('diversityScore').textContent = 
+                report.concentration?.diversityScore?.toFixed(0) || '-';
+            document.getElementById('redditRate').textContent = 
+                ((report.redditActivity?.redditCitationRate || 0) * 100).toFixed(1) + '%';
+
+            // Charts
+            renderSourceChart(report.sourceStats);
+            renderTypeChart(report.sourceStats);
+
+            // Table
+            renderSourceTable(report.sourceStats);
+
+            // Reddit
+            renderRedditActivity(report.redditActivity);
+
+            // Suggestions
+            renderSuggestions(report.suggestions);
+        }
+
+        function renderSourceChart(sources) {
+            const ctx = document.getElementById('sourceChart').getContext('2d');
+            
+            if (sourceChart) sourceChart.destroy();
+
+            const topSources = (sources || []).slice(0, 8);
+            
+            sourceChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: topSources.map(s => s.domain),
+                    datasets: [{
+                        data: topSources.map(s => s.citationCount),
+                        backgroundColor: [
+                            '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B',
+                            '#EF4444', '#EC4899', '#06B6D4', '#84CC16'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        function renderTypeChart(sources) {
+            const ctx = document.getElementById('typeChart').getContext('2d');
+            
+            if (typeChart) typeChart.destroy();
+
+            const typeGroups = {};
+            (sources || []).forEach(s => {
+                typeGroups[s.sourceType] = (typeGroups[s.sourceType] || 0) + s.citationCount;
+            });
+
+            typeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(typeGroups),
+                    datasets: [{
+                        label: '引用次数',
+                        data: Object.values(typeGroups),
+                        backgroundColor: '#3B82F6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderSourceTable(sources) {
+            const tbody = document.getElementById('sourceTableBody');
+            tbody.innerHTML = '';
+
+            (sources || []).forEach(source => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100 hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <span class="font-medium text-gray-900">${source.domain}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">${source.sourceType}</span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-medium">${source.citationCount}</td>
+                    <td class="py-3 px-4 text-center">${(source.citationRate * 100).toFixed(1)}%</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-2 py-1 rounded text-sm ${getTrustScoreClass(source.trustScore)}">
+                            ${source.trustScore.toFixed(0)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${(source.citedByPlatforms || []).map(p => 
+                            `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs mr-1">${p}</span>`
+                        ).join('')}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getTrustScoreClass(score) {
+            if (score >= 80) return 'bg-green-100 text-green-700';
+            if (score >= 60) return 'bg-blue-100 text-blue-700';
+            if (score >= 40) return 'bg-yellow-100 text-yellow-700';
+            return 'bg-red-100 text-red-700';
+        }
+
+        function renderRedditActivity(activity) {
+            const activeContainer = document.getElementById('activeSubreddits');
+            const recommendedContainer = document.getElementById('recommendedSubreddits');
+
+            activeContainer.innerHTML = '';
+            recommendedContainer.innerHTML = '';
+
+            (activity?.activeSubreddits || []).forEach(sub => {
+                activeContainer.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                        <div>
+                            <span class="font-medium text-orange-700">r/${sub.subreddit}</span>
+                            <span class="text-sm text-gray-500 ml-2">${sub.mentionCount} 次提及</span>
+                        </div>
+                        <span class="text-sm ${sub.sentimentScore > 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${sub.sentimentScore > 0 ? '+' : ''}${sub.sentimentScore.toFixed(2)}
+                        </span>
+                    </div>
+                `;
+            });
+
+            (activity?.recommendedSubreddits || []).forEach(rec => {
+                recommendedContainer.innerHTML += `
+                    <div class="p-3 bg-blue-50 rounded-lg">
+                        <div class="font-medium text-blue-700">r/${rec.subreddit}</div>
+                        <p class="text-sm text-gray-600 mt-1">${rec.reason}</p>
+                        <p class="text-xs text-gray-500 mt-1">预计触达: ${rec.estimatedReach.toLocaleString()} 用户</p>
+                    </div>
+                `;
+            });
+        }
+
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestionsContainer');
+            container.innerHTML = '';
+
+            (suggestions || []).forEach(suggestion => {
+                container.innerHTML += `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center">
+                                    <span class="px-2 py-1 rounded text-xs font-medium mr-2 ${getTypeClass(suggestion.type)}">
+                                        ${getTypeLabel(suggestion.type)}
+                                    </span>
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                        优先级: ${suggestion.priority}
+                                    </span>
+                                </div>
+                                <h4 class="font-medium text-gray-900 mt-2">${suggestion.title}</h4>
+                                <p class="text-sm text-gray-600 mt-1">${suggestion.description}</p>
+                                <div class="mt-3">
+                                    <p class="text-sm font-medium text-gray-700">行动步骤:</p>
+                                    <ul class="mt-1 space-y-1">
+                                        ${(suggestion.actionSteps || []).map(step => 
+                                            `<li class="text-sm text-gray-600 flex items-start">
+                                                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>${step}
+                                            </li>`
+                                        ).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="text-right ml-4">
+                                <span class="px-2 py-1 rounded text-xs ${getDifficultyClass(suggestion.difficulty)}">
+                                    ${getDifficultyLabel(suggestion.difficulty)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function getTypeClass(type) {
+            const classes = {
+                'new_source': 'bg-blue-100 text-blue-700',
+                'increase_presence': 'bg-green-100 text-green-700',
+                'improve_content': 'bg-purple-100 text-purple-700',
+                'monitor': 'bg-yellow-100 text-yellow-700'
+            };
+            return classes[type] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getTypeLabel(type) {
+            const labels = {
+                'new_source': '新来源',
+                'increase_presence': '增加曝光',
+                'improve_content': '改进内容',
+                'monitor': '持续监测'
+            };
+            return labels[type] || type;
+        }
+
+        function getDifficultyClass(difficulty) {
+            const classes = {
+                'easy': 'bg-green-100 text-green-700',
+                'medium': 'bg-yellow-100 text-yellow-700',
+                'hard': 'bg-red-100 text-red-700'
+            };
+            return classes[difficulty] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getDifficultyLabel(difficulty) {
+            const labels = { 'easy': '简单', 'medium': '中等', 'hard': '困难' };
+            return labels[difficulty] || difficulty;
+        }
+    </script>
+</body>
+</html>

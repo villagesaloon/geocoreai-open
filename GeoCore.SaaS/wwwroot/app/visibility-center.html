@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可见度中心 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; }
+        .tab-btn:not(.active):hover { background: #f3f4f6; }
+        .metric-card { transition: all 0.3s; }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .model-card { transition: all 0.2s; cursor: pointer; }
+        .model-card:hover { transform: translateY(-2px); }
+        .model-card.selected { border-color: #6366f1; background: #eef2ff; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <script src="js/next-step-guide.js"></script>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">可见度中心</h2>
+                    <p class="text-sm text-gray-500">AI 可见度 | SOV 声量 | 情感分析 | 趋势监控</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="refreshData()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-sync mr-2"></i>刷新数据
+                    </button>
+                    <button onclick="exportReport()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-file-pdf mr-2"></i>导出报告
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 核心 GEO 指标概览（行业标准） -->
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <!-- AI 可见度 -->
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 text-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-eye text-white/80"></i>
+                        <span class="text-sm opacity-80">AI 可见度</span>
+                    </div>
+                    <p id="visibilityScore" class="text-3xl font-bold">--%</p>
+                    <p class="text-xs opacity-70 mt-1">品牌在 AI 回答中出现的频率</p>
+                </div>
+                <!-- SOV 声量份额 -->
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-5 text-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-chart-pie text-white/80"></i>
+                        <span class="text-sm opacity-80">SOV 声量份额</span>
+                    </div>
+                    <p id="sovScore" class="text-3xl font-bold">--%</p>
+                    <p class="text-xs opacity-70 mt-1">相对竞品的提及占比</p>
+                </div>
+                <!-- 引用率 -->
+                <div class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-5 text-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-link text-white/80"></i>
+                        <span class="text-sm opacity-80">引用率</span>
+                    </div>
+                    <p id="citationRate" class="text-3xl font-bold">--%</p>
+                    <p class="text-xs opacity-70 mt-1">AI 引用品牌内容的频率</p>
+                </div>
+                <!-- 情感分析 -->
+                <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-5 text-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-smile text-white/80"></i>
+                        <span class="text-sm opacity-80">情感倾向</span>
+                    </div>
+                    <p id="sentimentScore" class="text-3xl font-bold">--</p>
+                    <p class="text-xs opacity-70 mt-1">正面/中性/负面分布</p>
+                </div>
+                <!-- 生成位置 -->
+                <div class="bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl p-5 text-white">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-list-ol text-white/80"></i>
+                        <span class="text-sm opacity-80">生成位置</span>
+                    </div>
+                    <p id="positionScore" class="text-3xl font-bold">#--</p>
+                    <p class="text-xs opacity-70 mt-1">在 AI 列表中的平均位置</p>
+                </div>
+            </div>
+
+            <!-- 功能标签页 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="flex border-b border-gray-200 p-2 gap-2">
+                    <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-chart-pie mr-2"></i>综合分析
+                    </button>
+                    <button onclick="switchTab('models')" id="tab-models" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-robot mr-2"></i>模型对比
+                    </button>
+                    <button onclick="switchTab('dimensions')" id="tab-dimensions" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-globe mr-2"></i>多维分析
+                    </button>
+                    <button onclick="switchTab('insights')" id="tab-insights" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-lightbulb mr-2"></i>品牌洞察
+                    </button>
+                    <button onclick="switchTab('trends')" id="tab-trends" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-chart-line mr-2"></i>趋势监控
+                    </button>
+                </div>
+
+                <!-- 综合分析 -->
+                <div id="content-overview" class="p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">声量份额 (SOV)</h3>
+                            <div class="p-4 bg-gray-50 rounded-lg"><canvas id="sovChart" height="200"></canvas></div>
+                            <div id="sovLegend" class="mt-4 space-y-2">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">情感分析</h3>
+                            <div class="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-amber-200 mb-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-sm text-gray-600">整体情感倾向</span>
+                                    <span id="sentimentLabel" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">正面</span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500 w-12">正面</span>
+                                        <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                            <div id="positiveBar" class="h-full bg-green-500 rounded-full transition-all" style="width: 0%"></div>
+                                        </div>
+                                        <span id="positiveValue" class="text-xs font-medium text-green-600 w-10 text-right">--%</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500 w-12">中性</span>
+                                        <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                            <div id="neutralBar" class="h-full bg-gray-400 rounded-full transition-all" style="width: 0%"></div>
+                                        </div>
+                                        <span id="neutralValue" class="text-xs font-medium text-gray-600 w-10 text-right">--%</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500 w-12">负面</span>
+                                        <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                            <div id="negativeBar" class="h-full bg-red-500 rounded-full transition-all" style="width: 0%"></div>
+                                        </div>
+                                        <span id="negativeValue" class="text-xs font-medium text-red-600 w-10 text-right">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                <p>基于 AI 回答中品牌描述的语义分析</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">引用结构分析</h3>
+                            <!-- 核心指标（始终显示） -->
+                            <div class="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 mb-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm text-gray-600">综合引用质量</p>
+                                        <p class="text-3xl font-bold text-indigo-600"><span id="citationQualityValue">--</span><span class="text-sm font-normal text-gray-500">/100</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-400">--</p>
+                                        <p class="text-xs text-gray-500">暂无历史数据</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 折叠区：详细引用分析 -->
+                            <details class="group">
+                                <summary class="flex items-center justify-between p-3 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors">
+                                    <span class="text-sm font-medium text-gray-700">查看详细引用分析</span>
+                                    <i class="fas fa-chevron-down text-gray-500 group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-2 space-y-3">
+                                    <div class="p-3 bg-gray-50 rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-2">引用位置分布</p>
+                                        <div class="grid grid-cols-3 gap-2 text-center">
+                                            <div class="p-2 bg-white rounded"><p class="text-lg font-bold text-green-600">45%</p><p class="text-xs text-gray-500">首位</p></div>
+                                            <div class="p-2 bg-white rounded"><p class="text-lg font-bold text-blue-600">35%</p><p class="text-xs text-gray-500">前三</p></div>
+                                            <div class="p-2 bg-white rounded"><p class="text-lg font-bold text-gray-600">20%</p><p class="text-xs text-gray-500">其他</p></div>
+                                        </div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 rounded-lg space-y-2">
+                                        <p class="text-xs text-gray-500 mb-2">引用质量指标</p>
+                                        <div class="flex items-center justify-between text-sm"><span class="text-gray-500">带链接引用</span><span class="font-medium text-green-600">68%</span></div>
+                                        <div class="flex items-center justify-between text-sm"><span class="text-gray-500">正面语气</span><span class="font-medium text-green-600">82%</span></div>
+                                        <div class="flex items-center justify-between text-sm"><span class="text-gray-500">独占推荐</span><span class="font-medium text-amber-600">35%</span></div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型对比 -->
+                <div id="content-models" class="p-6 hidden">
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="model-card p-4 bg-white rounded-xl border-2 border-green-200 selected" onclick="selectModel('chatgpt')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><i class="fas fa-robot text-green-600"></i></div>
+                                <div><p class="font-semibold text-gray-900">ChatGPT</p><p class="text-xs text-gray-500">OpenAI</p></div>
+                            </div>
+                            <p class="text-2xl font-bold text-green-600">72</p>
+                            <p class="text-xs text-green-500">+5% vs 上周</p>
+                        </div>
+                        <div class="model-card p-4 bg-white rounded-xl border-2 border-orange-200" onclick="selectModel('claude')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><i class="fas fa-brain text-orange-600"></i></div>
+                                <div><p class="font-semibold text-gray-900">Claude</p><p class="text-xs text-gray-500">Anthropic</p></div>
+                            </div>
+                            <p class="text-2xl font-bold text-orange-600">68</p>
+                            <p class="text-xs text-orange-500">+3% vs 上周</p>
+                        </div>
+                        <div class="model-card p-4 bg-white rounded-xl border-2 border-blue-200" onclick="selectModel('gemini')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><i class="fas fa-gem text-blue-600"></i></div>
+                                <div><p class="font-semibold text-gray-900">Gemini</p><p class="text-xs text-gray-500">Google</p></div>
+                            </div>
+                            <p class="text-2xl font-bold text-blue-600">65</p>
+                            <p class="text-xs text-red-500">-2% vs 上周</p>
+                        </div>
+                        <div class="model-card p-4 bg-white rounded-xl border-2 border-cyan-200" onclick="selectModel('perplexity')">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center"><i class="fas fa-search text-cyan-600"></i></div>
+                                <div><p class="font-semibold text-gray-900">Perplexity</p><p class="text-xs text-gray-500">Perplexity AI</p></div>
+                            </div>
+                            <p class="text-2xl font-bold text-cyan-600">78</p>
+                            <p class="text-xs text-green-500">+8% vs 上周</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div><h3 class="font-semibold text-gray-900 mb-4">模型可见度对比</h3><div class="p-4 bg-gray-50 rounded-lg"><canvas id="modelCompareChart" height="250"></canvas></div></div>
+                        <div><h3 class="font-semibold text-gray-900 mb-4">版本漂移分析</h3><div class="p-4 bg-gray-50 rounded-lg"><canvas id="versionDriftChart" height="250"></canvas></div></div>
+                    </div>
+                </div>
+
+                <!-- 多维分析 -->
+                <div id="content-dimensions" class="p-6 hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-900">多维度可见度热力图</h3>
+                        <select id="dimensionType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="region-lang">地域 x 语言</option>
+                            <option value="region-industry">地域 x 行业</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="p-4 bg-white rounded-lg border text-center"><p class="text-3xl font-bold text-indigo-600">12</p><p class="text-sm text-gray-500">覆盖地域</p></div>
+                        <div class="p-4 bg-white rounded-lg border text-center"><p class="text-3xl font-bold text-emerald-600">8</p><p class="text-sm text-gray-500">支持语言</p></div>
+                        <div class="p-4 bg-white rounded-lg border text-center"><p class="text-3xl font-bold text-amber-600">5</p><p class="text-sm text-gray-500">涉及行业</p></div>
+                        <div class="p-4 bg-white rounded-lg border text-center"><p class="text-3xl font-bold text-purple-600">18</p><p class="text-sm text-gray-500">高机会区域</p></div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6" id="heatmapContainer"></div>
+                    <h3 class="font-semibold text-gray-900 mb-4">高潜力机会</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="p-4 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
+                            <div class="flex items-center justify-between mb-2"><span class="font-medium text-green-900">日本 x 日文</span><span class="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">高潜力</span></div>
+                            <p class="text-sm text-green-800">当前可见度 45%，竞品覆盖低</p>
+                        </div>
+                        <div class="p-4 border-l-4 border-amber-500 bg-amber-50 rounded-r-lg">
+                            <div class="flex items-center justify-between mb-2"><span class="font-medium text-amber-900">德国 x 德文</span><span class="px-2 py-1 bg-amber-200 text-amber-800 rounded text-xs">中潜力</span></div>
+                            <p class="text-sm text-amber-800">当前可见度 32%，市场增长快</p>
+                        </div>
+                        <div class="p-4 border-l-4 border-blue-500 bg-blue-50 rounded-r-lg">
+                            <div class="flex items-center justify-between mb-2"><span class="font-medium text-blue-900">韩国 x 韩文</span><span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">中潜力</span></div>
+                            <p class="text-sm text-blue-800">当前可见度 28%，用户活跃</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 品牌洞察 -->
+                <div id="content-insights" class="p-6 hidden">
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg border border-indigo-200 cursor-pointer hover:shadow-md">
+                            <div class="flex items-center gap-2 mb-2"><i class="fas fa-bullseye text-indigo-500"></i><span class="text-sm font-medium text-indigo-900">引用集中度</span></div>
+                            <p class="text-2xl font-bold text-indigo-600">0.72</p>
+                            <p class="text-xs text-indigo-500">健康：分布均匀</p>
+                        </div>
+                        <div class="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border border-emerald-200 cursor-pointer hover:shadow-md">
+                            <div class="flex items-center gap-2 mb-2"><i class="fas fa-map-marker-alt text-emerald-500"></i><span class="text-sm font-medium text-emerald-900">当前位置</span></div>
+                            <p class="text-2xl font-bold text-emerald-600">#2</p>
+                            <p class="text-xs text-emerald-500">行业前三</p>
+                        </div>
+                        <div class="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg border border-amber-200 cursor-pointer hover:shadow-md">
+                            <div class="flex items-center gap-2 mb-2"><i class="fas fa-star text-amber-500"></i><span class="text-sm font-medium text-amber-900">品牌力</span></div>
+                            <p class="text-2xl font-bold text-amber-600">78</p>
+                            <p class="text-xs text-amber-500">强势品牌</p>
+                        </div>
+                        <div class="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md">
+                            <div class="flex items-center gap-2 mb-2"><i class="fas fa-tags text-purple-500"></i><span class="text-sm font-medium text-purple-900">品类信号</span></div>
+                            <p class="text-2xl font-bold text-purple-600">85%</p>
+                            <p class="text-xs text-purple-500">品类关联强</p>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-4">三路径行动建议</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="p-4 bg-white rounded-lg border">
+                            <div class="flex items-center gap-2 mb-3"><div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><i class="fas fa-plus text-green-600"></i></div><span class="font-medium text-gray-900">创建新内容</span></div>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>撰写 GEO vs SEO 对比文章</li>
+                                <li>创建 AI 可见度入门指南</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-white rounded-lg border">
+                            <div class="flex items-center gap-2 mb-3"><div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"><i class="fas fa-edit text-blue-600"></i></div><span class="font-medium text-gray-900">改进现有内容</span></div>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>优化首页答案胶囊</li>
+                                <li>增加实体密度至 15+</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-white rounded-lg border">
+                            <div class="flex items-center gap-2 mb-3"><div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"><i class="fas fa-bullhorn text-purple-600"></i></div><span class="font-medium text-gray-900">获取曝光</span></div>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>Reddit r/technology 参与</li>
+                                <li>LinkedIn 专业内容发布</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 趋势监控 -->
+                <div id="content-trends" class="p-6 hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">可见度历史趋势</h3>
+                            <div class="p-4 bg-gray-50 rounded-lg"><canvas id="trendChart" height="250"></canvas></div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">关键事件时间线</h3>
+                            <div class="relative pl-6 space-y-4">
+                                <div class="absolute left-2 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                                <div class="relative">
+                                    <div class="absolute -left-4 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                                    <div class="bg-green-50 rounded-lg p-3">
+                                        <div class="flex items-center justify-between"><span class="text-sm font-medium text-green-800">GPT-4 可见度提升 +15%</span><span class="text-xs text-gray-500">2 天前</span></div>
+                                        <p class="text-xs text-gray-600 mt-1">内容蒸馏优化后生效</p>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute -left-4 w-4 h-4 bg-amber-500 rounded-full border-2 border-white"></div>
+                                    <div class="bg-amber-50 rounded-lg p-3">
+                                        <div class="flex items-center justify-between"><span class="text-sm font-medium text-amber-800">Claude 3.5 版本更新</span><span class="text-xs text-gray-500">5 天前</span></div>
+                                        <p class="text-xs text-gray-600 mt-1">模型版本更新导致引用漂移</p>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute -left-4 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
+                                    <div class="bg-red-50 rounded-lg p-3">
+                                        <div class="flex items-center justify-between"><span class="text-sm font-medium text-red-800">Perplexity 可见度下降 -12%</span><span class="text-xs text-gray-500">1 周前</span></div>
+                                        <p class="text-xs text-gray-600 mt-1">竞品内容更新导致排名下滑</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 mt-6">
+                        <div class="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white">
+                            <h5 class="text-sm opacity-80 mb-2">下周预测</h5>
+                            <div class="text-3xl font-bold">85.2</div>
+                            <div class="text-sm opacity-80 mt-1">+2.9 预期提升</div>
+                        </div>
+                        <div class="p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white">
+                            <h5 class="text-sm opacity-80 mb-2">月度目标</h5>
+                            <div class="text-3xl font-bold">90+</div>
+                            <div class="text-sm opacity-80 mt-1">进度: 82.3/90</div>
+                        </div>
+                        <div class="p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl text-white">
+                            <h5 class="text-sm opacity-80 mb-2">行业排名</h5>
+                            <div class="text-3xl font-bold">#3</div>
+                            <div class="text-sm opacity-80 mt-1">目标: Top 2</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="nextStepGuide"></div>
+        </div>
+    </main>
+
+    <script>
+        let currentProject = null;
+        let allQuestions = [];
+        let projectInfo = {
+            brandName: '您的品牌',
+            competitors: [],
+            sovData: null,
+            // 行业标准 GEO 指标
+            geoMetrics: {
+                visibility: 0,      // AI 可见度 %
+                sov: 0,             // SOV 声量份额 %
+                citationRate: 0,    // 引用率 %
+                position: 0,        // 生成位置
+                sentiment: {        // 情感分析
+                    positive: 0,
+                    neutral: 0,
+                    negative: 0
+                }
+            },
+            citationQuality: 0
+        };
+
+        // 预设域名权威度表
+        const domainAuthority = {
+            // 政府/教育
+            '.gov': 95, '.edu': 92, '.gov.cn': 95, '.edu.cn': 92, '.org': 75,
+            // 顶级科技
+            'google.com': 90, 'microsoft.com': 90, 'github.com': 88, 'stackoverflow.com': 85, 'wikipedia.org': 85,
+            // 国际媒体
+            'nytimes.com': 88, 'bbc.com': 88, 'reuters.com': 88, 'wsj.com': 87,
+            // 科技媒体
+            'techcrunch.com': 82, 'wired.com': 80, 'theverge.com': 78,
+            // 中文权威
+            'xinhuanet.com': 90, 'people.com.cn': 88, 'csdn.net': 75, 'zhihu.com': 72, 'sina.com.cn': 75,
+            // 学术
+            'arxiv.org': 88, 'nature.com': 92, 'ieee.org': 88,
+            // 社交/UGC
+            'reddit.com': 65, 'quora.com': 68, 'medium.com': 70, 'linkedin.com': 75, 'youtube.com': 72,
+            // AI/ML
+            'openai.com': 88, 'anthropic.com': 85, 'huggingface.co': 82,
+            // 云服务
+            'aws.amazon.com': 88, 'cloud.google.com': 88, 'azure.microsoft.com': 88
+        };
+
+        // 计算域名权威度
+        function calculateAuthorityScore(domain) {
+            if (!domain) return 50;
+            domain = domain.toLowerCase().replace(/^www\./, '');
+            
+            // 精确匹配
+            if (domainAuthority[domain]) return domainAuthority[domain];
+            
+            // 后缀匹配
+            for (const suffix of ['.gov.cn', '.edu.cn', '.gov', '.edu', '.org']) {
+                if (domain.endsWith(suffix) && domainAuthority[suffix]) return domainAuthority[suffix];
+            }
+            
+            // 子域名匹配
+            const parts = domain.split('.');
+            if (parts.length > 2) {
+                const rootDomain = parts.slice(-2).join('.');
+                if (domainAuthority[rootDomain]) return domainAuthority[rootDomain];
+            }
+            
+            return 50; // 默认值
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadProjectData();
+            initCharts();
+            renderHeatmap();
+        });
+
+        // 从当前项目加载真实数据
+        async function loadProjectData() {
+            currentProject = JSON.parse(localStorage.getItem('geo_current_project') || 'null');
+            
+            if (!currentProject) {
+                console.warn('未选择项目，显示空状态');
+                updateGeoMetricsUI();
+                return;
+            }
+
+            const projectId = currentProject.id || currentProject.projectId;
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const userId = user?.dbId;
+
+            if (!userId) {
+                console.error('用户未登录');
+                return;
+            }
+
+            try {
+                // 并行加载项目详情和问题数据
+                const [projectRes, questionsRes] = await Promise.all([
+                    fetch(`/api/project/${projectId}`, { headers: { 'X-User-Id': userId } }),
+                    fetch(`/api/project/${projectId}/questions`, { headers: { 'X-User-Id': userId } })
+                ]);
+                
+                const projectData = await projectRes.json();
+                const questionsData = await questionsRes.json();
+                
+                // 更新项目信息（包含竞品）
+                if (projectData.success && projectData.data) {
+                    currentProject = projectData.data;
+                    projectInfo.brandName = currentProject.brandName || '您的品牌';
+                    projectInfo.competitors = (currentProject.competitors || []).map(c => c.name);
+                }
+                
+                if (questionsData.success && questionsData.data) {
+                    allQuestions = questionsData.data;
+                    calculateAndDisplayScores();
+                }
+            } catch (error) {
+                console.error('加载项目数据失败:', error);
+            }
+        }
+
+        // 计算并显示行业标准 GEO 指标
+        function calculateAndDisplayScores() {
+            const questionsWithAnswers = allQuestions.filter(q => q.answers && q.answers.length > 0);
+            
+            if (questionsWithAnswers.length === 0) {
+                updateGeoMetricsUI();
+                return;
+            }
+
+            const brandName = projectInfo.brandName || '';
+            const competitors = projectInfo.competitors || [];
+            
+            // 统计变量
+            let brandMentionCount = 0;      // 品牌被提及的回答数
+            let totalAnswers = questionsWithAnswers.length;
+            let competitorMentions = {};
+            competitors.forEach(c => competitorMentions[c] = 0);
+            let totalBrandMentions = 0;     // 所有品牌提及总数
+            
+            // 情感分析统计
+            let positiveCount = 0, neutralCount = 0, negativeCount = 0;
+            
+            // 引用统计
+            let answersWithCitations = 0;
+            let totalAuthorityScore = 0;
+            let sourceCount = 0;
+            const allDomains = [];
+            
+            // 位置统计
+            let totalPosition = 0;
+            let positionCount = 0;
+
+            questionsWithAnswers.forEach(q => {
+                const answer = q.answers[0];
+                if (!answer) return;
+                
+                const answerText = (answer.answer || '').toLowerCase();
+                
+                // 1. AI 可见度：品牌在回答中出现的频率
+                if (brandName && answerText.includes(brandName.toLowerCase())) {
+                    brandMentionCount++;
+                    totalBrandMentions++;
+                }
+                
+                // 2. SOV：统计竞品提及
+                competitors.forEach(comp => {
+                    if (answerText.includes(comp.toLowerCase())) {
+                        competitorMentions[comp]++;
+                        totalBrandMentions++;
+                    }
+                });
+                
+                // 3. 情感分析：基于简单的关键词分析
+                const sentiment = analyzeSentiment(answerText, brandName);
+                if (sentiment === 'positive') positiveCount++;
+                else if (sentiment === 'negative') negativeCount++;
+                else neutralCount++;
+                
+                // 4. 引用率：统计有引用的回答
+                if (q.sources && q.sources.length > 0) {
+                    answersWithCitations++;
+                    q.sources.forEach(source => {
+                        const domain = source.domain || '';
+                        if (domain) {
+                            totalAuthorityScore += calculateAuthorityScore(domain);
+                            sourceCount++;
+                            allDomains.push(domain);
+                        }
+                    });
+                }
+                
+                // 5. 生成位置：基于 brandFitIndex 估算
+                if (answer.brandFitIndex > 0) {
+                    // brandFitIndex 越高，位置越靠前
+                    const estimatedPosition = Math.max(1, Math.round(6 - answer.brandFitIndex / 20));
+                    totalPosition += estimatedPosition;
+                    positionCount++;
+                }
+            });
+
+            // 计算核心 GEO 指标
+            const visibility = totalAnswers > 0 ? Math.round(brandMentionCount / totalAnswers * 100) : 0;
+            const sov = totalBrandMentions > 0 ? Math.round(brandMentionCount / totalBrandMentions * 100) : 0;
+            const citationRate = totalAnswers > 0 ? Math.round(answersWithCitations / totalAnswers * 100) : 0;
+            const avgPosition = positionCount > 0 ? Math.round(totalPosition / positionCount * 10) / 10 : 0;
+            
+            // 情感分布
+            const totalSentiment = positiveCount + neutralCount + negativeCount;
+            const sentiment = {
+                positive: totalSentiment > 0 ? Math.round(positiveCount / totalSentiment * 100) : 0,
+                neutral: totalSentiment > 0 ? Math.round(neutralCount / totalSentiment * 100) : 0,
+                negative: totalSentiment > 0 ? Math.round(negativeCount / totalSentiment * 100) : 0
+            };
+            
+            // 计算引用质量
+            const avgAuthority = sourceCount > 0 ? Math.round(totalAuthorityScore / sourceCount) : 50;
+            const uniqueDomains = [...new Set(allDomains.map(d => d.replace(/^www\./, '').split('.').slice(-2).join('.')))];
+            const countScore = Math.min(100, sourceCount * 20);
+            const diversityScore = sourceCount > 0 ? Math.min(100, Math.round(uniqueDomains.length / sourceCount * 100 * 1.5)) : 0;
+            const citationQuality = Math.round(countScore * 0.3 + diversityScore * 0.3 + avgAuthority * 0.4);
+            
+            // 保存到 projectInfo
+            projectInfo.geoMetrics = {
+                visibility,
+                sov,
+                citationRate,
+                position: avgPosition,
+                sentiment
+            };
+            projectInfo.citationQuality = citationQuality;
+            
+            // 保存 SOV 数据供图表使用
+            projectInfo.sovData = {
+                brand: { name: brandName, mentions: brandMentionCount, percentage: sov },
+                competitors: competitors.map(comp => ({
+                    name: comp,
+                    mentions: competitorMentions[comp],
+                    percentage: totalBrandMentions > 0 ? Math.round(competitorMentions[comp] / totalBrandMentions * 100) : 0
+                })),
+                total: totalBrandMentions
+            };
+            
+            // 更新 UI
+            updateGeoMetricsUI();
+        }
+        
+        // 简单情感分析（基于关键词）
+        function analyzeSentiment(text, brandName) {
+            if (!brandName || !text.includes(brandName.toLowerCase())) {
+                return 'neutral';
+            }
+            
+            const positiveWords = ['best', 'excellent', 'great', 'recommend', 'top', 'leading', 'innovative', 'trusted', '最佳', '优秀', '推荐', '领先', '信赖', '创新', '顶级', '首选'];
+            const negativeWords = ['worst', 'bad', 'poor', 'avoid', 'problem', 'issue', 'fail', '差', '问题', '避免', '失败', '不推荐', '缺点'];
+            
+            let positiveScore = 0, negativeScore = 0;
+            
+            positiveWords.forEach(word => {
+                if (text.includes(word.toLowerCase())) positiveScore++;
+            });
+            
+            negativeWords.forEach(word => {
+                if (text.includes(word.toLowerCase())) negativeScore++;
+            });
+            
+            if (positiveScore > negativeScore) return 'positive';
+            if (negativeScore > positiveScore) return 'negative';
+            return 'neutral';
+        }
+
+        // 更新 GEO 指标 UI
+        function updateGeoMetricsUI() {
+            const { visibility, sov, citationRate, position, sentiment } = projectInfo.geoMetrics;
+            const citationQuality = projectInfo.citationQuality;
+            
+            // 更新顶部核心指标卡片
+            document.getElementById('visibilityScore').textContent = `${visibility}%`;
+            document.getElementById('sovScore').textContent = `${sov}%`;
+            document.getElementById('citationRate').textContent = `${citationRate}%`;
+            document.getElementById('positionScore').textContent = position > 0 ? `#${position}` : '#--';
+            
+            // 更新情感分析显示
+            const sentimentLabel = document.getElementById('sentimentLabel');
+            if (sentiment.positive >= sentiment.negative && sentiment.positive >= sentiment.neutral) {
+                document.getElementById('sentimentScore').textContent = '正面';
+                if (sentimentLabel) {
+                    sentimentLabel.textContent = '正面';
+                    sentimentLabel.className = 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium';
+                }
+            } else if (sentiment.negative > sentiment.positive && sentiment.negative > sentiment.neutral) {
+                document.getElementById('sentimentScore').textContent = '负面';
+                if (sentimentLabel) {
+                    sentimentLabel.textContent = '负面';
+                    sentimentLabel.className = 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium';
+                }
+            } else {
+                document.getElementById('sentimentScore').textContent = '中性';
+                if (sentimentLabel) {
+                    sentimentLabel.textContent = '中性';
+                    sentimentLabel.className = 'px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium';
+                }
+            }
+            
+            // 更新情感分布条
+            document.getElementById('positiveBar').style.width = `${sentiment.positive}%`;
+            document.getElementById('positiveValue').textContent = `${sentiment.positive}%`;
+            document.getElementById('neutralBar').style.width = `${sentiment.neutral}%`;
+            document.getElementById('neutralValue').textContent = `${sentiment.neutral}%`;
+            document.getElementById('negativeBar').style.width = `${sentiment.negative}%`;
+            document.getElementById('negativeValue').textContent = `${sentiment.negative}%`;
+            
+            // 更新引用质量
+            const citationQualityEl = document.getElementById('citationQualityValue');
+            if (citationQualityEl) citationQualityEl.textContent = citationQuality || '--';
+        }
+
+        function initCharts() {
+            // SOV 图表 - 基于实际回答内容统计的提及率
+            const sovInfo = projectInfo.sovData || { brand: { name: projectInfo.brandName, percentage: 0 }, competitors: [], total: 0 };
+            const sovColors = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#f472b6', '#06b6d4', '#9ca3af'];
+            
+            // 构建 SOV 标签和数据
+            const sovLabels = [sovInfo.brand.name || projectInfo.brandName];
+            const sovValues = [sovInfo.brand.percentage];
+            
+            // 添加竞品数据（只显示有提及的）
+            sovInfo.competitors.forEach(comp => {
+                if (comp.percentage > 0) {
+                    sovLabels.push(comp.name);
+                    sovValues.push(comp.percentage);
+                }
+            });
+            
+            // 计算"其他"
+            const totalPercentage = sovValues.reduce((a, b) => a + b, 0);
+            if (totalPercentage < 100 && sovInfo.total > 0) {
+                sovLabels.push('其他');
+                sovValues.push(100 - totalPercentage);
+            }
+            
+            // 如果没有任何提及，显示提示
+            if (sovInfo.total === 0) {
+                sovLabels.length = 0;
+                sovValues.length = 0;
+                sovLabels.push('暂无数据');
+                sovValues.push(100);
+            }
+            
+            new Chart(document.getElementById('sovChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: sovLabels,
+                    datasets: [{ data: sovValues, backgroundColor: sovInfo.total === 0 ? ['#e5e7eb'] : sovColors.slice(0, sovLabels.length) }]
+                },
+                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+            
+            // 动态生成 SOV 图例
+            const sovLegend = document.getElementById('sovLegend');
+            if (sovLegend) {
+                sovLegend.innerHTML = sovLabels.map((label, idx) => {
+                    const isFirst = idx === 0;
+                    const colorClass = isFirst ? 'text-indigo-600' : 'text-gray-600';
+                    return `
+                        <div class="flex items-center justify-between p-2 bg-white rounded border">
+                            <span class="text-sm text-gray-600">${label}</span>
+                            <span class="font-medium ${colorClass}">${sovValues[idx]}%</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            new Chart(document.getElementById('modelCompareChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['ChatGPT', 'Claude', 'Gemini', 'Perplexity'],
+                    datasets: [{ label: '可见度', data: [72, 68, 65, 78], backgroundColor: ['#10b981', '#f97316', '#3b82f6', '#06b6d4'] }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, min: 50, max: 90 } } }
+            });
+
+            new Chart(document.getElementById('versionDriftChart'), {
+                type: 'line',
+                data: {
+                    labels: ['v1', 'v2', 'v3', 'v4', 'v5'],
+                    datasets: [
+                        { label: 'GPT-4', data: [68, 70, 72, 71, 72], borderColor: '#10b981', tension: 0.4 },
+                        { label: 'Claude', data: [65, 66, 68, 67, 68], borderColor: '#f97316', tension: 0.4 }
+                    ]
+                },
+                options: { scales: { y: { beginAtZero: false, min: 60, max: 80 } } }
+            });
+
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                    datasets: [
+                        { label: brandName, data: [65, 68, 72, 75, 78, 82], borderColor: '#6366f1', tension: 0.4, fill: true, backgroundColor: 'rgba(99,102,241,0.1)' },
+                        { label: '行业均值', data: [60, 62, 63, 65, 66, 68], borderColor: '#9ca3af', borderDash: [5, 5], tension: 0.4 }
+                    ]
+                },
+                options: { scales: { y: { beginAtZero: false, min: 50, max: 100 } } }
+            });
+        }
+
+        function renderHeatmap() {
+            const regions = ['中国', '美国', '日本', '德国', '韩国'];
+            const langs = ['中文', '英文', '日文', '韩文', '德文'];
+            const data = [[85, 72, 45, 32, 28], [65, 88, 52, 38, 42], [48, 55, 78, 35, 30], [35, 62, 38, 72, 85], [42, 58, 45, 68, 32]];
+            
+            let html = '<table class="w-full"><thead><tr><th class="p-2 text-left text-sm text-gray-500"></th>';
+            langs.forEach(l => html += `<th class="p-2 text-center text-sm text-gray-500">${l}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            regions.forEach((r, i) => {
+                html += `<tr><td class="p-2 text-sm font-medium text-gray-700">${r}</td>`;
+                data[i].forEach(v => {
+                    const color = v >= 70 ? 'bg-green-100 text-green-800' : v >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
+                    html += `<td class="p-2 text-center"><span class="inline-block px-3 py-1 rounded ${color} text-sm font-medium">${v}%</span></td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('heatmapContainer').innerHTML = html;
+        }
+
+        function switchTab(tab) {
+            ['overview', 'models', 'dimensions', 'insights', 'trends'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+                document.getElementById(`tab-${t}`).classList.toggle('text-gray-600', t !== tab);
+                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
+            });
+        }
+
+        function selectModel(model) {
+            document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+
+        function refreshData() { alert('正在刷新数据...'); }
+        function exportReport() { alert('正在导出可见度分析报告...'); }
+    </script>
+</body>
+</html>

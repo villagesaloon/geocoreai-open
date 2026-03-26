@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速收录 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">快速收录</h1>
+                        <p class="text-sm text-gray-500 mt-1">IndexNow 提交 + Sitemap/llms.txt/robots.txt 生成</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('indexnow')" id="tab-indexnow" 
+                            class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-bolt mr-2"></i>IndexNow 提交
+                    </button>
+                    <button onclick="switchTab('sitemap')" id="tab-sitemap"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-sitemap mr-2"></i>Sitemap 生成
+                    </button>
+                    <button onclick="switchTab('llmstxt')" id="tab-llmstxt"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-robot mr-2"></i>llms.txt 生成
+                    </button>
+                    <button onclick="switchTab('robotstxt')" id="tab-robotstxt"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-shield-alt mr-2"></i>robots.txt 生成
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Tab: IndexNow -->
+                <div id="content-indexnow" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-bolt text-yellow-500 mr-2"></i>IndexNow 快速提交
+                            </h3>
+                            <p class="text-sm text-gray-500 mb-4">一键提交到 Bing、Yandex、Naver 等搜索引擎</p>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">API Key（可选）</label>
+                                <input type="text" id="indexNowKey" placeholder="your-indexnow-key" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                <p class="text-xs text-gray-500 mt-1">留空将使用默认 Key</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">URL 列表（每行一个）</label>
+                                <textarea id="indexNowUrls" rows="8" placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://example.com/page3"
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                            </div>
+                            
+                            <button onclick="submitIndexNow()" 
+                                    class="w-full bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition font-medium">
+                                <i class="fas fa-paper-plane mr-2"></i>提交到 IndexNow
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl p-6 text-white">
+                                <h3 class="font-semibold mb-2">IndexNow 优势</h3>
+                                <ul class="text-sm space-y-1 text-yellow-100">
+                                    <li>• 即时通知搜索引擎内容更新</li>
+                                    <li>• 支持 Bing、Yandex、Naver 等</li>
+                                    <li>• 比等待爬虫更快被收录</li>
+                                    <li>• 免费且无限制</li>
+                                </ul>
+                            </div>
+
+                            <div id="indexNowResult" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hidden">
+                                <h3 class="font-semibold text-gray-900 mb-4">提交结果</h3>
+                                <div id="indexNowResultContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Sitemap -->
+                <div id="content-sitemap" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-sitemap text-blue-500 mr-2"></i>Sitemap 生成器
+                            </h3>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">基础 URL</label>
+                                <input type="url" id="sitemapBaseUrl" placeholder="https://example.com" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">URL 列表（每行一个）</label>
+                                <textarea id="sitemapUrls" rows="8" placeholder="https://example.com/&#10;https://example.com/about&#10;https://example.com/blog"
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">更新频率</label>
+                                    <select id="sitemapChangeFreq" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="always">always</option>
+                                        <option value="hourly">hourly</option>
+                                        <option value="daily">daily</option>
+                                        <option value="weekly" selected>weekly</option>
+                                        <option value="monthly">monthly</option>
+                                        <option value="yearly">yearly</option>
+                                        <option value="never">never</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+                                    <input type="number" id="sitemapPriority" value="0.8" min="0" max="1" step="0.1"
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                </div>
+                            </div>
+                            
+                            <button onclick="generateSitemap()" 
+                                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                                <i class="fas fa-file-code mr-2"></i>生成 Sitemap
+                            </button>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold text-gray-900">生成结果</h3>
+                                <button onclick="copySitemap()" class="text-blue-600 hover:text-blue-700 text-sm hidden" id="copySitemapBtn">
+                                    <i class="fas fa-copy mr-1"></i>复制
+                                </button>
+                            </div>
+                            <pre id="sitemapResult" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-auto max-h-96 font-mono">等待生成...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: llms.txt -->
+                <div id="content-llmstxt" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-robot text-purple-500 mr-2"></i>llms.txt 生成器
+                            </h3>
+                            <p class="text-sm text-gray-500 mb-4">帮助 AI 爬虫发现你网站的重要内容</p>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">基础 URL</label>
+                                <input type="url" id="llmsBaseUrl" placeholder="https://example.com" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">优先内容 URL（每行一个，按重要性排序）</label>
+                                <textarea id="llmsUrls" rows="10" placeholder="https://example.com/most-important-page&#10;https://example.com/second-important&#10;https://example.com/guide"
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 font-mono text-sm"></textarea>
+                            </div>
+                            
+                            <button onclick="generateLlmsTxt()" 
+                                    class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium">
+                                <i class="fas fa-file-alt mr-2"></i>生成 llms.txt
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-6 text-white">
+                                <h3 class="font-semibold mb-2">什么是 llms.txt？</h3>
+                                <ul class="text-sm space-y-1 text-purple-100">
+                                    <li>• 专为 AI 爬虫设计的内容索引</li>
+                                    <li>• 告诉 AI 哪些内容最重要</li>
+                                    <li>• 提高被 AI 引用的概率</li>
+                                    <li>• 放置在网站根目录 /llms.txt</li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-semibold text-gray-900">生成结果</h3>
+                                    <button onclick="copyLlmsTxt()" class="text-purple-600 hover:text-purple-700 text-sm hidden" id="copyLlmsBtn">
+                                        <i class="fas fa-copy mr-1"></i>复制
+                                    </button>
+                                </div>
+                                <pre id="llmsResult" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-auto max-h-64 font-mono">等待生成...</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: robots.txt -->
+                <div id="content-robotstxt" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-shield-alt text-green-500 mr-2"></i>robots.txt 生成器
+                            </h3>
+                            <p class="text-sm text-gray-500 mb-4">生成 AI 友好的 robots.txt 配置</p>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">基础 URL</label>
+                                <input type="url" id="robotsBaseUrl" placeholder="https://example.com" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="allowAllAI" checked class="mr-2">
+                                    <span class="text-sm text-gray-700">允许所有 AI 爬虫访问</span>
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">包括 GPTBot、ClaudeBot、PerplexityBot 等</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">禁止访问的路径（每行一个）</label>
+                                <textarea id="robotsDisallow" rows="4" placeholder="/admin/&#10;/private/&#10;/api/"
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 font-mono text-sm"></textarea>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">允许访问的路径（每行一个）</label>
+                                <textarea id="robotsAllow" rows="3" placeholder="/blog/&#10;/products/"
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 font-mono text-sm"></textarea>
+                            </div>
+                            
+                            <button onclick="generateRobotsTxt()" 
+                                    class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium">
+                                <i class="fas fa-file-alt mr-2"></i>生成 robots.txt
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl p-6 text-white">
+                                <h3 class="font-semibold mb-2">AI 爬虫列表</h3>
+                                <div class="grid grid-cols-2 gap-2 text-sm text-green-100">
+                                    <div>• GPTBot (ChatGPT)</div>
+                                    <div>• ClaudeBot (Claude)</div>
+                                    <div>• PerplexityBot</div>
+                                    <div>• Google-Extended</div>
+                                    <div>• Amazonbot</div>
+                                    <div>• CCBot</div>
+                                    <div>• cohere-ai</div>
+                                    <div>• Bytespider</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-semibold text-gray-900">生成结果</h3>
+                                    <button onclick="copyRobotsTxt()" class="text-green-600 hover:text-green-700 text-sm hidden" id="copyRobotsBtn">
+                                        <i class="fas fa-copy mr-1"></i>复制
+                                    </button>
+                                </div>
+                                <pre id="robotsResult" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-auto max-h-80 font-mono">等待生成...</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 6.17 IndexNow 提交
+        async function submitIndexNow() {
+            const urls = document.getElementById('indexNowUrls').value.split('\n').filter(u => u.trim());
+            const apiKey = document.getElementById('indexNowKey').value || null;
+
+            if (urls.length === 0) {
+                alert('请输入至少一个 URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/site-audit/index-now', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls, apiKey })
+                });
+                const data = await response.json();
+
+                document.getElementById('indexNowResult').classList.remove('hidden');
+                document.getElementById('indexNowResultContent').innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-center ${data.success ? 'text-green-600' : 'text-yellow-600'}">
+                            <i class="fas fa-${data.success ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
+                            ${data.success ? '全部提交成功' : '部分提交成功'}
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <p class="text-2xl font-bold text-green-600">${data.submittedCount}</p>
+                                <p class="text-xs text-green-500">成功提交</p>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded-lg">
+                                <p class="text-2xl font-bold text-red-600">${data.failedUrls.length}</p>
+                                <p class="text-xs text-red-500">提交失败</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">已通知: ${data.searchEngines.join(', ')}</p>
+                    </div>
+                `;
+            } catch (error) {
+                alert('提交失败: ' + error.message);
+            }
+        }
+
+        // 6.18 Sitemap 生成
+        async function generateSitemap() {
+            const urls = document.getElementById('sitemapUrls').value.split('\n').filter(u => u.trim());
+            const baseUrl = document.getElementById('sitemapBaseUrl').value;
+            const changeFreq = document.getElementById('sitemapChangeFreq').value;
+            const priority = parseFloat(document.getElementById('sitemapPriority').value);
+
+            if (urls.length === 0) {
+                alert('请输入至少一个 URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/site-audit/generate/sitemap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls, baseUrl, changeFreq, priority })
+                });
+                const data = await response.json();
+
+                document.getElementById('sitemapResult').textContent = data.xmlContent;
+                document.getElementById('copySitemapBtn').classList.remove('hidden');
+            } catch (error) {
+                alert('生成失败: ' + error.message);
+            }
+        }
+
+        function copySitemap() {
+            navigator.clipboard.writeText(document.getElementById('sitemapResult').textContent);
+            alert('已复制到剪贴板');
+        }
+
+        // 6.19 llms.txt 生成
+        async function generateLlmsTxt() {
+            const urls = document.getElementById('llmsUrls').value.split('\n').filter(u => u.trim());
+            const baseUrl = document.getElementById('llmsBaseUrl').value;
+
+            if (urls.length === 0) {
+                alert('请输入至少一个 URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/site-audit/generate/llms-txt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls, baseUrl })
+                });
+                const data = await response.json();
+
+                document.getElementById('llmsResult').textContent = data.content;
+                document.getElementById('copyLlmsBtn').classList.remove('hidden');
+            } catch (error) {
+                alert('生成失败: ' + error.message);
+            }
+        }
+
+        function copyLlmsTxt() {
+            navigator.clipboard.writeText(document.getElementById('llmsResult').textContent);
+            alert('已复制到剪贴板');
+        }
+
+        // 6.20 robots.txt 生成
+        async function generateRobotsTxt() {
+            const baseUrl = document.getElementById('robotsBaseUrl').value;
+            const allowAllAICrawlers = document.getElementById('allowAllAI').checked;
+            const disallowPaths = document.getElementById('robotsDisallow').value.split('\n').filter(p => p.trim());
+            const allowPaths = document.getElementById('robotsAllow').value.split('\n').filter(p => p.trim());
+
+            if (!baseUrl) {
+                alert('请输入基础 URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/site-audit/generate/robots-txt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ baseUrl, allowAllAICrawlers, disallowPaths, allowPaths })
+                });
+                const data = await response.json();
+
+                document.getElementById('robotsResult').textContent = data.content;
+                document.getElementById('copyRobotsBtn').classList.remove('hidden');
+            } catch (error) {
+                alert('生成失败: ' + error.message);
+            }
+        }
+
+        function copyRobotsTxt() {
+            navigator.clipboard.writeText(document.getElementById('robotsResult').textContent);
+            alert('已复制到剪贴板');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <rect width="40" height="40" rx="10" fill="url(#iconGradient)"/>
+  <!-- Globe outline -->
+  <circle cx="20" cy="20" r="12" fill="none" stroke="white" stroke-width="1.5" opacity="0.9"/>
+  <!-- Latitude -->
+  <ellipse cx="20" cy="20" rx="12" ry="5" fill="none" stroke="white" stroke-width="1" opacity="0.6"/>
+  <!-- Longitude -->
+  <ellipse cx="20" cy="20" rx="5" ry="12" fill="none" stroke="white" stroke-width="1" opacity="0.6"/>
+  <!-- Center dot -->
+  <circle cx="20" cy="20" r="3" fill="white"/>
+  <!-- Corner nodes -->
+  <circle cx="20" cy="10" r="2" fill="white"/>
+  <circle cx="20" cy="30" r="2" fill="white"/>
+  <circle cx="10" cy="20" r="2" fill="white"/>
+  <circle cx="30" cy="20" r="2" fill="white"/>
+</svg>

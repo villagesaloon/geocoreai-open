@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客 - GeoCore AI</title>
+    <meta name="description" content="GeoCore AI 博客 - GEO/SEO 优化技巧、AI 可见度提升策略、行业最佳实践">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .article-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white"></i>
+                </div>
+                <span class="font-bold text-xl text-gray-900">GeoCore AI</span>
+            </a>
+            <nav class="flex items-center gap-6">
+                <a href="features.html" class="text-gray-600 hover:text-indigo-600">功能</a>
+                <a href="pricing.html" class="text-gray-600 hover:text-indigo-600">定价</a>
+                <a href="blog.html" class="text-indigo-600 font-medium">博客</a>
+                <a href="docs.html" class="text-gray-600 hover:text-indigo-600">文档</a>
+                <a href="login.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">博客</h1>
+            <p class="text-lg text-gray-600">GEO/SEO 优化技巧、AI 可见度提升策略、行业最佳实践</p>
+        </div>
+
+        <!-- 分类筛选 -->
+        <div id="categoryFilter" class="flex flex-wrap gap-3 justify-center mb-10"></div>
+
+        <!-- 置顶文章 -->
+        <div id="featuredArticles" class="mb-12"></div>
+
+        <!-- 文章列表 -->
+        <div id="articleList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+
+        <!-- 空状态 -->
+        <div id="emptyState" class="hidden text-center py-16">
+            <i class="fas fa-newspaper text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500">暂无文章</p>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-gray-400 py-12 mt-16">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <p>&copy; 2024 GeoCore AI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = '/api/cms';
+        let currentCategory = '';
+
+        async function loadCategories() {
+            const res = await fetch(`${API_BASE}/categories?type=blog`);
+            const categories = await res.json();
+            
+            let html = `<button onclick="filterByCategory('')" class="category-btn px-4 py-2 rounded-full text-sm font-medium ${!currentCategory ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}">全部</button>`;
+            categories.forEach(c => {
+                const isActive = currentCategory === c.slug;
+                html += `<button onclick="filterByCategory('${c.slug}')" class="category-btn px-4 py-2 rounded-full text-sm font-medium ${isActive ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}">
+                    ${c.icon ? `<i class="${c.icon} mr-1"></i>` : ''}${c.name}
+                </button>`;
+            });
+            document.getElementById('categoryFilter').innerHTML = html;
+        }
+
+        async function loadArticles() {
+            let url = `${API_BASE}/articles?type=blog`;
+            if (currentCategory) url += `&category=${currentCategory}`;
+            
+            const res = await fetch(url);
+            const articles = await res.json();
+            
+            if (articles.length === 0) {
+                document.getElementById('featuredArticles').innerHTML = '';
+                document.getElementById('articleList').innerHTML = '';
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+            
+            document.getElementById('emptyState').classList.add('hidden');
+            
+            // 置顶文章
+            const featured = articles.filter(a => a.isFeatured);
+            if (featured.length > 0) {
+                document.getElementById('featuredArticles').innerHTML = featured.map(a => `
+                    <a href="article.html?slug=${a.slug}" class="block bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-white mb-8 article-card transition-all">
+                        <div class="flex items-start gap-8">
+                            ${a.coverImage ? `<img src="${a.coverImage}" class="w-64 h-40 object-cover rounded-xl" alt="${a.title}">` : ''}
+                            <div class="flex-1">
+                                <span class="px-3 py-1 bg-white/20 rounded-full text-sm">置顶</span>
+                                <h2 class="text-2xl font-bold mt-3 mb-2">${a.title}</h2>
+                                <p class="text-white/80 mb-4">${a.summary || ''}</p>
+                                <div class="flex items-center gap-4 text-sm text-white/60">
+                                    ${a.author ? `<span><i class="fas fa-user mr-1"></i>${a.author}</span>` : ''}
+                                    <span><i class="fas fa-eye mr-1"></i>${a.viewCount} 阅读</span>
+                                    <span><i class="fas fa-calendar mr-1"></i>${new Date(a.publishedAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            } else {
+                document.getElementById('featuredArticles').innerHTML = '';
+            }
+            
+            // 普通文章
+            const normal = articles.filter(a => !a.isFeatured);
+            document.getElementById('articleList').innerHTML = normal.map(a => `
+                <a href="article.html?slug=${a.slug}" class="bg-white rounded-xl shadow-sm overflow-hidden article-card transition-all">
+                    ${a.coverImage ? `<img src="${a.coverImage}" class="w-full h-48 object-cover" alt="${a.title}">` : '<div class="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"><i class="fas fa-newspaper text-4xl text-gray-300"></i></div>'}
+                    <div class="p-6">
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            ${(a.tags || []).slice(0, 3).map(t => `<span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs">${t}</span>`).join('')}
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">${a.title}</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">${a.summary || ''}</p>
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span>${a.author || 'GeoCore'}</span>
+                            <span>${a.viewCount} 阅读</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        function filterByCategory(category) {
+            currentCategory = category;
+            loadCategories();
+            loadArticles();
+        }
+
+        // 初始化
+        loadCategories();
+        loadArticles();
+    </script>
+</body>
+</html>

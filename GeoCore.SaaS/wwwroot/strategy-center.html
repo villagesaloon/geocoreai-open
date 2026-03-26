@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO 策略中心 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .priority-high { border-left: 4px solid #ef4444; }
+        .priority-medium { border-left: 4px solid #f59e0b; }
+        .priority-low { border-left: 4px solid #10b981; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-inprogress { background: #dbeafe; color: #1e40af; }
+        .status-completed { background: #d1fae5; color: #065f46; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <img src="images/logo.svg" alt="GeoCore AI" class="h-9">
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-8">
+                        <a href="citation-dashboard.html" class="text-gray-500 hover:text-gray-900">引用监测</a>
+                        <a href="strategy-center.html" class="text-primary font-medium">策略中心</a>
+                        <a href="workflow.html" class="text-gray-500 hover:text-gray-900">工作流程</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">演示模式</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="gradient-bg text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">GEO 策略中心</h1>
+                    <p class="text-purple-100 mt-2">基于监测数据生成优化建议，形成闭环优化</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="generateStrategies()" class="px-4 py-2 bg-white text-primary rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-magic mr-2"></i>生成建议
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Summary Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">3</div>
+                        <div class="text-sm text-gray-500">高优先级</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-yellow-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">5</div>
+                        <div class="text-sm text-gray-500">中优先级</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">8</div>
+                        <div class="text-sm text-gray-500">已完成</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-primary text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-900">+15%</div>
+                        <div class="text-sm text-gray-500">本月提升</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Strategy Recommendations -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- High Priority -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-red-50 border-b border-red-100">
+                    <h3 class="font-semibold text-red-800 flex items-center gap-2">
+                        <i class="fas fa-fire"></i> 高优先级建议
+                    </h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Strategy Item -->
+                    <div class="p-4 bg-gray-50 rounded-lg priority-high card-hover cursor-pointer" onclick="showStrategyDetail('s1')">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">增加 Claude 平台引用率</span>
+                            <span class="px-2 py-0.5 status-pending rounded text-xs">待处理</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Claude 引用率仅 28%，低于平均水平。建议优化内容结构以适应 Claude 的偏好。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-chart-bar mr-1"></i>预期提升 +8%</span>
+                            <span><i class="fas fa-clock mr-1"></i>预计 3 天</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-high card-hover cursor-pointer" onclick="showStrategyDetail('s2')">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">提升首位引用比例</span>
+                            <span class="px-2 py-0.5 status-inprogress rounded text-xs">进行中</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">当前首位引用仅 35%，建议在内容开头强化品牌定位语句。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-chart-bar mr-1"></i>预期提升 +12%</span>
+                            <span><i class="fas fa-clock mr-1"></i>预计 5 天</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-high card-hover cursor-pointer" onclick="showStrategyDetail('s3')">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">增加带链接引用</span>
+                            <span class="px-2 py-0.5 status-pending rounded text-xs">待处理</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">带链接引用仅 24%，建议在官网添加更多可引用的权威内容。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-chart-bar mr-1"></i>预期提升 +15%</span>
+                            <span><i class="fas fa-clock mr-1"></i>预计 7 天</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medium Priority -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-yellow-50 border-b border-yellow-100">
+                    <h3 class="font-semibold text-yellow-800 flex items-center gap-2">
+                        <i class="fas fa-lightbulb"></i> 中优先级建议
+                    </h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div class="p-4 bg-gray-50 rounded-lg priority-medium card-hover cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">优化负面情感关键词</span>
+                            <span class="px-2 py-0.5 status-pending rounded text-xs">待处理</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">检测到 4% 负面情感，主要来自"价格"相关讨论。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-chart-bar mr-1"></i>预期提升 +3%</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-medium card-hover cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">扩展日语内容覆盖</span>
+                            <span class="px-2 py-0.5 status-pending rounded text-xs">待处理</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">日语市场引用率较低，建议增加日语本地化内容。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-globe mr-1"></i>新市场机会</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-medium card-hover cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">增加技术深度内容</span>
+                            <span class="px-2 py-0.5 status-inprogress rounded text-xs">进行中</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">技术类问题引用率高于平均，建议增加更多技术文档。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-chart-bar mr-1"></i>预期提升 +5%</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-medium card-hover cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">优化 Gemini 响应</span>
+                            <span class="px-2 py-0.5 status-pending rounded text-xs">待处理</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Gemini 引用率下降 2%，需要分析原因并调整策略。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-search mr-1"></i>需要分析</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-medium card-hover cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">添加案例研究</span>
+                            <span class="px-2 py-0.5 status-pending rounded text-xs">待处理</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">AI 更倾向引用有具体案例的内容，建议增加成功案例。</p>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span><i class="fas fa-chart-bar mr-1"></i>预期提升 +6%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-green-50 border-b border-green-100">
+                    <h3 class="font-semibold text-green-800 flex items-center gap-2">
+                        <i class="fas fa-check-double"></i> 已完成优化
+                    </h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div class="p-4 bg-gray-50 rounded-lg priority-low opacity-75">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">Schema 标记优化</span>
+                            <span class="px-2 py-0.5 status-completed rounded text-xs">已完成</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">添加了 FAQPage 和 Organization Schema，提升结构化数据。</p>
+                        <div class="flex items-center gap-2 text-xs text-green-600">
+                            <span><i class="fas fa-check mr-1"></i>实际提升 +10%</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-low opacity-75">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">llms.txt 配置</span>
+                            <span class="px-2 py-0.5 status-completed rounded text-xs">已完成</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">创建并部署了 llms.txt 文件，指导 AI 如何引用品牌。</p>
+                        <div class="flex items-center gap-2 text-xs text-green-600">
+                            <span><i class="fas fa-check mr-1"></i>实际提升 +5%</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded-lg priority-low opacity-75">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">品牌别名配置</span>
+                            <span class="px-2 py-0.5 status-completed rounded text-xs">已完成</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">配置了多个品牌别名，提升品牌识别覆盖率。</p>
+                        <div class="flex items-center gap-2 text-xs text-green-600">
+                            <span><i class="fas fa-check mr-1"></i>实际提升 +8%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Items & Feedback Loop -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="generateQuestions()" class="p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition text-left">
+                        <i class="fas fa-question-circle text-primary text-2xl mb-2"></i>
+                        <div class="font-medium text-gray-900">生成测试问题</div>
+                        <div class="text-sm text-gray-500">基于监测数据生成新问题</div>
+                    </button>
+                    <button onclick="optimizeContent()" class="p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition text-left">
+                        <i class="fas fa-edit text-primary text-2xl mb-2"></i>
+                        <div class="font-medium text-gray-900">优化内容建议</div>
+                        <div class="text-sm text-gray-500">AI 生成内容优化方案</div>
+                    </button>
+                    <button onclick="analyzeCompetitors()" class="p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition text-left">
+                        <i class="fas fa-users text-primary text-2xl mb-2"></i>
+                        <div class="font-medium text-gray-900">竞品分析</div>
+                        <div class="text-sm text-gray-500">分析竞品引用策略</div>
+                    </button>
+                    <button onclick="exportReport()" class="p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition text-left">
+                        <i class="fas fa-file-export text-primary text-2xl mb-2"></i>
+                        <div class="font-medium text-gray-900">导出报告</div>
+                        <div class="text-sm text-gray-500">生成 PDF/Excel 报告</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feedback Loop -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">闭环优化流程</h3>
+                <div class="relative">
+                    <!-- Flow Steps -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">1</div>
+                            <div class="flex-1">
+                                <div class="font-medium">监测 AI 引用</div>
+                                <div class="text-sm text-gray-500">6 平台实时追踪品牌引用情况</div>
+                            </div>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <div class="ml-5 border-l-2 border-primary h-6"></div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">2</div>
+                            <div class="flex-1">
+                                <div class="font-medium">分析数据指标</div>
+                                <div class="text-sm text-gray-500">计算 BVS、SOV、情感等核心指标</div>
+                            </div>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <div class="ml-5 border-l-2 border-primary h-6"></div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">3</div>
+                            <div class="flex-1">
+                                <div class="font-medium">生成优化建议</div>
+                                <div class="text-sm text-gray-500">AI 基于数据生成针对性建议</div>
+                            </div>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <div class="ml-5 border-l-2 border-primary h-6"></div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">4</div>
+                            <div class="flex-1">
+                                <div class="font-medium">执行优化策略</div>
+                                <div class="text-sm text-gray-500">更新内容、Schema、问题库</div>
+                            </div>
+                            <i class="fas fa-spinner fa-spin text-yellow-500"></i>
+                        </div>
+                        <div class="ml-5 border-l-2 border-dashed border-gray-300 h-6"></div>
+                        <div class="flex items-center gap-4 opacity-60">
+                            <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white font-bold">5</div>
+                            <div class="flex-1">
+                                <div class="font-medium">验证效果</div>
+                                <div class="text-sm text-gray-500">重新监测，对比优化前后数据</div>
+                            </div>
+                            <i class="fas fa-circle text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Strategy Detail Modal -->
+    <div id="strategy-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold" id="strategy-title">策略详情</h2>
+                    <button onclick="closeStrategyModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6" id="strategy-content">
+                <!-- Content will be inserted here -->
+            </div>
+            <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
+                <button onclick="closeStrategyModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">关闭</button>
+                <button onclick="markAsInProgress()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+                    <i class="fas fa-play mr-2"></i>开始执行
+                </button>
+                <button onclick="markAsCompleted()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                    <i class="fas fa-check mr-2"></i>标记完成
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const strategies = {
+            s1: {
+                title: '增加 Claude 平台引用率',
+                priority: 'high',
+                status: 'pending',
+                description: 'Claude 引用率仅 28%，低于平均水平 32%。分析显示 Claude 更偏好结构化、学术风格的内容。',
+                metrics: {
+                    current: '28%',
+                    target: '40%',
+                    expectedLift: '+12%'
+                },
+                actions: [
+                    '优化内容结构，增加清晰的标题层级',
+                    '添加更多数据支撑和引用来源',
+                    '使用更正式的学术语言风格',
+                    '增加技术深度内容'
+                ],
+                relatedQuestions: [
+                    '什么是 GEO 优化？',
+                    '如何提升品牌在 AI 中的可见度？',
+                    'GEO 和 SEO 有什么区别？'
+                ]
+            },
+            s2: {
+                title: '提升首位引用比例',
+                priority: 'high',
+                status: 'inprogress',
+                description: '当前首位引用仅 35%，意味着大部分情况下品牌不是 AI 首先推荐的选项。',
+                metrics: {
+                    current: '35%',
+                    target: '50%',
+                    expectedLift: '+15%'
+                },
+                actions: [
+                    '在内容开头强化品牌定位语句',
+                    '优化品牌描述，突出独特价值主张',
+                    '增加"最佳"、"领先"等正面关键词',
+                    '确保品牌名称在关键段落首句出现'
+                ],
+                relatedQuestions: [
+                    '推荐一个 GEO 优化工具',
+                    '最好的 AI 品牌优化平台是什么？'
+                ]
+            },
+            s3: {
+                title: '增加带链接引用',
+                priority: 'high',
+                status: 'pending',
+                description: '带链接引用仅 24%，主要来自 Perplexity。其他平台很少提供直接链接。',
+                metrics: {
+                    current: '24%',
+                    target: '40%',
+                    expectedLift: '+16%'
+                },
+                actions: [
+                    '在官网添加更多可引用的权威内容',
+                    '创建专题页面，便于 AI 引用',
+                    '优化 URL 结构，使其更易被识别',
+                    '增加外部权威网站的反向链接'
+                ],
+                relatedQuestions: [
+                    'GeoCore AI 官网是什么？',
+                    '哪里可以了解更多 GEO 信息？'
+                ]
+            }
+        };
+
+        function showStrategyDetail(id) {
+            const strategy = strategies[id];
+            if (!strategy) return;
+
+            document.getElementById('strategy-title').textContent = strategy.title;
+            
+            let actionsHtml = strategy.actions.map(a => `<li class="flex items-start gap-2"><i class="fas fa-check-circle text-primary mt-1"></i><span>${a}</span></li>`).join('');
+            let questionsHtml = strategy.relatedQuestions.map(q => `<span class="px-3 py-1 bg-gray-100 rounded-full text-sm">${q}</span>`).join('');
+
+            document.getElementById('strategy-content').innerHTML = `
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-2">问题描述</h4>
+                        <p class="text-gray-600">${strategy.description}</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-gray-900">${strategy.metrics.current}</div>
+                            <div class="text-sm text-gray-500">当前值</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-primary">${strategy.metrics.target}</div>
+                            <div class="text-sm text-gray-500">目标值</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-green-600">${strategy.metrics.expectedLift}</div>
+                            <div class="text-sm text-gray-500">预期提升</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-2">执行步骤</h4>
+                        <ul class="space-y-2">${actionsHtml}</ul>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-2">相关测试问题</h4>
+                        <div class="flex flex-wrap gap-2">${questionsHtml}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('strategy-modal').classList.remove('hidden');
+            document.getElementById('strategy-modal').classList.add('flex');
+        }
+
+        function closeStrategyModal() {
+            document.getElementById('strategy-modal').classList.add('hidden');
+            document.getElementById('strategy-modal').classList.remove('flex');
+        }
+
+        function generateStrategies() {
+            alert('正在基于最新监测数据生成优化建议...');
+        }
+
+        function generateQuestions() {
+            alert('正在基于监测结果生成新的测试问题...');
+        }
+
+        function optimizeContent() {
+            alert('正在分析内容并生成优化建议...');
+        }
+
+        function analyzeCompetitors() {
+            alert('正在分析竞品引用策略...');
+        }
+
+        function exportReport() {
+            alert('正在生成报告，请稍候...');
+        }
+
+        function markAsInProgress() {
+            alert('已标记为进行中');
+            closeStrategyModal();
+        }
+
+        function markAsCompleted() {
+            alert('已标记为完成');
+            closeStrategyModal();
+        }
+    </script>
+</body>
+</html>

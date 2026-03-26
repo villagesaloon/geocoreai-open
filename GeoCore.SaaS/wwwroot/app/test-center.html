@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试中心 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">测试中心</h2>
+                    <p class="text-sm text-gray-500">五层蒸馏测试 | A/B 测试 | 可见度验证</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="createABTest()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-flask mr-2"></i>新建 A/B 测试
+                    </button>
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-play mr-2"></i>开始测试
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="p-8">
+            <!-- 测试配置 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">测试配置</h3>
+                <div class="grid grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">品牌数量</label>
+                        <input type="number" value="3" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">画像数量</label>
+                        <input type="number" value="5" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">语言数量</label>
+                        <input type="number" value="2" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">质量阈值</label>
+                        <input type="number" value="80" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 测试进度 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">测试进度</h3>
+                    <span class="text-sm text-gray-500">总进度: 68%</span>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">Layer 1: 用户画像蒸馏</span>
+                            <span class="text-sm text-emerald-600">✓ 完成</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full"><div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">Layer 2: 关键词扩展</span>
+                            <span class="text-sm text-emerald-600">✓ 完成</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full"><div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">Layer 3: 决策旅程映射</span>
+                            <span class="text-sm text-emerald-600">✓ 完成</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full"><div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">Layer 4: 场景蒸馏</span>
+                            <span class="text-sm text-indigo-600">进行中... 42%</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full"><div class="h-full bg-indigo-500 rounded-full" style="width:42%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">Layer 5: 口语化转换</span>
+                            <span class="text-sm text-gray-400">等待中</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full"><div class="h-full bg-gray-300 rounded-full" style="width:0%"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- A/B 测试对比 -->
+            <div class="mt-6 bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-flask text-purple-600 mr-2"></i>A/B 测试对比</h3>
+                    <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded">运行中</span>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- 版本 A -->
+                    <div class="border-2 border-indigo-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium text-indigo-600">A: 原始版本</span>
+                            <span class="text-xs bg-gray-100 px-2 py-1 rounded">对照组</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">可见度</span>
+                                <span class="font-medium">68.5</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">引用率</span>
+                                <span class="font-medium">42%</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">情感评分</span>
+                                <span class="font-medium">75</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 版本 B -->
+                    <div class="border-2 border-emerald-200 rounded-xl p-4 bg-emerald-50">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium text-emerald-600">B: 优化版本</span>
+                            <span class="text-xs bg-emerald-200 text-emerald-700 px-2 py-1 rounded">领先 ↑</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">可见度</span>
+                                <span class="font-medium text-emerald-600">74.2 (+8.3%)</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">引用率</span>
+                                <span class="font-medium text-emerald-600">58% (+38%)</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">情感评分</span>
+                                <span class="font-medium text-emerald-600">82 (+9.3%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-emerald-800"><i class="fas fa-check-circle mr-2"></i>统计显著性: 95% 置信度</p>
+                            <p class="text-sm text-emerald-700 mt-1">建议采用版本 B 的优化策略</p>
+                        </div>
+                        <button onclick="applyWinner()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                            应用胜出版本 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 测试统计 -->
+            <div class="mt-6 bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">测试统计</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-gray-900">1,248</p>
+                        <p class="text-sm text-gray-500">总测试数</p>
+                    </div>
+                    <div class="p-4 bg-emerald-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-emerald-600">92.3%</p>
+                        <p class="text-sm text-gray-500">通过率</p>
+                    </div>
+                    <div class="p-4 bg-amber-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-amber-600">78</p>
+                        <p class="text-sm text-gray-500">警告数</p>
+                    </div>
+                    <div class="p-4 bg-red-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-red-600">18</p>
+                        <p class="text-sm text-gray-500">失败数</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 问题列表 -->
+            <div class="mt-6 bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">发现的问题</h3>
+                <div class="space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
+                        <p class="text-sm font-medium text-gray-900">品牌名称未出现在回复中</p>
+                        <p class="text-xs text-gray-500">Layer 4 - 场景: 产品对比</p>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                        <p class="text-sm font-medium text-gray-900">关键卖点覆盖不足</p>
+                        <p class="text-xs text-gray-500">Layer 3 - 决策阶段: 考虑</p>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                        <p class="text-sm font-medium text-gray-900">日语翻译质量警告</p>
+                        <p class="text-xs text-gray-500">Layer 5 - 语言: ja-JP</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 示例输出 -->
+            <div class="mt-6 bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">生成样本预览</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">技术决策者</span>
+                            <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">✓ 通过</span>
+                        </div>
+                        <p class="text-sm text-gray-700">"我在评估几款AI可见度工具，GCore的SHEEP分析模型看起来很专业，能详细介绍一下吗？"</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded">营销经理</span>
+                            <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">✓ 通过</span>
+                        </div>
+                        <p class="text-sm text-gray-700">"有没有工具可以分析我们品牌在ChatGPT里的表现？需要支持多语言"</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下一步建议 -->
+            <div class="mt-6 p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold text-lg">测试完成，开始优化</h3>
+                        <p class="text-sm opacity-80">基于测试结果，生成优化策略并应用到内容</p>
+                    </div>
+                    <button onclick="goToOptimization()" class="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-gray-100 font-medium">
+                        开始优化 <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 创建 A/B 测试
+        function createABTest() {
+            alert('A/B 测试创建向导\n\n1. 选择测试变量\n2. 设置对照组和实验组\n3. 配置测试时长\n4. 开始测试');
+        }
+
+        // 应用胜出版本
+        function applyWinner() {
+            localStorage.setItem('test_context', JSON.stringify({
+                winner: 'B',
+                improvements: ['visibility', 'citation_rate', 'sentiment'],
+                source: 'test-center',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'optimization-wizard.html?apply_test=B';
+        }
+
+        // 跳转到优化向导
+        function goToOptimization() {
+            window.location.href = 'optimization-wizard.html?from=test-center';
+        }
+
+        // 修复问题 - 跳转到策略中心
+        function fixIssue(issue) {
+            localStorage.setItem('issue_context', JSON.stringify({
+                issue: issue,
+                source: 'test-center',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'strategy-center.html?fix=' + encodeURIComponent(issue);
+        }
+
+        // 查看详细报告
+        function viewReport(testId) {
+            window.location.href = 'monitoring.html?test=' + testId;
+        }
+    </script>
+</body>
+</html>
+

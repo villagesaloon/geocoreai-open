@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容简报 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .brief-card { transition: all 0.3s; }
+        .brief-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .topic-tag { transition: all 0.2s; }
+        .topic-tag:hover { transform: scale(1.05); }
+        .fact-card { transition: all 0.2s; }
+        .fact-card:hover { background: #f9fafb; }
+        .checklist-item { transition: all 0.2s; }
+        .checklist-item:hover { background: #f9fafb; }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background: #6366f1; color: white; }
+        .tab-btn:not(.active):hover { background: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 无项目提示模态框 -->
+    <div id="noProjectModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">未选择项目</h3>
+                <p class="text-gray-600 mb-6">请先选择一个项目或创建新项目，然后再生成内容简报。</p>
+                <div class="flex gap-3 justify-center">
+                    <a href="projects.html" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-folder mr-2"></i>选择项目
+                    </a>
+                    <a href="setup-wizard.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>新建项目
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">内容简报生成</h2>
+                    <p class="text-sm text-gray-500">AI 对齐主题 | 标题结构 | 可引用事实 | 优化清单</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="exportBtn" onclick="exportBrief()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 hidden">
+                        <i class="fas fa-download mr-2"></i>导出简报
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 生成表单 -->
+            <div id="generateForm" class="bg-white rounded-xl p-6 border border-gray-100 mb-8">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">
+                    <i class="fas fa-magic text-indigo-500 mr-2"></i>生成内容简报
+                </h3>
+                <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称 *</label>
+                        <input type="text" id="brandInput" placeholder="例如: GeoCore" 
+                               class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">目标主题 *</label>
+                        <input type="text" id="topicInput" placeholder="例如: AI 可见度优化" 
+                               class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">内容类型</label>
+                        <select id="contentType" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                            <option value="article">文章</option>
+                            <option value="guide">指南</option>
+                            <option value="faq">FAQ</option>
+                            <option value="comparison">对比</option>
+                            <option value="listicle">列表文章</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">目标字数</label>
+                        <input type="number" id="wordCount" value="1500" 
+                               class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">竞品（可选，逗号分隔）</label>
+                    <input type="text" id="competitorsInput" placeholder="例如: CompA, CompB, CompC" 
+                           class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                </div>
+                <button onclick="generateBrief()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-file-alt mr-2"></i>生成内容简报
+                </button>
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loadingState" class="hidden">
+                <div class="flex flex-col items-center justify-center py-20">
+                    <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                    <p class="text-gray-600">正在生成内容简报...</p>
+                    <p class="text-sm text-gray-400 mt-2">分析 AI 引用数据，生成优化建议</p>
+                </div>
+            </div>
+
+            <!-- 简报内容 -->
+            <div id="briefContent" class="hidden">
+                <!-- 简报概览 -->
+                <div class="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 mb-8 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg opacity-80 mb-1">内容简报</h3>
+                            <p class="text-2xl font-bold" id="briefTitle">--</p>
+                            <p class="text-sm opacity-70 mt-2">
+                                <span id="briefBrand">--</span> · <span id="briefType">--</span> · <span id="briefWords">--</span> 字
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm opacity-80">生成时间</p>
+                            <p class="text-lg font-medium" id="briefTime">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 标签页导航 -->
+                <div class="flex gap-2 mb-6 bg-white rounded-lg p-1 border border-gray-100 inline-flex">
+                    <button onclick="switchTab('topics')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium active">
+                        <i class="fas fa-lightbulb mr-2"></i>推荐主题
+                    </button>
+                    <button onclick="switchTab('structure')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-heading mr-2"></i>标题结构
+                    </button>
+                    <button onclick="switchTab('facts')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-quote-left mr-2"></i>可引用事实
+                    </button>
+                    <button onclick="switchTab('keywords')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-key mr-2"></i>关键词
+                    </button>
+                    <button onclick="switchTab('competitors')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-users mr-2"></i>竞品分析
+                    </button>
+                    <button onclick="switchTab('checklist')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-check-square mr-2"></i>优化清单
+                    </button>
+                </div>
+
+                <!-- 推荐主题 -->
+                <div id="topicsTab" class="tab-content">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-lightbulb text-amber-500 mr-2"></i>AI 对齐主题推荐
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-4">基于 AI 引用数据分析，以下主题更容易被 AI 引用</p>
+                        <div id="topicsList" class="grid grid-cols-2 gap-4">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 标题结构 -->
+                <div id="structureTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-heading text-blue-500 mr-2"></i>建议标题结构
+                        </h3>
+                        <div id="structureContent">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 可引用事实 -->
+                <div id="factsTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-quote-left text-purple-500 mr-2"></i>可引用事实建议
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-4">以下事实/统计数据经常被 AI 引用，建议在内容中包含</p>
+                        <div id="factsList" class="space-y-3">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关键词 -->
+                <div id="keywordsTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-key text-emerald-500 mr-2"></i>关键词建议
+                        </h3>
+                        <div id="keywordsList" class="space-y-4">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 竞品分析 -->
+                <div id="competitorsTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-users text-indigo-500 mr-2"></i>竞品内容分析
+                        </h3>
+                        <div id="competitorsList" class="space-y-4">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 优化清单 -->
+                <div id="checklistTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">
+                            <i class="fas fa-check-square text-green-500 mr-2"></i>内容优化清单
+                        </h3>
+                        <div id="checklistContent" class="space-y-2">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 导出模态框 -->
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">导出内容简报</h3>
+            <div class="space-y-3 mb-6">
+                <button onclick="doExport('markdown')" class="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-markdown text-gray-600"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-medium text-gray-900">Markdown</p>
+                        <p class="text-sm text-gray-500">适合技术文档和博客</p>
+                    </div>
+                </button>
+                <button onclick="doExport('html')" class="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-html5 text-orange-600"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-medium text-gray-900">HTML</p>
+                        <p class="text-sm text-gray-500">适合网页发布</p>
+                    </div>
+                </button>
+                <button onclick="doExport('json')" class="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-code text-blue-600"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-medium text-gray-900">JSON</p>
+                        <p class="text-sm text-gray-500">适合程序化处理</p>
+                    </div>
+                </button>
+            </div>
+            <button onclick="closeExportModal()" class="w-full py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                取消
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentBrief = null;
+        let currentTab = 'topics';
+
+        // 检查项目
+        document.addEventListener('DOMContentLoaded', function() {
+            const projectId = localStorage.getItem('currentProjectId');
+            if (!projectId) {
+                document.getElementById('noProjectModal').classList.remove('hidden');
+                document.getElementById('noProjectModal').classList.add('flex');
+            }
+        });
+
+        // 生成简报
+        async function generateBrief() {
+            const brand = document.getElementById('brandInput').value.trim();
+            const topic = document.getElementById('topicInput').value.trim();
+            
+            if (!brand || !topic) {
+                alert('请填写品牌名称和目标主题');
+                return;
+            }
+
+            const projectId = localStorage.getItem('currentProjectId');
+            if (!projectId) {
+                alert('请先选择项目');
+                return;
+            }
+
+            const contentType = document.getElementById('contentType').value;
+            const wordCount = parseInt(document.getElementById('wordCount').value) || 1500;
+            const competitorsStr = document.getElementById('competitorsInput').value.trim();
+            const competitors = competitorsStr ? competitorsStr.split(',').map(c => c.trim()).filter(c => c) : null;
+
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('briefContent').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/content-brief/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        taskId: parseInt(projectId),
+                        brand: brand,
+                        targetTopic: topic,
+                        contentType: contentType,
+                        targetWordCount: wordCount,
+                        competitors: competitors
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentBrief = result.data;
+                    renderBrief(currentBrief);
+                    document.getElementById('exportBtn').classList.remove('hidden');
+                } else {
+                    throw new Error(result.error || '生成简报失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('生成简报失败: ' + error.message);
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        // 渲染简报
+        function renderBrief(brief) {
+            document.getElementById('briefContent').classList.remove('hidden');
+
+            // 概览
+            document.getElementById('briefTitle').textContent = brief.targetTopic;
+            document.getElementById('briefBrand').textContent = brief.brand;
+            document.getElementById('briefType').textContent = getContentTypeName(brief.contentType);
+            document.getElementById('briefWords').textContent = brief.suggestedStructure?.estimatedWordCount || brief.targetWordCount;
+            document.getElementById('briefTime').textContent = new Date(brief.generatedAt).toLocaleString('zh-CN');
+
+            // 渲染各部分
+            renderTopics(brief.recommendedTopics || []);
+            renderStructure(brief.suggestedStructure);
+            renderFacts(brief.citableFacts || []);
+            renderKeywords(brief.keywordSuggestions || []);
+            renderCompetitors(brief.competitorAnalysis || []);
+            renderChecklist(brief.checklist || []);
+        }
+
+        function getContentTypeName(type) {
+            const names = {
+                'article': '文章',
+                'guide': '指南',
+                'faq': 'FAQ',
+                'comparison': '对比',
+                'listicle': '列表文章'
+            };
+            return names[type] || type;
+        }
+
+        function renderTopics(topics) {
+            const container = document.getElementById('topicsList');
+            if (topics.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 col-span-2">暂无推荐主题</p>';
+                return;
+            }
+
+            container.innerHTML = topics.map((topic, index) => `
+                <div class="brief-card bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div class="flex items-start justify-between mb-2">
+                        <span class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">优先级 ${topic.priority || index + 1}</span>
+                        <span class="text-sm font-medium text-emerald-600">${Math.round((topic.citationFrequency || 0) * 100)}% 引用率</span>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 mb-2">${topic.topic}</h4>
+                    <p class="text-sm text-gray-600 mb-3">${topic.description || ''}</p>
+                    ${topic.relatedQuestions && topic.relatedQuestions.length > 0 ? `
+                        <div class="text-xs text-gray-500">
+                            <p class="font-medium mb-1">相关问题:</p>
+                            ${topic.relatedQuestions.slice(0, 2).map(q => `<p>• ${q}</p>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderStructure(structure) {
+            const container = document.getElementById('structureContent');
+            if (!structure) {
+                container.innerHTML = '<p class="text-gray-400">暂无结构建议</p>';
+                return;
+            }
+
+            let html = `
+                <div class="mb-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">H1</span>
+                        <h2 class="text-xl font-bold text-gray-900">${structure.suggestedH1 || '标题待定'}</h2>
+                    </div>
+                    <p class="text-sm text-gray-500">${structure.structureRationale || ''}</p>
+                    <p class="text-sm text-gray-400 mt-2">预计字数: ${structure.estimatedWordCount || '--'} 字</p>
+                </div>
+                <div class="space-y-4">
+            `;
+
+            if (structure.h2Sections && structure.h2Sections.length > 0) {
+                structure.h2Sections.forEach((section, index) => {
+                    html += `
+                        <div class="border-l-4 border-indigo-300 pl-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded">H2</span>
+                                <h3 class="font-semibold text-gray-800">${section.heading}</h3>
+                                <span class="text-xs text-gray-400">${section.estimatedWordCount || '--'} 字</span>
+                            </div>
+                            ${section.description ? `<p class="text-sm text-gray-600 mb-2">${section.description}</p>` : ''}
+                            ${section.h3Subsections && section.h3Subsections.length > 0 ? `
+                                <div class="ml-4 space-y-1">
+                                    ${section.h3Subsections.map(h3 => `
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">H3</span>
+                                            <span class="text-sm text-gray-700">${h3}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            ${section.keyPoints && section.keyPoints.length > 0 ? `
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    ${section.keyPoints.map(kp => `
+                                        <span class="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded">${kp}</span>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderFacts(facts) {
+            const container = document.getElementById('factsList');
+            if (facts.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">暂无可引用事实</p>';
+                return;
+            }
+
+            container.innerHTML = facts.map(fact => {
+                const typeIcon = {
+                    'statistic': 'fa-chart-bar',
+                    'quote': 'fa-quote-right',
+                    'fact': 'fa-info-circle',
+                    'research': 'fa-flask'
+                }[fact.factType] || 'fa-info-circle';
+
+                const typeColor = {
+                    'statistic': 'text-blue-500 bg-blue-50',
+                    'quote': 'text-purple-500 bg-purple-50',
+                    'fact': 'text-emerald-500 bg-emerald-50',
+                    'research': 'text-amber-500 bg-amber-50'
+                }[fact.factType] || 'text-gray-500 bg-gray-50';
+
+                return `
+                    <div class="fact-card p-4 border border-gray-100 rounded-xl">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 ${typeColor} rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas ${typeIcon}"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 mb-1">${fact.fact}</p>
+                                <div class="flex items-center gap-4 text-sm text-gray-500">
+                                    <span><i class="fas fa-quote-left mr-1"></i>被引用 ${fact.citationCount || 0} 次</span>
+                                    ${fact.citedByPlatforms && fact.citedByPlatforms.length > 0 ? `
+                                        <span><i class="fas fa-robot mr-1"></i>${fact.citedByPlatforms.join(', ')}</span>
+                                    ` : ''}
+                                </div>
+                                ${fact.usageSuggestion ? `
+                                    <p class="text-sm text-indigo-600 mt-2"><i class="fas fa-lightbulb mr-1"></i>${fact.usageSuggestion}</p>
+                                ` : ''}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-emerald-600">${Math.round((fact.credibilityScore || 0) * 100)}%</div>
+                                <div class="text-xs text-gray-400">可信度</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderKeywords(keywords) {
+            const container = document.getElementById('keywordsList');
+            if (keywords.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">暂无关键词建议</p>';
+                return;
+            }
+
+            const grouped = {
+                primary: keywords.filter(k => k.keywordType === 'primary'),
+                secondary: keywords.filter(k => k.keywordType === 'secondary'),
+                long_tail: keywords.filter(k => k.keywordType === 'long_tail')
+            };
+
+            let html = '';
+
+            if (grouped.primary.length > 0) {
+                html += `
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2"><i class="fas fa-star text-amber-500 mr-2"></i>主要关键词</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${grouped.primary.map(k => `
+                                <span class="topic-tag px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-sm cursor-pointer">
+                                    ${k.keyword}
+                                    <span class="text-xs opacity-70 ml-1">${Math.round((k.aiCitationRate || 0) * 100)}%</span>
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (grouped.secondary.length > 0) {
+                html += `
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2"><i class="fas fa-circle text-blue-500 mr-2"></i>次要关键词</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${grouped.secondary.map(k => `
+                                <span class="topic-tag px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm cursor-pointer">
+                                    ${k.keyword}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (grouped.long_tail.length > 0) {
+                html += `
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2"><i class="fas fa-ellipsis-h text-emerald-500 mr-2"></i>长尾关键词</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${grouped.long_tail.map(k => `
+                                <span class="topic-tag px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-lg text-sm cursor-pointer">
+                                    ${k.keyword}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html || '<p class="text-gray-400">暂无关键词建议</p>';
+        }
+
+        function renderCompetitors(competitors) {
+            const container = document.getElementById('competitorsList');
+            if (competitors.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">暂无竞品分析数据</p>';
+                return;
+            }
+
+            container.innerHTML = competitors.map(comp => `
+                <div class="brief-card border border-gray-100 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-gray-900">${comp.competitor}</h4>
+                        <span class="text-sm px-2 py-1 bg-indigo-100 text-indigo-700 rounded">
+                            提及率 ${Math.round((comp.mentionRate || 0) * 100)}%
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">优势主题</p>
+                            <div class="flex flex-wrap gap-1">
+                                ${(comp.strengthTopics || []).map(t => `
+                                    <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">${t}</span>
+                                `).join('') || '<span class="text-xs text-gray-400">无</span>'}
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">弱势主题</p>
+                            <div class="flex flex-wrap gap-1">
+                                ${(comp.weaknessTopics || []).map(t => `
+                                    <span class="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">${t}</span>
+                                `).join('') || '<span class="text-xs text-gray-400">无</span>'}
+                            </div>
+                        </div>
+                    </div>
+                    ${comp.opportunities && comp.opportunities.length > 0 ? `
+                        <div class="bg-amber-50 rounded-lg p-3">
+                            <p class="text-xs font-medium text-amber-800 mb-1"><i class="fas fa-lightbulb mr-1"></i>机会点</p>
+                            ${comp.opportunities.map(o => `<p class="text-sm text-amber-700">• ${o}</p>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderChecklist(checklist) {
+            const container = document.getElementById('checklistContent');
+            if (checklist.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">暂无优化清单</p>';
+                return;
+            }
+
+            const grouped = {};
+            checklist.forEach(item => {
+                const cat = item.category || 'other';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(item);
+            });
+
+            const categoryNames = {
+                'structure': '结构优化',
+                'content': '内容优化',
+                'ai_optimization': 'AI 优化',
+                'seo': 'SEO 优化',
+                'other': '其他'
+            };
+
+            const categoryIcons = {
+                'structure': 'fa-sitemap text-blue-500',
+                'content': 'fa-file-alt text-emerald-500',
+                'ai_optimization': 'fa-robot text-purple-500',
+                'seo': 'fa-search text-amber-500',
+                'other': 'fa-list text-gray-500'
+            };
+
+            let html = '';
+            for (const [category, items] of Object.entries(grouped)) {
+                html += `
+                    <div class="mb-4">
+                        <h4 class="font-medium text-gray-900 mb-2">
+                            <i class="fas ${categoryIcons[category] || 'fa-list text-gray-500'} mr-2"></i>
+                            ${categoryNames[category] || category}
+                        </h4>
+                        <div class="space-y-1">
+                            ${items.map(item => `
+                                <div class="checklist-item flex items-center gap-3 p-2 rounded-lg">
+                                    <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                    <span class="flex-1 text-sm text-gray-700">${item.item}</span>
+                                    ${item.isRequired ? '<span class="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 rounded">必须</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+        }
+
+        function exportBrief() {
+            const modal = document.getElementById('exportModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function doExport(format) {
+            if (!currentBrief) return;
+
+            try {
+                const response = await fetch('/api/content-brief/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        briefId: currentBrief.id,
+                        format: format
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 下载文件
+                    const blob = new Blob([result.data.content], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = result.data.fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    closeExportModal();
+                } else {
+                    throw new Error(result.error || '导出失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('导出失败: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

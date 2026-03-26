@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站审计详情 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">G</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">GeoCore AI</span>
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-8">
+                        <a href="detection.html" class="text-primary font-medium">AI 检测</a>
+                        <a href="ai-visibility.html" class="text-gray-500 hover:text-gray-900">可见度分析</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <!-- 头部 -->
+        <div class="flex items-center gap-4 mb-8">
+            <a href="detection.html" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">网站审计详情</h1>
+                <p class="text-gray-500">URL: <span id="auditUrl" class="text-primary">-</span></p>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex gap-4">
+                <div class="flex-1 relative">
+                    <i class="fas fa-globe absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="websiteUrl" 
+                           class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                           placeholder="输入网站 URL 进行审计">
+                </div>
+                <button onclick="runAudit()" class="px-6 py-3 gradient-bg text-white rounded-xl font-medium hover:opacity-90 transition">
+                    <i class="fas fa-search mr-2"></i>开始审计
+                </button>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div id="loading" class="hidden text-center py-12">
+            <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-gray-600">正在审计网站...</p>
+        </div>
+
+        <!-- 审计结果 -->
+        <div id="auditResult" class="hidden">
+            <!-- 总分卡片 -->
+            <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg text-gray-500 mb-2">总体评分</h2>
+                        <div class="flex items-baseline gap-3">
+                            <span id="overallScore" class="text-6xl font-bold text-gray-900">--</span>
+                            <span id="grade" class="text-3xl font-bold text-primary">-</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-8 text-center">
+                        <div>
+                            <div class="text-sm text-gray-500 mb-1">技术得分</div>
+                            <div id="techScore" class="text-3xl font-bold text-blue-600">--</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500 mb-1">内容得分</div>
+                            <div id="contentScore" class="text-3xl font-bold text-green-600">--</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500 mb-1">E-E-A-T 得分</div>
+                            <div id="eeatScore" class="text-3xl font-bold text-purple-600">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技术审计 -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-100 bg-blue-50">
+                    <h3 class="font-semibold text-blue-900 flex items-center gap-2">
+                        <i class="fas fa-cog"></i>
+                        技术审计
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- robots.txt -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">robots.txt</span>
+                                <span id="robotsStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="robotsDetails" class="text-sm text-gray-600 space-y-1"></div>
+                        </div>
+
+                        <!-- Sitemap -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">Sitemap</span>
+                                <span id="sitemapStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="sitemapDetails" class="text-sm text-gray-600"></div>
+                        </div>
+
+                        <!-- llms.txt -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">llms.txt</span>
+                                <span id="llmsStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="llmsDetails" class="text-sm text-gray-600"></div>
+                        </div>
+
+                        <!-- HTTPS & Canonical -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">HTTPS & Canonical</span>
+                                <span id="httpsStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="httpsDetails" class="text-sm text-gray-600 space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 内容审计 -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-100 bg-green-50">
+                    <h3 class="font-semibold text-green-900 flex items-center gap-2">
+                        <i class="fas fa-file-alt"></i>
+                        内容审计
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Schema -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">Schema 标记</span>
+                                <span id="schemaStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="schemaDetails" class="text-sm text-gray-600"></div>
+                        </div>
+
+                        <!-- 标题结构 -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">标题结构</span>
+                                <span id="headingStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="headingDetails" class="text-sm text-gray-600"></div>
+                        </div>
+
+                        <!-- Meta 标签 -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">Meta 标签</span>
+                                <span id="metaStatus" class="px-2 py-1 text-xs rounded-full">-</span>
+                            </div>
+                            <div id="metaDetails" class="text-sm text-gray-600 space-y-1"></div>
+                        </div>
+
+                        <!-- 内容长度 -->
+                        <div class="p-4 border border-gray-200 rounded-xl">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-gray-900">内容分析</span>
+                            </div>
+                            <div id="contentDetails" class="text-sm text-gray-600 space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- E-E-A-T 审计 -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-100 bg-purple-50">
+                    <h3 class="font-semibold text-purple-900 flex items-center gap-2">
+                        <i class="fas fa-user-check"></i>
+                        E-E-A-T 审计
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-4 border border-gray-200 rounded-xl text-center">
+                            <div id="authorIcon" class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl">-</div>
+                            <div class="text-sm text-gray-600">作者信息</div>
+                        </div>
+                        <div class="p-4 border border-gray-200 rounded-xl text-center">
+                            <div id="dateIcon" class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl">-</div>
+                            <div class="text-sm text-gray-600">发布日期</div>
+                        </div>
+                        <div class="p-4 border border-gray-200 rounded-xl text-center">
+                            <div id="citationIcon" class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl">-</div>
+                            <div class="text-sm text-gray-600">引用来源</div>
+                        </div>
+                        <div class="p-4 border border-gray-200 rounded-xl text-center">
+                            <div id="linksCount" class="text-2xl font-bold text-gray-900">-</div>
+                            <div class="text-sm text-gray-600">外部链接</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 问题和建议 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 问题列表 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 bg-red-50">
+                        <h3 class="font-semibold text-red-900 flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            发现的问题
+                        </h3>
+                    </div>
+                    <div id="issuesList" class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                        <p class="text-gray-500 text-sm">暂无问题</p>
+                    </div>
+                </div>
+
+                <!-- 建议列表 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 bg-green-50">
+                        <h3 class="font-semibold text-green-900 flex items-center gap-2">
+                            <i class="fas fa-lightbulb"></i>
+                            优化建议
+                        </h3>
+                    </div>
+                    <div id="recommendationsList" class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                        <p class="text-gray-500 text-sm">暂无建议</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 从 URL 参数获取网站地址
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlFromParam = urlParams.get('url');
+        if (urlFromParam) {
+            document.getElementById('websiteUrl').value = urlFromParam;
+            runAudit();
+        }
+
+        async function runAudit() {
+            const url = document.getElementById('websiteUrl').value.trim();
+            if (!url) {
+                alert('请输入网站 URL');
+                return;
+            }
+
+            document.getElementById('auditUrl').textContent = url;
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('auditResult').classList.add('hidden');
+
+            try {
+                const response = await fetch(`/api/detection/audit/detail?url=${encodeURIComponent(url)}`);
+                const result = await response.json();
+
+                document.getElementById('loading').classList.add('hidden');
+
+                if (result.success) {
+                    displayAuditResult(result.data);
+                } else {
+                    alert(result.error?.message || '审计失败');
+                }
+            } catch (error) {
+                console.error('Audit error:', error);
+                document.getElementById('loading').classList.add('hidden');
+                // 演示数据
+                displayAuditResult(getDemoData(url));
+            }
+        }
+
+        function displayAuditResult(data) {
+            document.getElementById('auditResult').classList.remove('hidden');
+
+            // 总分
+            document.getElementById('overallScore').textContent = data.OverallScore || '--';
+            document.getElementById('grade').textContent = data.Grade || '-';
+
+            // 分项得分
+            document.getElementById('techScore').textContent = data.Technical?.Score || '--';
+            document.getElementById('contentScore').textContent = data.Content?.Score || '--';
+            document.getElementById('eeatScore').textContent = data.EEAT?.Score || '--';
+
+            // 技术审计
+            if (data.Technical) {
+                // robots.txt
+                const robots = data.Technical.RobotsTxt;
+                if (robots) {
+                    setStatus('robotsStatus', robots.Exists);
+                    let robotsHtml = robots.Exists ? '<p>✓ 文件存在</p>' : '<p>✗ 文件不存在</p>';
+                    if (robots.AllAICrawlersAllowed) {
+                        robotsHtml += '<p class="text-green-600">✓ 允许所有 AI 爬虫</p>';
+                    } else if (robots.BlockedCrawlers?.length > 0) {
+                        robotsHtml += `<p class="text-red-600">✗ 阻止的爬虫: ${robots.BlockedCrawlers.join(', ')}</p>`;
+                    }
+                    document.getElementById('robotsDetails').innerHTML = robotsHtml;
+                }
+
+                // Sitemap
+                const sitemap = data.Technical.Sitemap;
+                if (sitemap) {
+                    setStatus('sitemapStatus', sitemap.Exists);
+                    document.getElementById('sitemapDetails').innerHTML = sitemap.Exists 
+                        ? `<p>✓ 存在 (${sitemap.UrlCount || 0} 个 URL)</p>`
+                        : '<p>✗ 未找到 sitemap.xml</p>';
+                }
+
+                // llms.txt
+                const llms = data.Technical.LlmsTxt;
+                if (llms) {
+                    setStatus('llmsStatus', llms.Exists);
+                    document.getElementById('llmsDetails').innerHTML = llms.Exists 
+                        ? '<p>✓ 文件存在</p>'
+                        : '<p>✗ 未找到 llms.txt</p>';
+                }
+
+                // HTTPS
+                const https = data.Technical.HttpsCanonical;
+                if (https) {
+                    setStatus('httpsStatus', https.IsHttps);
+                    let httpsHtml = https.IsHttps ? '<p class="text-green-600">✓ HTTPS 已启用</p>' : '<p class="text-red-600">✗ 未启用 HTTPS</p>';
+                    httpsHtml += https.HasCanonical ? '<p class="text-green-600">✓ 有 Canonical 标签</p>' : '<p class="text-amber-600">✗ 缺少 Canonical 标签</p>';
+                    document.getElementById('httpsDetails').innerHTML = httpsHtml;
+                }
+            }
+
+            // 内容审计
+            if (data.Content) {
+                // Schema
+                const schema = data.Content.Schema;
+                if (schema) {
+                    setStatus('schemaStatus', schema.HasSchema);
+                    let schemaHtml = schema.HasSchema 
+                        ? `<p>✓ 发现 ${schema.Schemas?.length || 0} 个 Schema</p>`
+                        : '<p>✗ 未发现 Schema 标记</p>';
+                    if (schema.Schemas?.length > 0) {
+                        schemaHtml += `<p class="text-gray-500">类型: ${schema.Schemas.map(s => s.Type).join(', ')}</p>`;
+                    }
+                    document.getElementById('schemaDetails').innerHTML = schemaHtml;
+                }
+
+                // 标题结构
+                const heading = data.Content.HeadingStructure;
+                if (heading) {
+                    const h1Ok = heading.H1Count === 1;
+                    setStatus('headingStatus', h1Ok);
+                    document.getElementById('headingDetails').innerHTML = `
+                        <p>H1: ${heading.H1Count} 个 ${h1Ok ? '✓' : '⚠️'}</p>
+                        <p>H2: ${heading.H2Count} 个</p>
+                        <p>H3: ${heading.H3Count || 0} 个</p>
+                    `;
+                }
+
+                // Meta 标签
+                const meta = data.Content.MetaTags;
+                if (meta) {
+                    setStatus('metaStatus', meta.HasTitle && meta.HasDescription);
+                    document.getElementById('metaDetails').innerHTML = `
+                        <p>${meta.HasTitle ? '✓' : '✗'} Title (${meta.TitleLength || 0} 字符)</p>
+                        <p>${meta.HasDescription ? '✓' : '✗'} Description (${meta.DescriptionLength || 0} 字符)</p>
+                    `;
+                }
+
+                // 内容分析
+                document.getElementById('contentDetails').innerHTML = `
+                    <p>字数: ${data.Content.WordCount || '-'}</p>
+                    <p>段落: ${data.Content.ParagraphCount || '-'}</p>
+                    <p>图片: ${data.Content.ImageCount || '-'}</p>
+                `;
+            }
+
+            // E-E-A-T 审计
+            if (data.EEAT) {
+                setEEATIcon('authorIcon', data.EEAT.HasAuthorInfo);
+                setEEATIcon('dateIcon', data.EEAT.HasPublishDate);
+                setEEATIcon('citationIcon', data.EEAT.HasCitations);
+                document.getElementById('linksCount').textContent = data.EEAT.ExternalLinkCount || 0;
+            }
+
+            // 问题列表
+            if (data.Issues?.length > 0) {
+                document.getElementById('issuesList').innerHTML = data.Issues.map(issue => `
+                    <div class="p-3 bg-red-50 rounded-lg text-sm">
+                        <span class="text-red-700">${issue}</span>
+                    </div>
+                `).join('');
+            }
+
+            // 建议列表
+            if (data.Recommendations?.length > 0) {
+                document.getElementById('recommendationsList').innerHTML = data.Recommendations.map(rec => `
+                    <div class="p-3 bg-green-50 rounded-lg text-sm">
+                        <span class="text-green-700">${rec}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function setStatus(elementId, isGood) {
+            const el = document.getElementById(elementId);
+            if (isGood) {
+                el.className = 'px-2 py-1 text-xs rounded-full bg-green-100 text-green-700';
+                el.textContent = '通过';
+            } else {
+                el.className = 'px-2 py-1 text-xs rounded-full bg-red-100 text-red-700';
+                el.textContent = '需改进';
+            }
+        }
+
+        function setEEATIcon(elementId, hasFeature) {
+            const el = document.getElementById(elementId);
+            if (hasFeature) {
+                el.className = 'w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl bg-green-100';
+                el.textContent = '✓';
+            } else {
+                el.className = 'w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl bg-red-100';
+                el.textContent = '✗';
+            }
+        }
+
+        function getDemoData(url) {
+            return {
+                Url: url,
+                OverallScore: 65,
+                Grade: 'C',
+                Technical: {
+                    Score: 70,
+                    RobotsTxt: { Exists: true, AllAICrawlersAllowed: false, BlockedCrawlers: ['GPTBot', 'ClaudeBot'] },
+                    Sitemap: { Exists: true, UrlCount: 45 },
+                    LlmsTxt: { Exists: false },
+                    HttpsCanonical: { IsHttps: true, HasCanonical: false }
+                },
+                Content: {
+                    Score: 60,
+                    Schema: { HasSchema: false, Schemas: [] },
+                    HeadingStructure: { H1Count: 2, H2Count: 5, H3Count: 8 },
+                    MetaTags: { HasTitle: true, TitleLength: 55, HasDescription: true, DescriptionLength: 120 },
+                    WordCount: 1200,
+                    ParagraphCount: 15,
+                    ImageCount: 6
+                },
+                EEAT: {
+                    Score: 55,
+                    HasAuthorInfo: false,
+                    HasPublishDate: true,
+                    HasCitations: false,
+                    ExternalLinkCount: 3
+                },
+                Issues: [
+                    'robots.txt 阻止了 AI 爬虫 (GPTBot, ClaudeBot)',
+                    '缺少 llms.txt 文件',
+                    '页面有多个 H1 标签',
+                    '缺少 Schema 结构化数据',
+                    '缺少 Canonical 标签',
+                    '缺少作者信息',
+                    '缺少引用来源'
+                ],
+                Recommendations: [
+                    '在 robots.txt 中允许 AI 爬虫访问',
+                    '创建 llms.txt 文件描述网站内容',
+                    '确保每个页面只有一个 H1 标签',
+                    '添加 Schema.org 结构化数据',
+                    '添加 Canonical 标签',
+                    '为文章添加作者信息',
+                    '添加外部权威来源引用'
+                ]
+            };
+        }
+    </script>
+</body>
+</html>

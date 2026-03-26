@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容质量评估 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .metric-card { transition: all 0.2s; }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .score-ring { transition: stroke-dashoffset 0.5s ease; }
+        .tab-btn { transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom-color: #6366f1; color: #6366f1; }
+        .question-item { transition: all 0.2s; cursor: pointer; }
+        .question-item:hover { background: #f9fafb; }
+        .question-item.selected { background: #eef2ff; border-color: #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <script src="js/next-step-guide.js"></script>
+
+    <!-- 无项目提示模态框 -->
+    <div id="noProjectModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">未选择项目</h3>
+                <p class="text-gray-600 mb-6">请先选择一个项目，然后再进行内容质量评估。</p>
+                <div class="flex gap-3 justify-center">
+                    <a href="projects.html" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-folder mr-2"></i>选择项目
+                    </a>
+                    <a href="setup-wizard.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>新建项目
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">内容质量评估</h2>
+                    <p class="text-sm text-gray-500">AI 可引用性分析 | aiseo-audit 审计 | Listicle 优化</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="questionSelect" class="px-4 py-2 border border-gray-200 rounded-lg text-sm" onchange="loadSelectedQuestion()">
+                        <option value="">选择问题...</option>
+                    </select>
+                    <button onclick="analyzeContent()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-chart-line mr-2"></i>分析内容
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 内容输入区 -->
+            <div class="grid grid-cols-3 gap-6 mb-6">
+                <!-- 左侧：问题列表 -->
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-list text-indigo-500 mr-2"></i>项目问题
+                    </h3>
+                    <div id="questionList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <p class="text-gray-400 text-sm text-center py-4">加载中...</p>
+                    </div>
+                </div>
+
+                <!-- 中间：内容编辑 -->
+                <div class="col-span-2 bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-edit text-purple-500 mr-2"></i>内容编辑
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <span id="wordCount" class="text-sm text-gray-400">0 词</span>
+                            <button onclick="pasteContent()" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">
+                                <i class="fas fa-paste mr-1"></i>粘贴
+                            </button>
+                            <button onclick="clearContent()" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">
+                                <i class="fas fa-eraser mr-1"></i>清空
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="contentInput" rows="12" class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm resize-none" 
+                              placeholder="在此输入或粘贴要评估的内容...&#10;&#10;支持：&#10;- 软文/博客文章&#10;- 问答内容&#10;- 产品描述&#10;- 社交媒体帖子"
+                              oninput="updateWordCount()"></textarea>
+                </div>
+            </div>
+
+            <!-- 评估结果区 -->
+            <div id="resultsSection" class="hidden">
+                <!-- 综合评分 -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 mb-6 text-white">
+                    <div class="grid grid-cols-5 gap-6">
+                        <div class="col-span-1 flex flex-col items-center justify-center">
+                            <div class="relative w-32 h-32">
+                                <svg class="w-full h-full transform -rotate-90">
+                                    <circle cx="64" cy="64" r="56" stroke="rgba(255,255,255,0.2)" stroke-width="8" fill="none"/>
+                                    <circle id="scoreRing" cx="64" cy="64" r="56" stroke="white" stroke-width="8" fill="none" 
+                                            stroke-dasharray="352" stroke-dashoffset="352" class="score-ring"/>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="overallScore" class="text-4xl font-bold">0</span>
+                                    <span class="text-sm opacity-80">/10</span>
+                                </div>
+                            </div>
+                            <span id="overallGrade" class="mt-2 px-4 py-1 bg-white/20 rounded-full text-sm font-medium">-</span>
+                        </div>
+                        <div class="col-span-4 grid grid-cols-4 gap-4">
+                            <div class="bg-white/10 rounded-lg p-4">
+                                <p class="text-white/70 text-sm mb-1">事实密度</p>
+                                <p id="claimDensityValue" class="text-2xl font-bold">0</p>
+                                <p class="text-xs text-white/50">目标: 4+/100词</p>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-4">
+                                <p class="text-white/70 text-sm mb-1">信息密度</p>
+                                <p id="wordCountValue" class="text-2xl font-bold">0</p>
+                                <p class="text-xs text-white/50">最佳: 800-1500词</p>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-4">
+                                <p class="text-white/70 text-sm mb-1">答案前置</p>
+                                <p id="frontloadingValue" class="text-2xl font-bold">0</p>
+                                <p class="text-xs text-white/50">前100词事实数</p>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-4">
+                                <p class="text-white/70 text-sm mb-1">实体密度</p>
+                                <p id="entityDensityValue" class="text-2xl font-bold">0</p>
+                                <p class="text-xs text-white/50">最佳: 2-8/100词</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详细指标标签页 -->
+                <div class="bg-white rounded-xl shadow-sm mb-6">
+                    <div class="flex gap-6 px-6 border-b border-gray-200">
+                        <button id="tab-basic" class="tab-btn active pb-4 pt-4 font-medium" onclick="switchTab('basic')">
+                            <i class="fas fa-chart-bar mr-2"></i>基础指标
+                        </button>
+                        <button id="tab-aiseo" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('aiseo')">
+                            <i class="fas fa-search mr-2"></i>aiseo-audit 审计
+                        </button>
+                        <button id="tab-listicle" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('listicle')">
+                            <i class="fas fa-list-ol mr-2"></i>Listicle 优化
+                        </button>
+                        <button id="tab-schema" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('schema')">
+                            <i class="fas fa-code mr-2"></i>Schema 完整度
+                        </button>
+                        <button id="tab-advanced" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('advanced')">
+                            <i class="fas fa-rocket mr-2"></i>高级优化
+                        </button>
+                    </div>
+
+                    <!-- 基础指标 -->
+                    <div id="content-basic" class="p-6">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-gray-600 font-medium">事实密度</span>
+                                    <span id="claimScore" class="text-lg font-bold text-indigo-600">0/10</span>
+                                </div>
+                                <div class="w-full h-2 bg-gray-200 rounded-full">
+                                    <div id="claimBar" class="h-full bg-indigo-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p id="claimDetail" class="text-xs text-gray-400 mt-2">-</p>
+                            </div>
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-gray-600 font-medium">信息密度</span>
+                                    <span id="infoScore" class="text-lg font-bold text-purple-600">0/10</span>
+                                </div>
+                                <div class="w-full h-2 bg-gray-200 rounded-full">
+                                    <div id="infoBar" class="h-full bg-purple-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p id="infoDetail" class="text-xs text-gray-400 mt-2">-</p>
+                            </div>
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-gray-600 font-medium">答案前置</span>
+                                    <span id="frontScore" class="text-lg font-bold text-emerald-600">0/10</span>
+                                </div>
+                                <div class="w-full h-2 bg-gray-200 rounded-full">
+                                    <div id="frontBar" class="h-full bg-emerald-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p id="frontDetail" class="text-xs text-gray-400 mt-2">-</p>
+                            </div>
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-gray-600 font-medium">句子长度</span>
+                                    <span id="sentenceScore" class="text-lg font-bold text-amber-600">0/10</span>
+                                </div>
+                                <div class="w-full h-2 bg-gray-200 rounded-full">
+                                    <div id="sentenceBar" class="h-full bg-amber-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p id="sentenceDetail" class="text-xs text-gray-400 mt-2">-</p>
+                            </div>
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-gray-600 font-medium">实体密度</span>
+                                    <span id="entityScore" class="text-lg font-bold text-rose-600">0/10</span>
+                                </div>
+                                <div class="w-full h-2 bg-gray-200 rounded-full">
+                                    <div id="entityBar" class="h-full bg-rose-500 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p id="entityDetail" class="text-xs text-gray-400 mt-2">-</p>
+                            </div>
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <h4 class="text-gray-600 font-medium mb-2">实体类型分布</h4>
+                                <div id="entityTypes" class="flex flex-wrap gap-1">
+                                    <span class="text-xs text-gray-400">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- aiseo-audit 审计 (3.13-3.19) -->
+                    <div id="content-aiseo" class="p-6 hidden">
+                        <div class="grid grid-cols-3 gap-4">
+                            <!-- 3.13 答案胶囊 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">💊</span>
+                                    <span class="text-gray-600 font-medium">答案胶囊</span>
+                                </div>
+                                <div id="capsuleStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2">H2后200字符内的简洁回答</p>
+                            </div>
+                            <!-- 3.14 章节长度 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">📐</span>
+                                    <span class="text-gray-600 font-medium">章节长度</span>
+                                </div>
+                                <div id="sectionStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2">最佳: 120-180词/段</p>
+                            </div>
+                            <!-- 3.15 答案优先 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">⬆️</span>
+                                    <span class="text-gray-600 font-medium">答案优先</span>
+                                </div>
+                                <div id="answerFirstStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2">前40-60词直接回答</p>
+                            </div>
+                            <!-- 3.17 Flesch 可读性 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">📖</span>
+                                    <span class="text-gray-600 font-medium">可读性</span>
+                                </div>
+                                <div id="fleschStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2">Flesch Reading Ease</p>
+                            </div>
+                            <!-- 3.19 引语归因 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">💬</span>
+                                    <span class="text-gray-600 font-medium">引语归因</span>
+                                </div>
+                                <div id="quotationStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2">专家引语增强权威性</p>
+                            </div>
+                            <!-- 审计总结 -->
+                            <div class="metric-card bg-indigo-50 rounded-lg p-4">
+                                <h4 class="text-indigo-700 font-medium mb-2">审计总结</h4>
+                                <div id="aiseoSummary" class="text-sm text-indigo-600">
+                                    <p>-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Listicle 优化 (3.20-3.22) -->
+                    <div id="content-listicle" class="p-6 hidden">
+                        <div class="grid grid-cols-3 gap-4">
+                            <!-- 3.20 Listicle 格式 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">📋</span>
+                                    <span class="text-gray-600 font-medium">Listicle 格式</span>
+                                </div>
+                                <div id="listicleStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p id="listicleDetail" class="text-xs text-gray-400 mt-2">检测编号/项目符号列表</p>
+                            </div>
+                            <!-- 3.21 自我推广 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">🚫</span>
+                                    <span class="text-gray-600 font-medium">自我推广检测</span>
+                                </div>
+                                <div id="promotionStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p id="promotionDetail" class="text-xs text-gray-400 mt-2">自我推广会被 AI 惩罚</p>
+                            </div>
+                            <!-- 3.22 第三方引用 -->
+                            <div class="metric-card bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-lg">🔗</span>
+                                    <span class="text-gray-600 font-medium">第三方引用</span>
+                                </div>
+                                <div id="thirdPartyStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl font-bold text-gray-400">-</span>
+                                </div>
+                                <p id="thirdPartyDetail" class="text-xs text-gray-400 mt-2">权威来源引用建议</p>
+                            </div>
+                            <!-- 检测到的列表项 -->
+                            <div class="col-span-3 bg-gray-50 rounded-lg p-4">
+                                <h4 class="text-gray-600 font-medium mb-3">检测到的列表项</h4>
+                                <div id="listicleItems" class="grid grid-cols-2 gap-2">
+                                    <p class="text-sm text-gray-400">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schema 完整度 (3.18) -->
+                    <div id="content-schema" class="p-6 hidden">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-gray-700 font-medium mb-4">Schema 检测结果</h4>
+                                <div id="schemaDetected" class="space-y-3">
+                                    <p class="text-sm text-gray-400">-</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-gray-700 font-medium mb-4">Schema 建议</h4>
+                                <div id="schemaSuggestions" class="space-y-3">
+                                    <p class="text-sm text-gray-400">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 高级优化 (3.23-3.27) -->
+                    <div id="content-advanced" class="p-6 hidden">
+                        <div class="grid grid-cols-2 gap-6">
+                            <!-- 左列：内容类型 + 结构元素 + 长度 -->
+                            <div class="space-y-6">
+                                <!-- 3.23 内容类型策略 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="text-gray-700 font-medium mb-3 flex items-center gap-2">
+                                        <span class="text-lg">📊</span>内容类型策略
+                                    </h4>
+                                    <div id="contentTypeInfo" class="space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-gray-500">检测类型</span>
+                                            <span id="detectedType" class="font-medium text-indigo-600">-</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-gray-500">基准引用率</span>
+                                            <span id="benchmarkRate" class="font-medium">-</span>
+                                        </div>
+                                    </div>
+                                    <div id="typeRecommendations" class="mt-3 pt-3 border-t border-gray-200">
+                                        <p class="text-xs text-gray-400">推荐内容类型将在分析后显示</p>
+                                    </div>
+                                </div>
+
+                                <!-- 3.24 结构元素 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="text-gray-700 font-medium mb-3 flex items-center gap-2">
+                                        <span class="text-lg">🏗️</span>结构元素影响
+                                        <span id="structuralScore" class="ml-auto text-lg font-bold text-blue-600">0/10</span>
+                                    </h4>
+                                    <div id="structuralElements" class="space-y-2">
+                                        <p class="text-xs text-gray-400">-</p>
+                                    </div>
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <span class="text-sm text-gray-500">影响系数</span>
+                                        <span id="impactMultiplier" class="font-bold text-green-600">1.0x</span>
+                                    </div>
+                                </div>
+
+                                <!-- 3.25 最佳长度 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="text-gray-700 font-medium mb-3 flex items-center gap-2">
+                                        <span class="text-lg">📏</span>最佳长度区间
+                                        <span id="lengthScore" class="ml-auto text-lg font-bold text-purple-600">0/10</span>
+                                    </h4>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex-1">
+                                            <div class="h-3 bg-gray-200 rounded-full relative">
+                                                <div class="absolute left-[25%] right-[40%] h-full bg-green-200 rounded-full"></div>
+                                                <div id="lengthIndicator" class="absolute w-3 h-3 bg-blue-600 rounded-full top-0" style="left: 0%"></div>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                                <span>0</span>
+                                                <span>2.5k</span>
+                                                <span>4k</span>
+                                                <span>6k+</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div id="currentLength" class="text-2xl font-bold text-gray-700">0</div>
+                                            <div class="text-xs text-gray-400">词</div>
+                                        </div>
+                                    </div>
+                                    <p id="lengthSuggestion" class="text-sm text-gray-500 mt-2">-</p>
+                                </div>
+                            </div>
+
+                            <!-- 右列：可引用性 + 前30% -->
+                            <div class="space-y-6">
+                                <!-- 3.26 可引用性评分 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="text-gray-700 font-medium mb-3 flex items-center gap-2">
+                                        <span class="text-lg">🎯</span>可引用性评分
+                                        <span id="citabilityScore" class="ml-auto text-lg font-bold text-emerald-600">0/10</span>
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <div class="text-center p-2 bg-white rounded">
+                                            <div id="citableCount" class="text-xl font-bold text-emerald-600">0</div>
+                                            <div class="text-xs text-gray-400">可引用段落</div>
+                                        </div>
+                                        <div class="text-center p-2 bg-white rounded">
+                                            <div id="citableRatio" class="text-xl font-bold text-blue-600">0%</div>
+                                            <div class="text-xs text-gray-400">可引用比例</div>
+                                        </div>
+                                    </div>
+                                    <div id="topCitableParagraphs" class="space-y-2 max-h-32 overflow-y-auto">
+                                        <p class="text-xs text-gray-400">最佳可引用段落将在分析后显示</p>
+                                    </div>
+                                </div>
+
+                                <!-- 3.27 前30%优化 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="text-gray-700 font-medium mb-3 flex items-center gap-2">
+                                        <span class="text-lg">⬆️</span>前30%内容优化
+                                        <span id="front30Score" class="ml-auto text-lg font-bold text-orange-600">0/10</span>
+                                    </h4>
+                                    <p class="text-xs text-gray-500 mb-3">44% 的 LLM 引用来自内容前 30%</p>
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <div class="text-center p-2 bg-white rounded">
+                                            <div id="front30Density" class="text-lg font-bold text-orange-600">0</div>
+                                            <div class="text-xs text-gray-400">前30%密度</div>
+                                        </div>
+                                        <div class="text-center p-2 bg-white rounded">
+                                            <div id="back70Density" class="text-lg font-bold text-gray-500">0</div>
+                                            <div class="text-xs text-gray-400">后70%密度</div>
+                                        </div>
+                                    </div>
+                                    <div id="front30Elements" class="flex flex-wrap gap-2">
+                                        <span class="text-xs text-gray-400">关键元素检测中...</span>
+                                    </div>
+                                </div>
+
+                                <!-- 高级建议 -->
+                                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4">
+                                    <h4 class="text-gray-700 font-medium mb-3 flex items-center gap-2">
+                                        <span class="text-lg">💡</span>高级优化建议
+                                    </h4>
+                                    <div id="advancedSuggestions" class="space-y-2">
+                                        <p class="text-xs text-gray-400">分析后显示优化建议</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3.28-3.30 补充优化 -->
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <h4 class="text-gray-700 font-medium mb-4">补充优化指标 (3.28-3.30)</h4>
+                            <div class="grid grid-cols-3 gap-4">
+                                <!-- 3.28 段落长度 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h5 class="text-gray-600 font-medium mb-2 flex items-center gap-2">
+                                        <span>📝</span>段落长度优化
+                                        <span id="paragraphScore" class="ml-auto text-lg font-bold text-cyan-600">0/10</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-400 mb-2">120-180 词段落 +70% 引用率</p>
+                                    <div class="grid grid-cols-3 gap-2 text-center mb-2">
+                                        <div class="p-1 bg-white rounded">
+                                            <div id="optimalParas" class="font-bold text-green-600">0</div>
+                                            <div class="text-xs text-gray-400">最佳</div>
+                                        </div>
+                                        <div class="p-1 bg-white rounded">
+                                            <div id="shortParas" class="font-bold text-yellow-600">0</div>
+                                            <div class="text-xs text-gray-400">过短</div>
+                                        </div>
+                                        <div class="p-1 bg-white rounded">
+                                            <div id="longParas" class="font-bold text-red-600">0</div>
+                                            <div class="text-xs text-gray-400">过长</div>
+                                        </div>
+                                    </div>
+                                    <p id="paragraphAvg" class="text-xs text-gray-500">平均: -</p>
+                                </div>
+
+                                <!-- 3.29 标题策略 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h5 class="text-gray-600 font-medium mb-2 flex items-center gap-2">
+                                        <span>🏷️</span>标题策略
+                                        <span id="titleScore" class="ml-auto text-lg font-bold text-violet-600">0/10</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-400 mb-2">问号标题 -0.9 引用，直陈式更佳</p>
+                                    <div id="titleInfo" class="space-y-1">
+                                        <p class="text-sm text-gray-600 truncate" id="detectedTitleText">-</p>
+                                        <div class="flex items-center gap-2">
+                                            <span id="titleTypeBadge" class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-xs">-</span>
+                                            <span id="titleImpact" class="text-xs text-gray-500">影响: -</span>
+                                        </div>
+                                    </div>
+                                    <div id="titleVariants" class="mt-2 text-xs text-indigo-600"></div>
+                                </div>
+
+                                <!-- 3.30 实体密度增强 -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h5 class="text-gray-600 font-medium mb-2 flex items-center gap-2">
+                                        <span>🔬</span>实体密度增强
+                                        <span id="enhancedEntityScore" class="ml-auto text-lg font-bold text-pink-600">0/10</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-400 mb-2">实体密度 15+ = 4.8x 引用率</p>
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div class="text-center">
+                                            <div id="entityDensityValue" class="text-xl font-bold text-pink-600">0</div>
+                                            <div class="text-xs text-gray-400">/100词</div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="h-2 bg-gray-200 rounded-full">
+                                                <div id="entityDensityBar" class="h-full bg-pink-500 rounded-full" style="width: 0%"></div>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                                <span>0</span>
+                                                <span>15+</span>
+                                            </div>
+                                        </div>
+                                        <div id="entityMultiplier" class="text-lg font-bold text-green-600">1.0x</div>
+                                    </div>
+                                    <p id="highValueEntities" class="text-xs text-gray-500">高价值实体: -</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 优化建议 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-lightbulb text-amber-500 mr-2"></i>优化建议
+                    </h3>
+                    <div id="suggestions" class="space-y-3">
+                        <p class="text-gray-400 text-sm">分析内容后将显示优化建议...</p>
+                    </div>
+                </div>
+
+                <!-- 下一步引导 -->
+                <div id="nextStepGuide" class="mt-6"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 全局变量
+        let currentProject = null;
+        let analysisResult = null;
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            currentProject = JSON.parse(localStorage.getItem('geo_current_project') || 'null');
+            
+            if (!currentProject) {
+                document.getElementById('noProjectModal').classList.remove('hidden');
+                document.getElementById('noProjectModal').classList.add('flex');
+            } else {
+                loadProjectQuestions();
+            }
+        });
+
+        // 加载项目问题
+        async function loadProjectQuestions() {
+            const questionList = document.getElementById('questionList');
+            const questionSelect = document.getElementById('questionSelect');
+            
+            try {
+                const projectId = currentProject.project?.id;
+                if (!projectId) {
+                    questionList.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">无项目数据</p>';
+                    return;
+                }
+
+                const response = await fetch(`/api/Project/${projectId}/questions`);
+                if (!response.ok) throw new Error('加载失败');
+                
+                const questions = await response.json();
+                
+                if (!questions || questions.length === 0) {
+                    questionList.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">暂无问题，请先生成问题</p>';
+                    return;
+                }
+
+                // 渲染问题列表
+                questionList.innerHTML = questions.map((q, idx) => `
+                    <div class="question-item p-3 border border-gray-200 rounded-lg" data-index="${idx}" onclick="selectQuestion(${idx})">
+                        <p class="text-sm text-gray-700 line-clamp-2">${q.question}</p>
+                        ${q.answer ? '<span class="text-xs text-green-500 mt-1 inline-block"><i class="fas fa-check mr-1"></i>有答案</span>' : '<span class="text-xs text-gray-400 mt-1 inline-block">无答案</span>'}
+                    </div>
+                `).join('');
+
+                // 填充下拉框
+                questionSelect.innerHTML = '<option value="">选择问题...</option>' + 
+                    questions.map((q, idx) => `<option value="${idx}">${(idx+1)}. ${q.question.substring(0, 40)}...</option>`).join('');
+
+                // 存储问题数据
+                window.projectQuestions = questions;
+
+            } catch (error) {
+                console.error('加载问题失败:', error);
+                questionList.innerHTML = '<p class="text-red-400 text-sm text-center py-4">加载失败</p>';
+            }
+        }
+
+        // 选择问题
+        function selectQuestion(index) {
+            const questions = window.projectQuestions;
+            if (!questions || !questions[index]) return;
+
+            // 更新选中状态
+            document.querySelectorAll('.question-item').forEach((el, i) => {
+                el.classList.toggle('selected', i === index);
+            });
+
+            // 填充内容
+            const q = questions[index];
+            const content = q.answer || q.question;
+            document.getElementById('contentInput').value = content;
+            updateWordCount();
+
+            // 更新下拉框
+            document.getElementById('questionSelect').value = index;
+        }
+
+        // 从下拉框加载
+        function loadSelectedQuestion() {
+            const select = document.getElementById('questionSelect');
+            const index = parseInt(select.value);
+            if (!isNaN(index)) {
+                selectQuestion(index);
+            }
+        }
+
+        // 更新字数
+        function updateWordCount() {
+            const content = document.getElementById('contentInput').value;
+            const words = content.trim().split(/\s+/).filter(w => w.length > 0).length;
+            const chars = content.length;
+            document.getElementById('wordCount').textContent = `${chars} 字 / ${words} 词`;
+        }
+
+        // 粘贴内容
+        async function pasteContent() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('contentInput').value = text;
+                updateWordCount();
+            } catch (err) {
+                alert('无法访问剪贴板');
+            }
+        }
+
+        // 清空内容
+        function clearContent() {
+            document.getElementById('contentInput').value = '';
+            updateWordCount();
+        }
+
+        // 分析内容
+        async function analyzeContent() {
+            const content = document.getElementById('contentInput').value.trim();
+            if (!content) {
+                alert('请输入要分析的内容');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/ContentQuality/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, language: 'zh' })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                analysisResult = await response.json();
+                renderResults(analysisResult);
+                document.getElementById('resultsSection').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('分析失败:', error);
+                alert('分析失败: ' + error.message);
+            }
+        }
+
+        // 渲染结果
+        function renderResults(data) {
+            // 综合评分
+            const score = data.extractabilityScore || 0;
+            document.getElementById('overallScore').textContent = score.toFixed(1);
+            document.getElementById('overallGrade').textContent = data.grade || '-';
+            
+            // 评分环
+            const ring = document.getElementById('scoreRing');
+            const offset = 352 - (score / 10) * 352;
+            ring.style.strokeDashoffset = offset;
+
+            // 基础指标
+            document.getElementById('claimDensityValue').textContent = (data.claimDensity?.value || 0).toFixed(1);
+            document.getElementById('wordCountValue').textContent = data.wordCount || 0;
+            document.getElementById('frontloadingValue').textContent = data.frontloading?.claimsInFirst100 || 0;
+            document.getElementById('entityDensityValue').textContent = (data.entityDensity?.value || 0).toFixed(1);
+
+            // 基础指标详情
+            renderBasicMetrics(data);
+            
+            // aiseo-audit 指标
+            renderAiseoMetrics(data);
+            
+            // Listicle 指标
+            renderListicleMetrics(data);
+            
+            // Schema 指标
+            renderSchemaMetrics(data);
+            
+            // 高级优化指标 (3.23-3.27)
+            renderAdvancedMetrics(data);
+            
+            // 优化建议
+            renderSuggestions(data.suggestions || []);
+        }
+
+        // 渲染基础指标
+        function renderBasicMetrics(data) {
+            const cd = data.claimDensity || {};
+            document.getElementById('claimScore').textContent = `${(cd.score || 0).toFixed(1)}/10`;
+            document.getElementById('claimBar').style.width = `${(cd.score || 0) * 10}%`;
+            document.getElementById('claimDetail').textContent = `${(cd.value || 0).toFixed(1)}/100词，目标 4+`;
+
+            const id = data.informationDensity || {};
+            document.getElementById('infoScore').textContent = `${(id.score || 0).toFixed(1)}/10`;
+            document.getElementById('infoBar').style.width = `${(id.score || 0) * 10}%`;
+            document.getElementById('infoDetail').textContent = `${id.wordCount || 0} 词，最佳 800-1500`;
+
+            const fl = data.frontloading || {};
+            document.getElementById('frontScore').textContent = `${(fl.score || 0).toFixed(1)}/10`;
+            document.getElementById('frontBar').style.width = `${(fl.score || 0) * 10}%`;
+            document.getElementById('frontDetail').textContent = `前100词 ${fl.claimsInFirst100 || 0} 个事实`;
+
+            const sl = data.sentenceLength || {};
+            document.getElementById('sentenceScore').textContent = `${(sl.score || 0).toFixed(1)}/10`;
+            document.getElementById('sentenceBar').style.width = `${(sl.score || 0) * 10}%`;
+            document.getElementById('sentenceDetail').textContent = `平均 ${(sl.averageLength || 0).toFixed(1)} 词/句`;
+
+            const ed = data.entityDensity || {};
+            document.getElementById('entityScore').textContent = `${(ed.score || 0).toFixed(1)}/10`;
+            document.getElementById('entityBar').style.width = `${(ed.score || 0) * 10}%`;
+            document.getElementById('entityDetail').textContent = `${(ed.value || 0).toFixed(1)}/100词，${ed.densityStatus || '-'}`;
+
+            // 实体类型
+            const types = ed.entityTypeStats || {};
+            const typeHtml = Object.entries(types).map(([type, count]) => 
+                `<span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-xs">${type}: ${count}</span>`
+            ).join('') || '<span class="text-xs text-gray-400">无实体</span>';
+            document.getElementById('entityTypes').innerHTML = typeHtml;
+        }
+
+        // 渲染 aiseo-audit 指标
+        function renderAiseoMetrics(data) {
+            // 答案胶囊
+            const ac = data.answerCapsule;
+            if (ac) {
+                const status = ac.hasAnswerCapsule ? '✓ 检测到' : '✗ 未检测到';
+                const color = ac.hasAnswerCapsule ? 'text-green-600' : 'text-yellow-600';
+                document.getElementById('capsuleStatus').innerHTML = `<span class="text-2xl font-bold ${color}">${status}</span>`;
+            }
+
+            // 章节长度
+            const sl = data.sectionLength;
+            if (sl) {
+                const status = sl.isOptimal ? '✓ 最佳' : `${(sl.averageLength || 0).toFixed(0)} 词/段`;
+                const color = sl.isOptimal ? 'text-green-600' : 'text-yellow-600';
+                document.getElementById('sectionStatus').innerHTML = `<span class="text-2xl font-bold ${color}">${status}</span>`;
+            }
+
+            // 答案优先
+            const af = data.answerFirst;
+            if (af) {
+                const status = af.hasAnswerFirst ? '✓ 前置' : '✗ 未前置';
+                const color = af.hasAnswerFirst ? 'text-green-600' : 'text-yellow-600';
+                document.getElementById('answerFirstStatus').innerHTML = `<span class="text-2xl font-bold ${color}">${status}</span>`;
+            }
+
+            // Flesch 可读性
+            const fr = data.fleschReadability;
+            if (fr) {
+                const score = (fr.score || 0).toFixed(1);
+                const level = fr.level || '-';
+                document.getElementById('fleschStatus').innerHTML = `<span class="text-2xl font-bold text-indigo-600">${score}</span><span class="text-sm text-gray-500 ml-2">${level}</span>`;
+            }
+
+            // 引语归因
+            const qa = data.quotationAttribution;
+            if (qa) {
+                const count = qa.attributedQuotations?.length || 0;
+                const status = count > 0 ? `${count} 条引语` : '无引语';
+                const color = count > 0 ? 'text-green-600' : 'text-gray-400';
+                document.getElementById('quotationStatus').innerHTML = `<span class="text-2xl font-bold ${color}">${status}</span>`;
+            }
+
+            // 审计总结
+            let summary = [];
+            if (ac?.hasAnswerCapsule) summary.push('✓ 答案胶囊');
+            if (sl?.isOptimal) summary.push('✓ 章节长度');
+            if (af?.hasAnswerFirst) summary.push('✓ 答案前置');
+            if (fr?.score >= 60) summary.push('✓ 可读性');
+            document.getElementById('aiseoSummary').innerHTML = summary.length > 0 
+                ? summary.join(' | ') 
+                : '<span class="text-gray-400">需要优化</span>';
+        }
+
+        // 渲染 Listicle 指标
+        function renderListicleMetrics(data) {
+            // Listicle 格式
+            const lf = data.listicleFormat;
+            if (lf) {
+                const status = lf.isListicle ? '✓ 是列表文章' : '✗ 非列表文章';
+                const color = lf.isListicle ? 'text-green-600' : 'text-gray-400';
+                document.getElementById('listicleStatus').innerHTML = `<span class="text-2xl font-bold ${color}">${status}</span>`;
+                document.getElementById('listicleDetail').textContent = `${lf.items?.length || 0} 个列表项，覆盖率 ${(lf.coveragePercent || 0).toFixed(0)}%`;
+
+                // 列表项
+                const items = lf.items || [];
+                document.getElementById('listicleItems').innerHTML = items.length > 0
+                    ? items.slice(0, 10).map(item => `<div class="p-2 bg-white rounded border text-sm">${item.text?.substring(0, 50) || '-'}...</div>`).join('')
+                    : '<p class="text-sm text-gray-400">未检测到列表项</p>';
+            }
+
+            // 自我推广
+            const sp = data.selfPromotion;
+            if (sp) {
+                const risk = sp.riskLevel || 'low';
+                const riskColors = { low: 'text-green-600', medium: 'text-yellow-600', high: 'text-red-600' };
+                const riskLabels = { low: '低风险', medium: '中风险', high: '高风险' };
+                document.getElementById('promotionStatus').innerHTML = `<span class="text-2xl font-bold ${riskColors[risk]}">${riskLabels[risk]}</span>`;
+                document.getElementById('promotionDetail').textContent = `检测到 ${sp.signals?.length || 0} 个推广信号`;
+            }
+
+            // 第三方引用
+            const tp = data.thirdPartyReference;
+            if (tp) {
+                const count = tp.references?.length || 0;
+                const status = count > 0 ? `${count} 个引用` : '无引用';
+                const color = count > 0 ? 'text-green-600' : 'text-yellow-600';
+                document.getElementById('thirdPartyStatus').innerHTML = `<span class="text-2xl font-bold ${color}">${status}</span>`;
+                document.getElementById('thirdPartyDetail').textContent = `多样性 ${(tp.diversityScore || 0).toFixed(1)}/10`;
+            }
+        }
+
+        // 渲染 Schema 指标
+        function renderSchemaMetrics(data) {
+            const sc = data.schemaCompleteness;
+            if (!sc) return;
+
+            // 检测到的 Schema
+            const detected = sc.detectedSchemas || [];
+            document.getElementById('schemaDetected').innerHTML = detected.length > 0
+                ? detected.map(s => `
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-gray-700">${s.type}</span>
+                            <span class="text-sm ${s.isValid ? 'text-green-600' : 'text-yellow-600'}">${s.isValid ? '✓ 有效' : '⚠ 不完整'}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">完整度: ${(s.completenessScore || 0).toFixed(1)}/10</p>
+                    </div>
+                `).join('')
+                : '<p class="text-sm text-gray-400">未检测到 Schema 标记</p>';
+
+            // Schema 建议
+            const suggestions = sc.suggestions || [];
+            document.getElementById('schemaSuggestions').innerHTML = suggestions.length > 0
+                ? suggestions.map(s => `
+                    <div class="p-3 bg-indigo-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 ${s.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'} rounded text-xs">${s.priority === 'high' ? '高' : '中'}</span>
+                            <span class="font-medium text-indigo-700">${s.schemaType}</span>
+                        </div>
+                        <p class="text-sm text-indigo-600 mt-1">${s.reason}</p>
+                        <p class="text-xs text-indigo-400 mt-1">${s.expectedBenefit}</p>
+                    </div>
+                `).join('')
+                : '<p class="text-sm text-gray-400">无建议</p>';
+        }
+
+        // 渲染优化建议
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestions');
+            if (!suggestions || suggestions.length === 0) {
+                container.innerHTML = '<p class="text-green-600 text-sm"><i class="fas fa-check-circle mr-2"></i>内容质量良好，无需优化</p>';
+                return;
+            }
+
+            const priorityColors = {
+                high: 'border-red-200 bg-red-50',
+                medium: 'border-yellow-200 bg-yellow-50',
+                low: 'border-blue-200 bg-blue-50'
+            };
+            const priorityLabels = { high: '高', medium: '中', low: '低' };
+            const priorityTextColors = { high: 'text-red-600', medium: 'text-yellow-600', low: 'text-blue-600' };
+
+            container.innerHTML = suggestions.map(s => `
+                <div class="p-4 border rounded-lg ${priorityColors[s.priority] || 'border-gray-200'}">
+                    <div class="flex items-start gap-3">
+                        <span class="px-2 py-0.5 ${priorityTextColors[s.priority]} bg-white rounded text-xs font-medium">${priorityLabels[s.priority] || '-'}</span>
+                        <div class="flex-1">
+                            <p class="text-gray-700">${s.message}</p>
+                            ${s.example ? `<p class="text-sm text-gray-400 mt-1">${s.example}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染高级优化指标 (3.23-3.27)
+        function renderAdvancedMetrics(data) {
+            // 3.23 内容类型策略
+            const cts = data.contentTypeStrategy;
+            if (cts) {
+                const typeNames = {
+                    guide: '综合指南', comparison: '对比分析', faq: 'FAQ问答',
+                    howto: '操作指南', listicle: '列表文章', review: '评测评论', opinion: '观点文章'
+                };
+                document.getElementById('detectedType').textContent = typeNames[cts.detectedType] || cts.detectedType || '-';
+                document.getElementById('benchmarkRate').textContent = cts.currentBenchmark ? `${cts.currentBenchmark}%` : '-';
+                
+                // 推荐类型
+                const recs = (cts.recommendedTypes || []).slice(0, 3);
+                document.getElementById('typeRecommendations').innerHTML = recs.length > 0
+                    ? `<p class="text-xs text-gray-500 mb-2">推荐内容类型：</p>` + recs.map(r => `
+                        <div class="flex justify-between items-center text-sm py-1">
+                            <span class="text-gray-600">${r.contentTypeName}</span>
+                            <span class="font-medium text-green-600">${r.benchmarkCitationRate}%</span>
+                        </div>
+                    `).join('')
+                    : '<p class="text-xs text-gray-400">-</p>';
+            }
+
+            // 3.24 结构元素
+            const se = data.structuralElements;
+            if (se) {
+                document.getElementById('structuralScore').textContent = `${(se.score || 0).toFixed(1)}/10`;
+                document.getElementById('impactMultiplier').textContent = `${(se.impactMultiplier || 1).toFixed(2)}x`;
+                
+                const elemLabels = { h2: 'H2标题', h3: 'H3标题', table: '表格', list: '列表', faq: 'FAQ', code: '代码块', blockquote: '引用' };
+                const elements = se.elements || [];
+                document.getElementById('structuralElements').innerHTML = elements.length > 0
+                    ? elements.filter(e => e.count > 0).map(e => `
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">${elemLabels[e.type] || e.type}</span>
+                            <span class="${e.isOptimal ? 'text-green-600' : 'text-yellow-600'}">${e.count} ${e.isOptimal ? '✓' : `(建议${e.recommendedRange})`}</span>
+                        </div>
+                    `).join('')
+                    : '<p class="text-xs text-gray-400">未检测到结构元素</p>';
+            }
+
+            // 3.25 最佳长度
+            const ol = data.optimalLength;
+            if (ol) {
+                document.getElementById('lengthScore').textContent = `${(ol.score || 0).toFixed(1)}/10`;
+                document.getElementById('currentLength').textContent = ol.wordCount || 0;
+                document.getElementById('lengthSuggestion').textContent = ol.suggestion || '-';
+                
+                // 计算指示器位置
+                const wc = ol.wordCount || 0;
+                const pos = Math.min(100, (wc / 6000) * 100);
+                document.getElementById('lengthIndicator').style.left = `${pos}%`;
+            }
+
+            // 3.26 可引用性评分
+            const cs = data.citabilityScore;
+            if (cs) {
+                document.getElementById('citabilityScore').textContent = `${(cs.score || 0).toFixed(1)}/10`;
+                document.getElementById('citableCount').textContent = cs.citableParagraphCount || 0;
+                const ratio = cs.totalParagraphCount > 0 ? ((cs.citableParagraphCount / cs.totalParagraphCount) * 100).toFixed(0) : 0;
+                document.getElementById('citableRatio').textContent = `${ratio}%`;
+                
+                const topParas = cs.topCitableParagraphs || [];
+                document.getElementById('topCitableParagraphs').innerHTML = topParas.length > 0
+                    ? topParas.slice(0, 3).map((p, i) => `
+                        <div class="p-2 bg-white rounded text-xs">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-500">段落 ${p.index + 1}</span>
+                                <span class="text-emerald-600 font-medium">${p.citabilityScore.toFixed(1)}/10</span>
+                            </div>
+                            <p class="text-gray-600 line-clamp-2">${p.preview}</p>
+                        </div>
+                    `).join('')
+                    : '<p class="text-xs text-gray-400">无高可引用段落</p>';
+            }
+
+            // 3.27 前30%优化
+            const f30 = data.front30Percent;
+            if (f30) {
+                document.getElementById('front30Score').textContent = `${(f30.score || 0).toFixed(1)}/10`;
+                document.getElementById('front30Density').textContent = (f30.front30ClaimDensity || 0).toFixed(1);
+                document.getElementById('back70Density').textContent = (f30.back70ClaimDensity || 0).toFixed(1);
+                
+                const elems = f30.elements || {};
+                const badges = [];
+                if (elems.hasAnswerCapsule) badges.push('<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">✓ 答案胶囊</span>');
+                if (elems.hasCoreDefinition) badges.push('<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">✓ 核心定义</span>');
+                if (elems.hasKeyStatistics) badges.push('<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">✓ 关键数据</span>');
+                if (elems.hasExpertQuote) badges.push('<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">✓ 专家引语</span>');
+                if (!elems.hasAnswerCapsule) badges.push('<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">缺少答案胶囊</span>');
+                if (!elems.hasKeyStatistics) badges.push('<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">缺少数据</span>');
+                
+                document.getElementById('front30Elements').innerHTML = badges.join('');
+            }
+
+            // 高级建议汇总
+            const advSuggestions = [];
+            if (cts?.suggestions) advSuggestions.push(...cts.suggestions);
+            if (se?.suggestions) advSuggestions.push(...se.suggestions);
+            if (f30?.suggestions) advSuggestions.push(...f30.suggestions);
+            
+            document.getElementById('advancedSuggestions').innerHTML = advSuggestions.length > 0
+                ? advSuggestions.slice(0, 5).map(s => `<p class="text-sm text-indigo-700">• ${s}</p>`).join('')
+                : '<p class="text-xs text-gray-400">内容优化良好</p>';
+
+            // 3.28 段落长度
+            const pl = data.paragraphLength;
+            if (pl) {
+                document.getElementById('paragraphScore').textContent = `${(pl.score || 0).toFixed(1)}/10`;
+                document.getElementById('optimalParas').textContent = pl.optimalParagraphs || 0;
+                document.getElementById('shortParas').textContent = pl.shortParagraphs || 0;
+                document.getElementById('longParas').textContent = pl.longParagraphs || 0;
+                document.getElementById('paragraphAvg').textContent = `平均: ${(pl.averageLength || 0).toFixed(0)} 词`;
+            }
+
+            // 3.29 标题策略
+            const ts = data.titleStrategy;
+            if (ts) {
+                document.getElementById('titleScore').textContent = `${(ts.score || 0).toFixed(1)}/10`;
+                document.getElementById('detectedTitleText').textContent = ts.detectedTitle || '-';
+                
+                const typeLabels = { question: '问号标题', statement: '直陈式', howto: '操作指南', listicle: '列表式' };
+                const typeColors = { question: 'bg-red-100 text-red-600', statement: 'bg-green-100 text-green-600', howto: 'bg-blue-100 text-blue-600', listicle: 'bg-purple-100 text-purple-600' };
+                document.getElementById('titleTypeBadge').className = `px-2 py-0.5 rounded text-xs ${typeColors[ts.titleType] || 'bg-gray-200 text-gray-600'}`;
+                document.getElementById('titleTypeBadge').textContent = typeLabels[ts.titleType] || ts.titleType;
+                document.getElementById('titleImpact').textContent = `影响: ${ts.citationImpact > 0 ? '+' : ''}${ts.citationImpact}`;
+                
+                const variants = ts.recommendedVariants || [];
+                document.getElementById('titleVariants').innerHTML = variants.length > 0
+                    ? variants.map(v => `<p>💡 ${v}</p>`).join('')
+                    : '';
+            }
+
+            // 3.30 实体密度增强
+            const eed = data.enhancedEntityDensity;
+            if (eed) {
+                document.getElementById('enhancedEntityScore').textContent = `${(eed.score || 0).toFixed(1)}/10`;
+                document.getElementById('entityDensityValue').textContent = (eed.densityPer100Words || 0).toFixed(1);
+                const barWidth = Math.min(100, (eed.densityPer100Words / 15) * 100);
+                document.getElementById('entityDensityBar').style.width = `${barWidth}%`;
+                document.getElementById('entityMultiplier').textContent = `${(eed.citationMultiplier || 1).toFixed(1)}x`;
+                document.getElementById('highValueEntities').textContent = `高价值实体: ${eed.highValueEntities || 0}`;
+            }
+        }
+
+        // 切换标签页
+        function switchTab(tab) {
+            // 更新按钮状态
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-gray-500');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
+
+            // 显示对应内容
+            ['basic', 'aiseo', 'listicle', 'schema', 'advanced'].forEach(t => {
+                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
+            });
+        }
+    </script>
+</body>
+</html>

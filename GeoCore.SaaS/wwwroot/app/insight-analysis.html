@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洞察分析 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .signal-card { transition: all 0.3s; }
+        .signal-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px -8px rgba(0,0,0,0.15); }
+        .path-card { transition: all 0.3s; }
+        .path-card:hover { transform: translateY(-2px); }
+        .task-item { transition: all 0.2s; }
+        .task-item:hover { background: #f9fafb; }
+        .priority-high { background: #fef2f2; border-color: #fecaca; }
+        .priority-medium { background: #fffbeb; border-color: #fde68a; }
+        .priority-low { background: #f0fdf4; border-color: #bbf7d0; }
+        .progress-ring { transform: rotate(-90deg); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <script src="js/next-step-guide.js"></script>
+
+    <!-- 无项目提示模态框 -->
+    <div id="noProjectModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">未选择项目</h3>
+                <p class="text-gray-600 mb-6">请先选择一个项目或创建新项目，然后再进行洞察分析。</p>
+                <div class="flex gap-3 justify-center">
+                    <a href="projects.html" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-folder mr-2"></i>选择项目
+                    </a>
+                    <a href="setup-wizard.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>新建项目
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">洞察分析</h2>
+                    <p class="text-sm text-gray-500">四信号分析 | 三路径建议 | 可执行任务</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="brandInput" placeholder="输入品牌名称..." 
+                           class="px-4 py-2 border border-gray-200 rounded-lg text-sm w-48">
+                    <button onclick="generateInsight()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-lightbulb mr-2"></i>生成洞察
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 加载状态 -->
+            <div id="loadingState" class="hidden">
+                <div class="flex flex-col items-center justify-center py-20">
+                    <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                    <p class="text-gray-600">正在分析品牌洞察...</p>
+                </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div id="emptyState" class="flex flex-col items-center justify-center py-20">
+                <div class="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mb-6">
+                    <i class="fas fa-search text-indigo-500 text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">开始洞察分析</h3>
+                <p class="text-gray-500 mb-6 text-center max-w-md">
+                    输入品牌名称，系统将基于 AI 引用数据生成四信号洞察、三路径建议和可执行任务清单。
+                </p>
+            </div>
+
+            <!-- 洞察内容 -->
+            <div id="insightContent" class="hidden">
+                <!-- 综合评分 -->
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 mb-8 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg opacity-80 mb-1">品牌洞察评分</h3>
+                            <p class="text-4xl font-bold" id="overallScore">--</p>
+                            <p class="text-sm opacity-70 mt-2" id="brandName">--</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm opacity-80">分析时间</p>
+                            <p class="text-lg font-medium" id="analysisTime">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 四信号分析 -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">
+                        <i class="fas fa-signal text-indigo-500 mr-2"></i>四信号分析
+                    </h3>
+                    <div class="grid grid-cols-4 gap-4">
+                        <!-- 引用集中度 -->
+                        <div class="signal-card bg-white rounded-xl p-5 border border-gray-100 cursor-pointer" onclick="showSignalDetail('concentration')">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-bullseye text-blue-600 text-xl"></i>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-bold text-gray-900" id="concentrationScore">--</p>
+                                    <p class="text-xs text-gray-500">/ 100</p>
+                                </div>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 mb-1">引用集中度</h4>
+                            <p class="text-sm text-gray-500">品牌在哪些场景被提及最多</p>
+                        </div>
+
+                        <!-- 当前位置 -->
+                        <div class="signal-card bg-white rounded-xl p-5 border border-gray-100 cursor-pointer" onclick="showSignalDetail('position')">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-map-marker-alt text-emerald-600 text-xl"></i>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-bold text-gray-900" id="positionScore">--</p>
+                                    <p class="text-xs text-gray-500">/ 100</p>
+                                </div>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 mb-1">当前位置</h4>
+                            <p class="text-sm text-gray-500">品牌在 AI 回答中的排名</p>
+                        </div>
+
+                        <!-- 品牌力 -->
+                        <div class="signal-card bg-white rounded-xl p-5 border border-gray-100 cursor-pointer" onclick="showSignalDetail('strength')">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-crown text-amber-600 text-xl"></i>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-bold text-gray-900" id="strengthScore">--</p>
+                                    <p class="text-xs text-gray-500">/ 100</p>
+                                </div>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 mb-1">品牌力</h4>
+                            <p class="text-sm text-gray-500">推荐强度与情感倾向</p>
+                        </div>
+
+                        <!-- 品类信号 -->
+                        <div class="signal-card bg-white rounded-xl p-5 border border-gray-100 cursor-pointer" onclick="showSignalDetail('category')">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-tags text-purple-600 text-xl"></i>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-bold text-gray-900" id="categoryScore">--</p>
+                                    <p class="text-xs text-gray-500">/ 100</p>
+                                </div>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 mb-1">品类信号</h4>
+                            <p class="text-sm text-gray-500">品牌关联的品类分布</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 三路径建议 -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">
+                        <i class="fas fa-route text-emerald-500 mr-2"></i>三路径行动建议
+                    </h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <!-- 创建内容 -->
+                        <div class="path-card bg-white rounded-xl p-5 border-2 border-blue-200 hover:border-blue-400">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-plus text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">创建新内容</h4>
+                                    <p class="text-xs text-gray-500">优先级: <span id="createPriority" class="font-medium">--</span></p>
+                                </div>
+                            </div>
+                            <div id="createSuggestions" class="space-y-2 text-sm text-gray-600">
+                                <!-- 动态填充 -->
+                            </div>
+                        </div>
+
+                        <!-- 改进内容 -->
+                        <div class="path-card bg-white rounded-xl p-5 border-2 border-emerald-200 hover:border-emerald-400">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-edit text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">改进现有内容</h4>
+                                    <p class="text-xs text-gray-500">优先级: <span id="improvePriority" class="font-medium">--</span></p>
+                                </div>
+                            </div>
+                            <div id="improveSuggestions" class="space-y-2 text-sm text-gray-600">
+                                <!-- 动态填充 -->
+                            </div>
+                        </div>
+
+                        <!-- 获取曝光 -->
+                        <div class="path-card bg-white rounded-xl p-5 border-2 border-amber-200 hover:border-amber-400">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bullhorn text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">获取曝光</h4>
+                                    <p class="text-xs text-gray-500">优先级: <span id="exposurePriority" class="font-medium">--</span></p>
+                                </div>
+                            </div>
+                            <div id="exposureSuggestions" class="space-y-2 text-sm text-gray-600">
+                                <!-- 动态填充 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 可执行任务 -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-900">
+                            <i class="fas fa-tasks text-amber-500 mr-2"></i>可执行任务清单
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="filterTasks('all')" class="task-filter px-3 py-1 text-sm rounded-lg bg-indigo-100 text-indigo-700">全部</button>
+                            <button onclick="filterTasks('content_creation')" class="task-filter px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">创建</button>
+                            <button onclick="filterTasks('content_improvement')" class="task-filter px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">改进</button>
+                            <button onclick="filterTasks('exposure')" class="task-filter px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">曝光</button>
+                        </div>
+                    </div>
+                    <div id="taskList" class="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
+                        <!-- 动态填充任务 -->
+                    </div>
+                </div>
+
+                <!-- 洞察摘要 -->
+                <div class="bg-white rounded-xl p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">
+                        <i class="fas fa-file-alt text-gray-500 mr-2"></i>洞察摘要
+                    </h3>
+                    <div id="reportSummary" class="prose prose-sm max-w-none text-gray-600">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 信号详情模态框 -->
+    <div id="signalModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-2xl mx-4 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="signalModalTitle" class="text-lg font-bold text-gray-900">信号详情</h3>
+                <button onclick="closeSignalModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="signalModalContent">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentReport = null;
+        let currentTaskFilter = 'all';
+
+        // 检查项目
+        document.addEventListener('DOMContentLoaded', function() {
+            const projectId = localStorage.getItem('currentProjectId');
+            if (!projectId) {
+                document.getElementById('noProjectModal').classList.remove('hidden');
+                document.getElementById('noProjectModal').classList.add('flex');
+            }
+        });
+
+        // 生成洞察
+        async function generateInsight() {
+            const brand = document.getElementById('brandInput').value.trim();
+            if (!brand) {
+                alert('请输入品牌名称');
+                return;
+            }
+
+            const projectId = localStorage.getItem('currentProjectId');
+            if (!projectId) {
+                alert('请先选择项目');
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('insightContent').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/insights/report/${projectId}?brand=${encodeURIComponent(brand)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    currentReport = result.data;
+                    renderInsight(currentReport);
+                } else {
+                    throw new Error(result.error || '获取洞察失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('获取洞察失败: ' + error.message);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
+            }
+        }
+
+        // 渲染洞察
+        function renderInsight(report) {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('insightContent').classList.remove('hidden');
+
+            // 综合评分
+            document.getElementById('overallScore').textContent = Math.round(report.signals.overallScore);
+            document.getElementById('brandName').textContent = report.brand;
+            document.getElementById('analysisTime').textContent = new Date(report.generatedAt).toLocaleString('zh-CN');
+
+            // 四信号
+            document.getElementById('concentrationScore').textContent = Math.round(report.signals.citationConcentration.strength);
+            document.getElementById('positionScore').textContent = Math.round(report.signals.currentPosition.strength);
+            document.getElementById('strengthScore').textContent = Math.round(report.signals.brandStrength.strength);
+            document.getElementById('categoryScore').textContent = Math.round(report.signals.category.strength);
+
+            // 三路径
+            document.getElementById('createPriority').textContent = report.recommendations.createContent.priority;
+            document.getElementById('improvePriority').textContent = report.recommendations.improveContent.priority;
+            document.getElementById('exposurePriority').textContent = report.recommendations.getExposure.priority;
+
+            renderPathSuggestions('createSuggestions', report.recommendations.createContent.suggestions || []);
+            renderPathSuggestions('improveSuggestions', report.recommendations.improveContent.suggestions || []);
+            renderExposureSuggestions('exposureSuggestions', report.recommendations.getExposure.opportunities || []);
+
+            // 任务列表
+            renderTasks(report.tasks);
+
+            // 摘要
+            document.getElementById('reportSummary').innerHTML = report.reportSummary || '暂无摘要';
+        }
+
+        function renderPathSuggestions(containerId, suggestions) {
+            const container = document.getElementById(containerId);
+            if (suggestions.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">暂无建议</p>';
+                return;
+            }
+            container.innerHTML = suggestions.slice(0, 3).map(s => `
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                    <span>${s.title || s.contentType}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderExposureSuggestions(containerId, opportunities) {
+            const container = document.getElementById(containerId);
+            if (opportunities.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">暂无建议</p>';
+                return;
+            }
+            container.innerHTML = opportunities.slice(0, 3).map(o => `
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-external-link-alt text-blue-500 mt-0.5"></i>
+                    <span>${o.channel}: ${o.specificTarget || o.actionDescription}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderTasks(tasks) {
+            const container = document.getElementById('taskList');
+            const filteredTasks = currentTaskFilter === 'all' 
+                ? tasks 
+                : tasks.filter(t => t.category === currentTaskFilter);
+
+            if (filteredTasks.length === 0) {
+                container.innerHTML = '<div class="p-8 text-center text-gray-400">暂无任务</div>';
+                return;
+            }
+
+            container.innerHTML = filteredTasks.map(task => {
+                const priorityClass = task.priority <= 3 ? 'priority-high' : (task.priority <= 6 ? 'priority-medium' : 'priority-low');
+                const categoryIcon = {
+                    'content_creation': 'fa-plus',
+                    'content_improvement': 'fa-edit',
+                    'exposure': 'fa-bullhorn'
+                }[task.category] || 'fa-tasks';
+                const categoryColor = {
+                    'content_creation': 'text-blue-500',
+                    'content_improvement': 'text-emerald-500',
+                    'exposure': 'text-amber-500'
+                }[task.category] || 'text-gray-500';
+
+                return `
+                    <div class="task-item p-4 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center ${priorityClass}">
+                            <i class="fas ${categoryIcon} ${categoryColor}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900">${task.title}</h4>
+                            <p class="text-sm text-gray-500">${task.description || ''}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs px-2 py-1 rounded ${priorityClass}">优先级 ${task.priority}</span>
+                            <p class="text-xs text-gray-400 mt-1">预计 ${task.estimatedEffort}h</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterTasks(category) {
+            currentTaskFilter = category;
+            document.querySelectorAll('.task-filter').forEach(btn => {
+                btn.classList.remove('bg-indigo-100', 'text-indigo-700');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-600');
+            event.target.classList.add('bg-indigo-100', 'text-indigo-700');
+            
+            if (currentReport) {
+                renderTasks(currentReport.tasks);
+            }
+        }
+
+        function showSignalDetail(signalType) {
+            if (!currentReport) return;
+
+            const modal = document.getElementById('signalModal');
+            const title = document.getElementById('signalModalTitle');
+            const content = document.getElementById('signalModalContent');
+
+            const titles = {
+                'concentration': '引用集中度详情',
+                'position': '当前位置详情',
+                'strength': '品牌力详情',
+                'category': '品类信号详情'
+            };
+            title.textContent = titles[signalType];
+
+            let html = '';
+            switch(signalType) {
+                case 'concentration':
+                    const conc = currentReport.signals.citationConcentration;
+                    html = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-green-50 p-4 rounded-lg">
+                                    <h4 class="font-medium text-green-800 mb-2">高集中度场景</h4>
+                                    ${(conc.highConcentrationClusters || []).map(c => `
+                                        <div class="text-sm text-green-700 mb-1">• ${c.questionType} (${Math.round(c.mentionRate * 100)}%)</div>
+                                    `).join('') || '<p class="text-sm text-gray-400">暂无数据</p>'}
+                                </div>
+                                <div class="bg-red-50 p-4 rounded-lg">
+                                    <h4 class="font-medium text-red-800 mb-2">低集中度场景</h4>
+                                    ${(conc.lowConcentrationClusters || []).map(c => `
+                                        <div class="text-sm text-red-700 mb-1">• ${c.questionType} (${Math.round(c.mentionRate * 100)}%)</div>
+                                    `).join('') || '<p class="text-sm text-gray-400">暂无数据</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'position':
+                    const pos = currentReport.signals.currentPosition;
+                    html = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-4 gap-4 text-center">
+                                <div class="bg-indigo-50 p-4 rounded-lg">
+                                    <p class="text-2xl font-bold text-indigo-600">${Math.round(pos.firstPositionRate * 100)}%</p>
+                                    <p class="text-sm text-gray-600">首位提及率</p>
+                                </div>
+                                <div class="bg-emerald-50 p-4 rounded-lg">
+                                    <p class="text-2xl font-bold text-emerald-600">${Math.round(pos.topThreeRate * 100)}%</p>
+                                    <p class="text-sm text-gray-600">前三位率</p>
+                                </div>
+                                <div class="bg-amber-50 p-4 rounded-lg">
+                                    <p class="text-2xl font-bold text-amber-600">${Math.round(pos.overallMentionRate * 100)}%</p>
+                                    <p class="text-sm text-gray-600">总提及率</p>
+                                </div>
+                                <div class="bg-purple-50 p-4 rounded-lg">
+                                    <p class="text-2xl font-bold text-purple-600">${pos.averagePosition.toFixed(1)}</p>
+                                    <p class="text-sm text-gray-600">平均位置</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'strength':
+                    const str = currentReport.signals.brandStrength;
+                    html = `
+                        <div class="space-y-4">
+                            <h4 class="font-medium text-gray-900">推荐强度分布</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-sm text-gray-600">强烈推荐</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="bg-green-500 h-3 rounded-full" style="width: ${(str.recommendationStrength?.strongRecommendationRate || 0) * 100}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium">${Math.round((str.recommendationStrength?.strongRecommendationRate || 0) * 100)}%</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-sm text-gray-600">一般推荐</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="bg-blue-500 h-3 rounded-full" style="width: ${(str.recommendationStrength?.moderateRecommendationRate || 0) * 100}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium">${Math.round((str.recommendationStrength?.moderateRecommendationRate || 0) * 100)}%</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-sm text-gray-600">仅提及</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="bg-gray-400 h-3 rounded-full" style="width: ${(str.recommendationStrength?.mentionOnlyRate || 0) * 100}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium">${Math.round((str.recommendationStrength?.mentionOnlyRate || 0) * 100)}%</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-sm text-gray-600">负面提及</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="bg-red-500 h-3 rounded-full" style="width: ${(str.recommendationStrength?.negativeMentionRate || 0) * 100}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium">${Math.round((str.recommendationStrength?.negativeMentionRate || 0) * 100)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'category':
+                    const cat = currentReport.signals.category;
+                    html = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">主要品类</h4>
+                                    ${(cat.primaryCategories || []).map(c => `
+                                        <div class="flex items-center justify-between py-1">
+                                            <span class="text-sm text-gray-600">${c.category}</span>
+                                            <span class="text-sm font-medium">${Math.round(c.associationStrength * 100)}%</span>
+                                        </div>
+                                    `).join('') || '<p class="text-sm text-gray-400">暂无数据</p>'}
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">品类机会</h4>
+                                    ${(cat.categoryOpportunities || []).map(o => `
+                                        <div class="text-sm text-gray-600 mb-1">• ${o.category}</div>
+                                    `).join('') || '<p class="text-sm text-gray-400">暂无数据</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+
+            content.innerHTML = html;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSignalModal() {
+            const modal = document.getElementById('signalModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // 添加下一步引导
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof NextStepGuide !== 'undefined') {
+                const mainContent = document.querySelector('.p-8');
+                if (mainContent) {
+                    const guideContainer = document.createElement('div');
+                    guideContainer.id = 'nextStepGuide';
+                    guideContainer.className = 'mt-6';
+                    mainContent.appendChild(guideContainer);
+                    NextStepGuide.render('nextStepGuide');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

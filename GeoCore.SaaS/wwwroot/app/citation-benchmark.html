@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 引用基准分析 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <div class="flex-1 overflow-auto">
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <h1 class="text-2xl font-bold text-gray-900">AI 引用基准分析</h1>
+                <p class="text-sm text-gray-500 mt-1">Phase 4: 分平台基准 + 内容结构 + 多模态 + 实体密度</p>
+            </header>
+
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('platforms')" id="tab-platforms" class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-database mr-2"></i>平台基准
+                    </button>
+                    <button onclick="switchTab('structure')" id="tab-structure" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-align-left mr-2"></i>结构评分
+                    </button>
+                    <button onclick="switchTab('multimodal')" id="tab-multimodal" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-photo-video mr-2"></i>多模态
+                    </button>
+                    <button onclick="switchTab('entities')" id="tab-entities" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-tags mr-2"></i>实体密度
+                    </button>
+                    <button onclick="switchTab('comprehensive')" id="tab-comprehensive" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-chart-pie mr-2"></i>综合分析
+                    </button>
+                </nav>
+            </div>
+
+            <main class="p-6">
+                <!-- Tab: Platform Benchmarks -->
+                <div id="content-platforms" class="tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="platformCards">
+                        <p class="text-gray-500 col-span-3 text-center py-8">加载中...</p>
+                    </div>
+                </div>
+
+                <!-- Tab: Structure Analysis -->
+                <div id="content-structure" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-align-left text-blue-500 mr-2"></i>内容结构评分
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                                    <textarea id="structureContent" rows="10" placeholder="粘贴文章内容（支持 Markdown/HTML）..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">目标平台</label>
+                                    <select id="structurePlatform" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="chatgpt">ChatGPT</option>
+                                        <option value="perplexity">Perplexity</option>
+                                        <option value="gemini">Google Gemini</option>
+                                        <option value="claude">Claude</option>
+                                        <option value="grok">Grok</option>
+                                        <option value="copilot">Microsoft Copilot</option>
+                                    </select>
+                                </div>
+                                <button onclick="analyzeStructure()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                                    <i class="fas fa-search mr-2"></i>分析结构
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">分析结果</h3>
+                            <div id="structureResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入内容后分析</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Multimodal -->
+                <div id="content-multimodal" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-photo-video text-purple-500 mr-2"></i>多模态内容检测
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-4">Google AI 与多模态内容相关性 <span class="font-bold text-purple-600">r=0.92</span></p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">HTML 内容</label>
+                                    <textarea id="multimodalContent" rows="10" placeholder="粘贴 HTML 内容..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <button onclick="analyzeMultimodal()" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium">
+                                    <i class="fas fa-search mr-2"></i>检测多模态
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">检测结果</h3>
+                            <div id="multimodalResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入内容后检测</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Entities -->
+                <div id="content-entities" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-tags text-green-500 mr-2"></i>实体密度分析
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-4">15+ 实体 → <span class="font-bold text-green-600">4.8x 选中率</span></p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                                    <textarea id="entityContent" rows="10" placeholder="粘贴文章内容..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <button onclick="analyzeEntities()" class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium">
+                                    <i class="fas fa-search mr-2"></i>分析实体
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">分析结果</h3>
+                            <div id="entityResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入内容后分析</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Comprehensive -->
+                <div id="content-comprehensive" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-chart-pie text-indigo-500 mr-2"></i>综合基准分析
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                                    <textarea id="comprehensiveContent" rows="8" placeholder="粘贴文章内容..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">URL (可选)</label>
+                                    <input type="text" id="comprehensiveUrl" placeholder="https://..." class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                </div>
+                                <button onclick="analyzeComprehensive()" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-medium">
+                                    <i class="fas fa-search mr-2"></i>综合分析
+                                </button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">综合报告</h3>
+                            <div id="comprehensiveResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">输入内容后生成报告</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 加载平台基准
+        async function loadPlatformBenchmarks() {
+            try {
+                const response = await fetch('/api/citation-benchmark/platforms');
+                const data = await response.json();
+                renderPlatformCards(data);
+            } catch (error) {
+                document.getElementById('platformCards').innerHTML = `<p class="text-red-500 col-span-3 text-center">加载失败: ${error.message}</p>`;
+            }
+        }
+
+        function renderPlatformCards(platforms) {
+            const colors = { chatgpt: 'green', perplexity: 'blue', gemini: 'purple', claude: 'orange', grok: 'red', copilot: 'cyan' };
+            document.getElementById('platformCards').innerHTML = platforms.map(p => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">${p.displayName}</h3>
+                        <span class="px-3 py-1 rounded-full text-sm font-medium bg-${colors[p.platform] || 'gray'}-100 text-${colors[p.platform] || 'gray'}-800">
+                            ${(p.averageCitationRate * 100).toFixed(0)}% 引用率
+                        </span>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <p class="text-gray-500">典型引用数</p>
+                            <p class="font-medium">${p.typicalCitationCount} 个来源</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">偏好来源</p>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${p.preferredSourceTypes.slice(0, 3).map(s => `<span class="px-2 py-0.5 bg-gray-100 rounded text-xs">${s}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">内容偏好</p>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${p.contentPreferences.slice(0, 3).map(s => `<span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">${s}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t">
+                            <p class="text-gray-500">结构偏好</p>
+                            <div class="grid grid-cols-2 gap-2 mt-1 text-xs">
+                                <span>段落: ${p.structureBenchmark.optimalParagraphLength}词</span>
+                                <span>章节: ${p.structureBenchmark.optimalSectionCount}个</span>
+                                <span>${p.structureBenchmark.prefersBulletPoints ? '✓ 项目符号' : '✗ 项目符号'}</span>
+                                <span>${p.structureBenchmark.prefersTables ? '✓ 表格' : '✗ 表格'}</span>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t">
+                            <p class="text-xs text-gray-400">${p.notes}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 4.43 结构分析
+        async function analyzeStructure() {
+            const content = document.getElementById('structureContent').value;
+            if (!content) { alert('请输入内容'); return; }
+
+            try {
+                const response = await fetch('/api/citation-benchmark/structure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: content,
+                        targetPlatform: document.getElementById('structurePlatform').value
+                    })
+                });
+                const data = await response.json();
+                renderStructureResult(data);
+            } catch (error) { alert('分析失败: ' + error.message); }
+        }
+
+        function renderStructureResult(data) {
+            const gradeColors = { 'A+': 'green', 'A': 'green', 'B': 'blue', 'C': 'yellow', 'D': 'orange', 'F': 'red' };
+            const color = gradeColors[data.grade] || 'gray';
+            
+            document.getElementById('structureResult').innerHTML = `
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-20 h-20 rounded-full bg-${color}-100 flex items-center justify-center">
+                        <span class="text-3xl font-bold text-${color}-600">${data.grade}</span>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-2xl font-bold text-gray-900">${data.overallScore}</p>
+                        <p class="text-sm text-gray-500">结构评分</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="p-3 bg-gray-50 rounded-lg text-center">
+                        <p class="text-lg font-bold">${data.paragraphAnalysis.score}</p>
+                        <p class="text-xs text-gray-500">段落</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg text-center">
+                        <p class="text-lg font-bold">${data.headingAnalysis.score}</p>
+                        <p class="text-xs text-gray-500">标题</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg text-center">
+                        <p class="text-lg font-bold">${data.listAnalysis.score}</p>
+                        <p class="text-xs text-gray-500">列表</p>
+                    </div>
+                </div>
+                <div class="space-y-2 mb-4">
+                    <p class="text-sm"><strong>段落:</strong> ${data.paragraphAnalysis.totalParagraphs}个, 平均${data.paragraphAnalysis.averageLength}词, ${data.paragraphAnalysis.optimalParagraphs}个最优</p>
+                    <p class="text-sm"><strong>标题:</strong> H1=${data.headingAnalysis.h1Count}, H2=${data.headingAnalysis.h2Count}, H3=${data.headingAnalysis.h3Count}</p>
+                    <p class="text-sm"><strong>列表:</strong> 项目符号=${data.listAnalysis.bulletListCount}, 编号=${data.listAnalysis.numberedListCount}, 表格=${data.listAnalysis.tableCount}</p>
+                </div>
+                ${data.issues.length > 0 ? `
+                    <div class="mb-4">
+                        <p class="font-medium text-red-800 mb-2">问题:</p>
+                        ${data.issues.map(i => `
+                            <div class="p-2 bg-${i.severity === 'critical' ? 'red' : i.severity === 'warning' ? 'yellow' : 'blue'}-50 rounded mb-2">
+                                <p class="text-sm font-medium">${i.description}</p>
+                                <p class="text-xs text-gray-600">${i.fix}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                ${data.recommendations.length > 0 ? `
+                    <div class="p-3 bg-green-50 rounded-lg">
+                        <p class="font-medium text-green-800 mb-1">建议:</p>
+                        ${data.recommendations.map(r => `<p class="text-sm text-green-700">• ${r}</p>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // 4.44 多模态分析
+        async function analyzeMultimodal() {
+            const content = document.getElementById('multimodalContent').value;
+            if (!content) { alert('请输入内容'); return; }
+
+            try {
+                const response = await fetch('/api/citation-benchmark/multimodal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+                const data = await response.json();
+                renderMultimodalResult(data);
+            } catch (error) { alert('检测失败: ' + error.message); }
+        }
+
+        function renderMultimodalResult(data) {
+            document.getElementById('multimodalResult').innerHTML = `
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center">
+                        <span class="text-2xl font-bold text-purple-600">${data.multimodalScore}</span>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">多模态评分</p>
+                        <p class="text-xs text-purple-600">Google AI 相关性 r=${data.googleAICorrelation}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium"><i class="fas fa-image mr-1"></i>图片</span>
+                            <span class="text-lg font-bold">${data.imageAnalysis.imageCount}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Alt: ${data.imageAnalysis.imagesWithAlt}, Caption: ${data.imageAnalysis.imagesWithCaption}</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium"><i class="fas fa-video mr-1"></i>视频</span>
+                            <span class="text-lg font-bold">${data.videoAnalysis.videoCount}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">有字幕: ${data.videoAnalysis.videosWithTranscript}</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium"><i class="fas fa-table mr-1"></i>表格</span>
+                            <span class="text-lg font-bold">${data.tableAnalysis.tableCount}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">有表头: ${data.tableAnalysis.tablesWithHeaders}</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium"><i class="fas fa-chart-bar mr-1"></i>图表</span>
+                            <span class="text-lg font-bold">${data.chartAnalysis.chartCount}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">有描述: ${data.chartAnalysis.chartsWithDescription}</p>
+                    </div>
+                </div>
+                ${data.recommendations.length > 0 ? `
+                    <div class="p-3 bg-purple-50 rounded-lg">
+                        <p class="font-medium text-purple-800 mb-1">建议:</p>
+                        ${data.recommendations.map(r => `<p class="text-sm text-purple-700">• ${r}</p>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // 4.45 实体分析
+        async function analyzeEntities() {
+            const content = document.getElementById('entityContent').value;
+            if (!content) { alert('请输入内容'); return; }
+
+            try {
+                const response = await fetch('/api/citation-benchmark/entities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+                const data = await response.json();
+                renderEntityResult(data);
+            } catch (error) { alert('分析失败: ' + error.message); }
+        }
+
+        function renderEntityResult(data) {
+            const multiplierColor = data.selectionMultiplier >= 4 ? 'green' : data.selectionMultiplier >= 2 ? 'blue' : 'gray';
+            
+            document.getElementById('entityResult').innerHTML = `
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                        <span class="text-2xl font-bold text-green-600">${data.totalEntities}</span>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">实体总数</p>
+                        <p class="text-lg font-bold text-${multiplierColor}-600">${data.selectionMultiplier}x 选中率</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2 mb-4 text-center text-sm">
+                    <div class="p-2 bg-blue-50 rounded">
+                        <p class="font-bold">${data.breakdown.personCount}</p>
+                        <p class="text-xs text-gray-500">人物</p>
+                    </div>
+                    <div class="p-2 bg-purple-50 rounded">
+                        <p class="font-bold">${data.breakdown.organizationCount}</p>
+                        <p class="text-xs text-gray-500">组织</p>
+                    </div>
+                    <div class="p-2 bg-green-50 rounded">
+                        <p class="font-bold">${data.breakdown.numberCount}</p>
+                        <p class="text-xs text-gray-500">数字</p>
+                    </div>
+                    <div class="p-2 bg-yellow-50 rounded">
+                        <p class="font-bold">${data.breakdown.dateCount}</p>
+                        <p class="text-xs text-gray-500">日期</p>
+                    </div>
+                </div>
+                ${data.topEntities.length > 0 ? `
+                    <div class="mb-4">
+                        <p class="font-medium text-gray-800 mb-2">提取的实体:</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.topEntities.map(e => `
+                                <span class="px-2 py-1 bg-gray-100 rounded text-sm">
+                                    ${e.text} <span class="text-xs text-gray-500">(${e.type})</span>
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                ${data.recommendations.length > 0 ? `
+                    <div class="p-3 bg-green-50 rounded-lg">
+                        <p class="font-medium text-green-800 mb-1">建议:</p>
+                        ${data.recommendations.map(r => `<p class="text-sm text-green-700">• ${r}</p>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // 综合分析
+        async function analyzeComprehensive() {
+            const content = document.getElementById('comprehensiveContent').value;
+            if (!content) { alert('请输入内容'); return; }
+
+            try {
+                const response = await fetch('/api/citation-benchmark/comprehensive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: content,
+                        url: document.getElementById('comprehensiveUrl').value,
+                        targetPlatforms: []
+                    })
+                });
+                const data = await response.json();
+                renderComprehensiveResult(data);
+            } catch (error) { alert('分析失败: ' + error.message); }
+        }
+
+        function renderComprehensiveResult(data) {
+            const gradeColors = { 'A+': 'green', 'A': 'green', 'B': 'blue', 'C': 'yellow', 'D': 'orange', 'F': 'red' };
+            const color = gradeColors[data.grade] || 'gray';
+            
+            document.getElementById('comprehensiveResult').innerHTML = `
+                <div class="flex items-center mb-6">
+                    <div class="w-24 h-24 rounded-full bg-${color}-100 flex items-center justify-center">
+                        <span class="text-4xl font-bold text-${color}-600">${data.grade}</span>
+                    </div>
+                    <div class="ml-6">
+                        <p class="text-3xl font-bold text-gray-900">${data.overallScore}</p>
+                        <p class="text-sm text-gray-500">综合评分</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="p-4 bg-blue-50 rounded-lg text-center">
+                        <p class="text-2xl font-bold text-blue-600">${data.structureAnalysis.overallScore}</p>
+                        <p class="text-sm text-blue-800">结构评分</p>
+                    </div>
+                    <div class="p-4 bg-purple-50 rounded-lg text-center">
+                        <p class="text-2xl font-bold text-purple-600">${data.multimodalAnalysis.multimodalScore}</p>
+                        <p class="text-sm text-purple-800">多模态</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg text-center">
+                        <p class="text-2xl font-bold text-green-600">${data.entityAnalysis.score}</p>
+                        <p class="text-sm text-green-800">实体密度</p>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <p class="font-medium text-gray-800 mb-3">平台适配度:</p>
+                    <div class="space-y-2">
+                        ${data.platformFitScores.slice(0, 4).map(p => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span class="font-medium">${p.displayName}</span>
+                                <div class="flex items-center">
+                                    <div class="w-32 h-2 bg-gray-200 rounded-full mr-3">
+                                        <div class="h-2 bg-${p.fitLevel === 'excellent' ? 'green' : p.fitLevel === 'good' ? 'blue' : 'yellow'}-500 rounded-full" style="width: ${p.fitScore}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium">${p.fitScore}%</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ${data.topRecommendations.length > 0 ? `
+                    <div class="p-4 bg-indigo-50 rounded-lg">
+                        <p class="font-medium text-indigo-800 mb-2">优先建议:</p>
+                        ${data.topRecommendations.map(r => `<p class="text-sm text-indigo-700">• ${r}</p>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+            loadPlatformBenchmarks();
+        });
+    </script>
+</body>
+</html>

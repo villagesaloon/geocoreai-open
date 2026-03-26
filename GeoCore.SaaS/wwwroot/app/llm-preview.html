@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 预览模拟 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">LLM 预览模拟</h1>
+                        <p class="text-sm text-gray-500 mt-1">发布前模拟内容在各 AI 平台中的呈现</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('preview')" id="tab-preview" 
+                            class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-eye mr-2"></i>预览模拟
+                    </button>
+                    <button onclick="switchTab('loop')" id="tab-loop"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-sync-alt mr-2"></i>持续优化循环
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Tab: 预览模拟 -->
+                <div id="content-preview" class="tab-content">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">输入内容</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
+                            <input type="text" id="previewTitle" placeholder="文章标题" 
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                            <textarea id="previewContent" rows="8" placeholder="粘贴要预览的内容..."
+                                      class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">模拟用户问题（可选）</label>
+                            <input type="text" id="simulatedQuery" placeholder="用户可能会问什么问题？" 
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">目标平台</label>
+                            <div class="flex flex-wrap gap-3">
+                                <label class="flex items-center">
+                                    <input type="checkbox" value="chatgpt" checked class="platform-check mr-2">
+                                    <span class="text-gray-700">ChatGPT</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" value="perplexity" checked class="platform-check mr-2">
+                                    <span class="text-gray-700">Perplexity</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" value="claude" checked class="platform-check mr-2">
+                                    <span class="text-gray-700">Claude</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" value="gemini" checked class="platform-check mr-2">
+                                    <span class="text-gray-700">Gemini</span>
+                                </label>
+                            </div>
+                        </div>
+                        <button onclick="generatePreview()" 
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-magic mr-2"></i>生成预览
+                        </button>
+                    </div>
+
+                    <!-- Preview Results -->
+                    <div id="previewResults" class="hidden space-y-6">
+                        <!-- Overall Score -->
+                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-xl font-semibold mb-2">
+                                        <i class="fas fa-chart-line mr-2"></i>综合可引用性评分
+                                    </h2>
+                                    <p class="text-blue-100">基于各平台引用概率的综合评估</p>
+                                </div>
+                                <div class="text-right">
+                                    <div id="overallScore" class="text-5xl font-bold"></div>
+                                    <div class="text-blue-200 mt-1">/ 100</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Platform Previews -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="platformPreviews"></div>
+
+                        <!-- Predicted Citations -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-quote-left text-blue-500 mr-2"></i>预测的引用片段
+                            </h3>
+                            <div id="predictedCitations" class="space-y-4"></div>
+                        </div>
+
+                        <!-- Suggestions -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>优化建议
+                            </h3>
+                            <div id="previewSuggestions" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: 持续优化循环 -->
+                <div id="content-loop" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">优化循环配置</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">项目 ID</label>
+                                <input type="text" id="loopProjectId" placeholder="project-123" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">检测频率（小时）</label>
+                                <input type="number" id="loopInterval" value="24" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">监测 URL（每行一个）</label>
+                            <textarea id="loopUrls" rows="4" placeholder="https://example.com/page1&#10;https://example.com/page2"
+                                      class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">关键词（每行一个）</label>
+                            <textarea id="loopKeywords" rows="3" placeholder="关键词1&#10;关键词2"
+                                      class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                        <button onclick="getLoopStatus()" 
+                                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                            <i class="fas fa-play mr-2"></i>获取循环状态
+                        </button>
+                    </div>
+
+                    <!-- Loop Status -->
+                    <div id="loopStatus" class="hidden space-y-6">
+                        <!-- Current Stage -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">当前阶段</h3>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-8">
+                                    <div id="stage-detect" class="flex flex-col items-center">
+                                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-gray-500">
+                                            <i class="fas fa-search text-xl"></i>
+                                        </div>
+                                        <span class="mt-2 text-sm text-gray-500">检测</span>
+                                    </div>
+                                    <div class="w-16 h-1 bg-gray-200"></div>
+                                    <div id="stage-fix" class="flex flex-col items-center">
+                                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-gray-500">
+                                            <i class="fas fa-wrench text-xl"></i>
+                                        </div>
+                                        <span class="mt-2 text-sm text-gray-500">修复</span>
+                                    </div>
+                                    <div class="w-16 h-1 bg-gray-200"></div>
+                                    <div id="stage-verify" class="flex flex-col items-center">
+                                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-gray-500">
+                                            <i class="fas fa-check text-xl"></i>
+                                        </div>
+                                        <span class="mt-2 text-sm text-gray-500">验证</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detected Issues -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>检测到的问题
+                            </h3>
+                            <div id="detectedIssues" class="space-y-3"></div>
+                        </div>
+
+                        <!-- Next Actions -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-tasks text-blue-500 mr-2"></i>下一步行动
+                            </h3>
+                            <div id="nextActions" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Verified Improvements -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-chart-line text-green-500 mr-2"></i>已验证的改进
+                            </h3>
+                            <div id="verifiedImprovements" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 3.31 LLM 预览模拟
+        async function generatePreview() {
+            const content = document.getElementById('previewContent').value;
+            const title = document.getElementById('previewTitle').value;
+            const simulatedQuery = document.getElementById('simulatedQuery').value;
+            const targetPlatforms = Array.from(document.querySelectorAll('.platform-check:checked'))
+                .map(cb => cb.value);
+
+            if (!content) {
+                alert('请输入要预览的内容');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/llm-preview/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, title, simulatedQuery, targetPlatforms })
+                });
+                const data = await response.json();
+                renderPreviewResults(data);
+            } catch (error) {
+                alert('生成预览失败: ' + error.message);
+            }
+        }
+
+        function renderPreviewResults(data) {
+            document.getElementById('previewResults').classList.remove('hidden');
+            document.getElementById('overallScore').textContent = Math.round(data.overallCitabilityScore);
+
+            // Platform previews
+            const platformColors = {
+                chatgpt: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-600' },
+                perplexity: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-600' },
+                claude: { bg: 'bg-orange-50', border: 'border-orange-200', icon: 'text-orange-600' },
+                gemini: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'text-purple-600' }
+            };
+
+            const previewsHtml = data.previews.map(p => {
+                const colors = platformColors[p.platform] || platformColors.chatgpt;
+                return `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="${colors.bg} ${colors.border} border-b px-4 py-3 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-robot ${colors.icon} mr-2"></i>
+                                <span class="font-semibold text-gray-900">${p.displayName}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-600 mr-2">引用概率:</span>
+                                <span class="font-bold ${p.citationProbability >= 60 ? 'text-green-600' : p.citationProbability >= 40 ? 'text-yellow-600' : 'text-red-600'}">
+                                    ${Math.round(p.citationProbability)}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="mb-3">
+                                <span class="px-2 py-1 rounded text-xs font-medium ${
+                                    p.likelyCited ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                }">${p.citationPosition}</span>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3 mb-3 text-sm text-gray-700">
+                                ${p.simulatedResponse.replace(/\n/g, '<br>')}
+                            </div>
+                            <div class="space-y-1">
+                                ${p.platformTips.map(tip => `
+                                    <div class="flex items-center text-sm text-gray-600">
+                                        <i class="fas fa-lightbulb text-yellow-500 mr-2 text-xs"></i>${tip}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('platformPreviews').innerHTML = previewsHtml;
+
+            // Predicted citations
+            const citationsHtml = data.predictedCitations.length ? data.predictedCitations.map(c => `
+                <div class="border-l-4 border-blue-500 pl-4 py-2">
+                    <p class="text-gray-900 italic">"${c.text}"</p>
+                    <div class="flex items-center mt-2 text-sm text-gray-500">
+                        <span class="mr-4"><i class="fas fa-percentage mr-1"></i>${Math.round(c.probability)}% 概率</span>
+                        <span class="mr-4"><i class="fas fa-text-width mr-1"></i>${c.wordCount} 词</span>
+                        <span><i class="fas fa-info-circle mr-1"></i>${c.reason}</span>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-gray-500">未检测到高概率引用片段</p>';
+            document.getElementById('predictedCitations').innerHTML = citationsHtml;
+
+            // Suggestions
+            const suggestionsHtml = data.suggestions.length ? data.suggestions.map(s => `
+                <div class="flex items-start p-3 rounded-lg ${
+                    s.priority === 'high' ? 'bg-red-50' : s.priority === 'medium' ? 'bg-yellow-50' : 'bg-gray-50'
+                }">
+                    <i class="fas fa-${s.priority === 'high' ? 'exclamation-circle text-red-500' : 'info-circle text-yellow-500'} mt-1 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">${s.message}</p>
+                        <p class="text-sm text-gray-600">${s.impact}</p>
+                        ${s.affectedPlatforms.length ? `<p class="text-xs text-gray-500 mt-1">影响平台: ${s.affectedPlatforms.join(', ')}</p>` : ''}
+                    </div>
+                </div>
+            `).join('') : '<p class="text-gray-500">暂无建议</p>';
+            document.getElementById('previewSuggestions').innerHTML = suggestionsHtml;
+        }
+
+        // 4.54 持续优化循环
+        async function getLoopStatus() {
+            const projectId = document.getElementById('loopProjectId').value || 'default';
+            const checkIntervalHours = parseInt(document.getElementById('loopInterval').value) || 24;
+            const monitoredUrls = document.getElementById('loopUrls').value.split('\n').filter(u => u.trim());
+            const keywords = document.getElementById('loopKeywords').value.split('\n').filter(k => k.trim());
+
+            try {
+                const response = await fetch('/api/llm-preview/optimization-loop/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId, checkIntervalHours, monitoredUrls, keywords })
+                });
+                const data = await response.json();
+                renderLoopStatus(data);
+            } catch (error) {
+                alert('获取状态失败: ' + error.message);
+            }
+        }
+
+        function renderLoopStatus(data) {
+            document.getElementById('loopStatus').classList.remove('hidden');
+
+            // Update stage indicators
+            const stages = ['detect', 'fix', 'verify'];
+            stages.forEach(stage => {
+                const el = document.getElementById(`stage-${stage}`);
+                const circle = el.querySelector('div');
+                if (stage === data.currentStage) {
+                    circle.classList.remove('bg-gray-200', 'text-gray-500');
+                    circle.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    circle.classList.remove('bg-blue-600', 'text-white');
+                    circle.classList.add('bg-gray-200', 'text-gray-500');
+                }
+            });
+
+            // Detected issues
+            const issuesHtml = data.detectedIssues.length ? data.detectedIssues.map(i => `
+                <div class="flex items-start p-3 rounded-lg ${
+                    i.severity === 'high' ? 'bg-red-50' : i.severity === 'medium' ? 'bg-yellow-50' : 'bg-gray-50'
+                }">
+                    <i class="fas fa-exclamation-triangle ${
+                        i.severity === 'high' ? 'text-red-500' : 'text-yellow-500'
+                    } mt-1 mr-3"></i>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="font-medium text-gray-900">${i.description}</p>
+                            <span class="text-xs text-gray-500">${i.type}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">URL: ${i.affectedUrl}</p>
+                        <p class="text-sm text-green-600 mt-1">建议: ${i.suggestedFix}</p>
+                        <button onclick="applyFix('${i.issueId}', '${i.suggestedFix}')" 
+                                class="mt-2 text-sm text-blue-600 hover:text-blue-700">
+                            <i class="fas fa-wrench mr-1"></i>应用修复
+                        </button>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-gray-500">未检测到问题</p>';
+            document.getElementById('detectedIssues').innerHTML = issuesHtml;
+
+            // Next actions
+            const actionsHtml = data.nextActions.map(a => `
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-arrow-right text-blue-500 mr-2"></i>${a}
+                </div>
+            `).join('');
+            document.getElementById('nextActions').innerHTML = actionsHtml;
+
+            // Verified improvements
+            const improvementsHtml = data.verifiedImprovements.length ? data.verifiedImprovements.map(i => `
+                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div>
+                        <p class="font-medium text-gray-900">${i.description}</p>
+                        <p class="text-sm text-gray-600">修复 ID: ${i.fixId}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-green-600 font-bold">+${i.improvementPercentage.toFixed(1)}%</p>
+                        <p class="text-xs text-gray-500">${i.beforeMetric} → ${i.afterMetric}</p>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-gray-500">暂无已验证的改进</p>';
+            document.getElementById('verifiedImprovements').innerHTML = improvementsHtml;
+        }
+
+        async function applyFix(issueId, fixDescription) {
+            try {
+                const response = await fetch('/api/llm-preview/optimization-loop/fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issueId, fixDescription })
+                });
+                const data = await response.json();
+                alert(`修复已应用！修复 ID: ${data.fixId}\n预期验证时间: ${new Date(data.expectedVerificationTime).toLocaleString()}`);
+                getLoopStatus();
+            } catch (error) {
+                alert('应用修复失败: ' + error.message);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+        });
+    </script>
+</body>
+</html>

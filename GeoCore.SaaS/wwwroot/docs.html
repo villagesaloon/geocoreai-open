@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档中心 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .doc-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">文档中心</h2>
+                    <p class="text-sm text-gray-500">使用指南 | API 文档 | 最佳实践</p>
+                </div>
+                <div class="relative">
+                    <input type="text" placeholder="搜索文档..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-64">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+        </header>
+        <div class="p-8">
+            <!-- 快速开始 -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-8 mb-6 text-white">
+                <h3 class="text-2xl font-bold mb-2">欢迎使用 GCore</h3>
+                <p class="text-indigo-100 mb-4">快速了解如何使用 AI 可见度优化平台提升你的品牌表现</p>
+                <div class="flex gap-3">
+                    <button class="px-4 py-2 bg-white text-indigo-600 rounded-lg font-medium hover:bg-indigo-50">
+                        <i class="fas fa-play mr-2"></i>快速开始
+                    </button>
+                    <button class="px-4 py-2 bg-indigo-400 text-white rounded-lg font-medium hover:bg-indigo-300">
+                        <i class="fas fa-video mr-2"></i>视频教程
+                    </button>
+                </div>
+            </div>
+
+            <!-- 文档分类 -->
+            <div class="grid grid-cols-3 gap-6 mb-8">
+                <div class="doc-card bg-white rounded-xl p-6 shadow-sm transition-all cursor-pointer">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-rocket text-blue-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 mb-2">快速入门</h4>
+                    <p class="text-sm text-gray-500 mb-3">10分钟内完成首次配置并获得第一份分析报告</p>
+                    <a href="#" class="text-sm text-indigo-600 hover:underline">开始阅读 →</a>
+                </div>
+                <div class="doc-card bg-white rounded-xl p-6 shadow-sm transition-all cursor-pointer">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-star text-emerald-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 mb-2">SHEEP 分析详解</h4>
+                    <p class="text-sm text-gray-500 mb-3">深入了解五维评估模型及其优化策略</p>
+                    <a href="#" class="text-sm text-indigo-600 hover:underline">开始阅读 →</a>
+                </div>
+                <div class="doc-card bg-white rounded-xl p-6 shadow-sm transition-all cursor-pointer">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-filter text-purple-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 mb-2">蒸馏工作流</h4>
+                    <p class="text-sm text-gray-500 mb-3">掌握三层/五层蒸馏模型的使用技巧</p>
+                    <a href="#" class="text-sm text-indigo-600 hover:underline">开始阅读 →</a>
+                </div>
+            </div>
+
+            <!-- 热门文档 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">热门文档</h3>
+                <div class="space-y-3">
+                    <a href="#" class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <div class="flex-1">
+                            <p class="text-gray-900">如何提升 AI 可见度评分</p>
+                            <p class="text-xs text-gray-500">最佳实践 · 阅读时间 8 分钟</p>
+                        </div>
+                        <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">推荐</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <div class="flex-1">
+                            <p class="text-gray-900">llms.txt 完整指南</p>
+                            <p class="text-xs text-gray-500">技术文档 · 阅读时间 12 分钟</p>
+                        </div>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <div class="flex-1">
+                            <p class="text-gray-900">竞品分析功能详解</p>
+                            <p class="text-xs text-gray-500">功能指南 · 阅读时间 6 分钟</p>
+                        </div>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-file-alt text-gray-400"></i>
+                        <div class="flex-1">
+                            <p class="text-gray-900">Prompt 工作室使用教程</p>
+                            <p class="text-xs text-gray-500">视频教程 · 15 分钟</p>
+                        </div>
+                        <span class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded">视频</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- API 文档 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">API 参考</h3>
+                    <div class="space-y-3">
+                        <a href="#" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                            <p class="font-medium text-gray-900">认证与授权</p>
+                            <p class="text-xs text-gray-500">API Key 管理与安全配置</p>
+                        </a>
+                        <a href="#" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                            <p class="font-medium text-gray-900">可见度分析 API</p>
+                            <p class="text-xs text-gray-500">获取品牌可见度数据</p>
+                        </a>
+                        <a href="#" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                            <p class="font-medium text-gray-900">SHEEP 评分 API</p>
+                            <p class="text-xs text-gray-500">获取五维评分详情</p>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 常见问题 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">常见问题</h3>
+                    <div class="space-y-3">
+                        <details class="group">
+                            <summary class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                                <span class="text-gray-900">如何开始使用 GCore？</span>
+                                <i class="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <p class="p-3 text-sm text-gray-600">首先完成配置向导中的品牌信息设置，然后系统会自动进行首次分析并生成报告。</p>
+                        </details>
+                        <details class="group">
+                            <summary class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                                <span class="text-gray-900">数据多久更新一次？</span>
+                                <i class="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <p class="p-3 text-sm text-gray-600">标准套餐每日更新一次，专业版和企业版支持实时监控。</p>
+                        </details>
+                        <details class="group">
+                            <summary class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                                <span class="text-gray-900">如何添加竞品进行对比？</span>
+                                <i class="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <p class="p-3 text-sm text-gray-600">在配置向导或竞品分析页面，点击"添加竞品"按钮输入竞品信息即可。</p>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+

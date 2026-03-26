@@ -1,0 +1,44 @@
+/* GEOCore AI - SaaS 前台样式 */
+
+/* 渐变背景 */
+.gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+.gradient-text { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+/* 卡片悬停效果 */
+.card-hover { transition: all 0.3s ease; }
+.card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+
+/* 导航链接 */
+.nav-link { transition: color 0.2s; }
+.nav-link:hover { color: #6366f1; }
+.nav-link.active { color: #6366f1; font-weight: 500; }
+
+/* 按钮样式 */
+.btn-primary { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; transition: opacity 0.2s; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { border: 1px solid #6366f1; color: #6366f1; transition: all 0.2s; }
+.btn-secondary:hover { background: #6366f1; color: white; }
+
+/* 侧边栏 */
+.sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; color: #6b7280; transition: all 0.2s; }
+.sidebar-link:hover { background: #f3f4f6; color: #111827; }
+.sidebar-link.active { background: #eef2ff; color: #6366f1; font-weight: 500; }
+
+/* 表格 */
+.table-row { transition: background 0.2s; }
+.table-row:hover { background: #f9fafb; }
+
+/* 输入框焦点 */
+.input-focus:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+
+/* 动画 */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+
+/* 响应式隐藏 */
+@media (max-width: 768px) {
+    .hide-mobile { display: none; }
+}
+@media (min-width: 769px) {
+    .hide-desktop { display: none; }
+}

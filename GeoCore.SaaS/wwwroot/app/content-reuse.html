@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容复用工作流 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">内容复用工作流</h1>
+                        <p class="text-sm text-gray-500 mt-1">从长文内容转换为各平台格式</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('transform')" id="tab-transform" 
+                            class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-exchange-alt mr-2"></i>内容转换
+                    </button>
+                    <button onclick="switchTab('recommend')" id="tab-recommend"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-compass mr-2"></i>平台推荐
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Tab: 内容转换 -->
+                <div id="content-transform" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Input -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">原始内容</h3>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
+                                <input type="text" id="sourceTitle" placeholder="文章标题" 
+                                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                                <textarea id="sourceContent" rows="12" placeholder="粘贴长文内容..."
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">目标平台</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" value="twitter" class="target-platform mr-3">
+                                        <i class="fab fa-twitter text-blue-400 mr-2"></i>
+                                        <span>Twitter/X</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" value="linkedin" class="target-platform mr-3">
+                                        <i class="fab fa-linkedin text-blue-600 mr-2"></i>
+                                        <span>LinkedIn</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" value="reddit" class="target-platform mr-3">
+                                        <i class="fab fa-reddit text-orange-500 mr-2"></i>
+                                        <span>Reddit</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" value="email" class="target-platform mr-3">
+                                        <i class="fas fa-envelope text-gray-600 mr-2"></i>
+                                        <span>Email</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" value="weibo" class="target-platform mr-3">
+                                        <i class="fab fa-weibo text-red-500 mr-2"></i>
+                                        <span>微博</span>
+                                    </label>
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" value="zhihu" class="target-platform mr-3">
+                                        <i class="fas fa-question-circle text-blue-500 mr-2"></i>
+                                        <span>知乎</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button onclick="transformContent()" 
+                                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-magic mr-2"></i>开始转换
+                            </button>
+                        </div>
+
+                        <!-- Output -->
+                        <div class="space-y-4">
+                            <div id="transformResults" class="space-y-4">
+                                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-500">
+                                    <i class="fas fa-arrow-left text-4xl mb-4"></i>
+                                    <p>选择目标平台并点击转换</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: 平台推荐 -->
+                <div id="content-recommend" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">根据内容类型推荐平台</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                            <textarea id="recommendContent" rows="6" placeholder="粘贴要分析的内容..."
+                                      class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">内容类型</label>
+                            <select id="contentType" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                <option value="article">长文文章</option>
+                                <option value="tutorial">教程指南</option>
+                                <option value="news">新闻资讯</option>
+                                <option value="opinion">观点评论</option>
+                                <option value="case_study">案例研究</option>
+                                <option value="product">产品介绍</option>
+                            </select>
+                        </div>
+                        <button onclick="getRecommendations()" 
+                                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                            <i class="fas fa-compass mr-2"></i>获取推荐
+                        </button>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div id="recommendResults" class="hidden space-y-6">
+                        <!-- Summary -->
+                        <div class="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl p-6 text-white">
+                            <h2 class="text-xl font-semibold mb-2">
+                                <i class="fas fa-bullseye mr-2"></i>平台推荐摘要
+                            </h2>
+                            <p id="recommendSummary" class="text-green-100"></p>
+                        </div>
+
+                        <!-- Platform Cards -->
+                        <div id="platformCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+                        <!-- Strategy -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-route text-blue-500 mr-2"></i>发布策略
+                            </h3>
+                            <div id="publishStrategy" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 5.18 内容转换
+        async function transformContent() {
+            const title = document.getElementById('sourceTitle').value;
+            const content = document.getElementById('sourceContent').value;
+            const targetPlatforms = Array.from(document.querySelectorAll('.target-platform:checked'))
+                .map(cb => cb.value);
+
+            if (!content) {
+                alert('请输入要转换的内容');
+                return;
+            }
+            if (targetPlatforms.length === 0) {
+                alert('请选择至少一个目标平台');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/content-reuse/transform', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content, targetPlatforms })
+                });
+                const data = await response.json();
+                renderTransformResults(data);
+            } catch (error) {
+                alert('转换失败: ' + error.message);
+            }
+        }
+
+        function renderTransformResults(data) {
+            const platformIcons = {
+                twitter: { icon: 'fab fa-twitter', color: 'text-blue-400', bg: 'bg-blue-50' },
+                linkedin: { icon: 'fab fa-linkedin', color: 'text-blue-600', bg: 'bg-blue-50' },
+                reddit: { icon: 'fab fa-reddit', color: 'text-orange-500', bg: 'bg-orange-50' },
+                email: { icon: 'fas fa-envelope', color: 'text-gray-600', bg: 'bg-gray-50' },
+                weibo: { icon: 'fab fa-weibo', color: 'text-red-500', bg: 'bg-red-50' },
+                zhihu: { icon: 'fas fa-question-circle', color: 'text-blue-500', bg: 'bg-blue-50' }
+            };
+
+            const resultsHtml = data.transformedContents.map(t => {
+                const platform = platformIcons[t.platform] || platformIcons.twitter;
+                return `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="${platform.bg} px-4 py-3 flex items-center justify-between border-b">
+                            <div class="flex items-center">
+                                <i class="${platform.icon} ${platform.color} mr-2"></i>
+                                <span class="font-semibold text-gray-900">${t.platformName}</span>
+                            </div>
+                            <button onclick="copyContent(this)" data-content="${encodeURIComponent(t.content)}"
+                                    class="text-blue-600 hover:text-blue-700 text-sm">
+                                <i class="fas fa-copy mr-1"></i>复制
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="bg-gray-50 rounded-lg p-3 mb-3 text-sm text-gray-700 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                                ${t.content}
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-gray-500">
+                                <span><i class="fas fa-text-width mr-1"></i>${t.characterCount} 字符</span>
+                                <span class="px-2 py-1 rounded ${t.withinLimit ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                    ${t.withinLimit ? '符合限制' : '超出限制'}
+                                </span>
+                            </div>
+                            ${t.tips.length ? `
+                                <div class="mt-3 pt-3 border-t border-gray-100">
+                                    <p class="text-xs text-gray-500 mb-1">发布提示:</p>
+                                    ${t.tips.map(tip => `<p class="text-xs text-gray-600">• ${tip}</p>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('transformResults').innerHTML = resultsHtml || 
+                '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-500">无转换结果</div>';
+        }
+
+        function copyContent(btn) {
+            const content = decodeURIComponent(btn.dataset.content);
+            navigator.clipboard.writeText(content);
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i>已复制';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-copy mr-1"></i>复制';
+            }, 2000);
+        }
+
+        // 5.19 平台推荐
+        async function getRecommendations() {
+            const content = document.getElementById('recommendContent').value;
+            const contentType = document.getElementById('contentType').value;
+
+            if (!content) {
+                alert('请输入要分析的内容');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/content-reuse/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, contentType })
+                });
+                const data = await response.json();
+                renderRecommendResults(data);
+            } catch (error) {
+                alert('获取推荐失败: ' + error.message);
+            }
+        }
+
+        function renderRecommendResults(data) {
+            document.getElementById('recommendResults').classList.remove('hidden');
+            document.getElementById('recommendSummary').textContent = 
+                `根据内容分析，推荐 ${data.recommendations.length} 个平台，预计总覆盖 ${data.estimatedReach || '10K+'} 受众`;
+
+            const platformIcons = {
+                twitter: { icon: 'fab fa-twitter', color: 'bg-blue-500' },
+                linkedin: { icon: 'fab fa-linkedin', color: 'bg-blue-700' },
+                reddit: { icon: 'fab fa-reddit', color: 'bg-orange-500' },
+                email: { icon: 'fas fa-envelope', color: 'bg-gray-600' },
+                weibo: { icon: 'fab fa-weibo', color: 'bg-red-500' },
+                zhihu: { icon: 'fas fa-question-circle', color: 'bg-blue-600' },
+                medium: { icon: 'fab fa-medium', color: 'bg-gray-900' },
+                youtube: { icon: 'fab fa-youtube', color: 'bg-red-600' }
+            };
+
+            const cardsHtml = data.recommendations.map(r => {
+                const platform = platformIcons[r.platform] || platformIcons.twitter;
+                return `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 ${platform.color} rounded-lg flex items-center justify-center text-white mr-3">
+                                <i class="${platform.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">${r.platformName}</h4>
+                                <div class="flex items-center">
+                                    <span class="text-sm text-gray-500 mr-2">匹配度:</span>
+                                    <div class="flex">
+                                        ${Array(5).fill(0).map((_, i) => 
+                                            `<i class="fas fa-star text-xs ${i < Math.round(r.matchScore / 20) ? 'text-yellow-400' : 'text-gray-300'}"></i>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">${r.reason}</p>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-500">预计覆盖: ${r.estimatedReach}</span>
+                            <span class="px-2 py-1 rounded ${
+                                r.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                r.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
+                            }">${r.priority === 'high' ? '高优先级' : r.priority === 'medium' ? '中优先级' : '低优先级'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('platformCards').innerHTML = cardsHtml;
+
+            // Strategy
+            const strategyHtml = data.publishStrategy ? data.publishStrategy.map((s, i) => `
+                <div class="flex items-start p-3 bg-blue-50 rounded-lg">
+                    <div class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">
+                        ${i + 1}
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-900">${s.step}</p>
+                        <p class="text-sm text-gray-600">${s.description}</p>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-gray-500">暂无发布策略</p>';
+            document.getElementById('publishStrategy').innerHTML = strategyHtml;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+        });
+    </script>
+</body>
+</html>

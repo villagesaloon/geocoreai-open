@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引用追踪 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .status-dot { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .engine-result { transition: all 0.3s; }
+        .engine-result:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <script src="js/next-step-guide.js"></script>
+
+    <!-- 主内容 -->
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">引用追踪</h2>
+                    <p class="text-sm text-gray-500">监控引用 | 漂移分析 | 一键优化</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="viewHistory()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-history mr-2"></i>历史记录
+                    </button>
+                    <button onclick="exportReport()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-download mr-2"></i>导出报告
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 测试配置 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-search text-indigo-600 mr-2"></i>引用检测配置
+                </h3>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">目标网站/品牌</label>
+                        <input type="text" id="targetUrl" placeholder="输入网站域名或品牌名称，如 example.com 或 品牌名"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">行业领域</label>
+                        <select id="industrySelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="tech">科技/互联网</option>
+                            <option value="ecommerce">电子商务</option>
+                            <option value="finance">金融理财</option>
+                            <option value="healthcare">医疗健康</option>
+                            <option value="education">教育培训</option>
+                            <option value="pets">宠物行业</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">测试查询（用于检测引用）</label>
+                    <div class="space-y-2" id="testQueries">
+                        <div class="flex gap-2">
+                            <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                                   placeholder="输入测试问题..." value="智能家居产品推荐">
+                            <button onclick="removeQuery(this)" class="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                                   placeholder="输入测试问题..." value="2024年最好的扫地机器人">
+                            <button onclick="removeQuery(this)" class="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button onclick="addQuery()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-700">
+                        <i class="fas fa-plus mr-1"></i>添加更多查询
+                    </button>
+                </div>
+                
+                <div class="mt-6 flex gap-3">
+                    <button onclick="startTracking()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                        <i class="fas fa-play mr-2"></i>开始检测
+                    </button>
+                    <button onclick="scheduleTracking()" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                        <i class="fas fa-clock mr-2"></i>设置定期监控
+                    </button>
+                </div>
+            </div>
+
+            <!-- 检测状态 -->
+            <div id="trackingStatus" class="hidden mb-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="status-dot w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span class="text-blue-700 font-medium">正在检测中...</span>
+                        <span id="progressText" class="text-blue-600 text-sm">0/6 引擎</span>
+                    </div>
+                    <div class="mt-3 bg-blue-200 rounded-full h-2 overflow-hidden">
+                        <div id="progressBar" class="bg-blue-600 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 检测结果 -->
+            <div id="trackingResults" class="space-y-6">
+                <!-- 总览卡片 -->
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">检测引擎</p>
+                                <p class="text-2xl font-bold text-gray-900" id="totalEngines">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-robot text-indigo-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">发现引用</p>
+                                <p class="text-2xl font-bold text-green-600" id="citationCount">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">平均排名</p>
+                                <p class="text-2xl font-bold text-amber-600" id="avgRank">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-trophy text-amber-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">引用率</p>
+                                <p class="text-2xl font-bold text-blue-600" id="citationRate">0%</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-percentage text-blue-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 各引擎结果 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="fas fa-list text-indigo-600 mr-2"></i>各引擎检测结果
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 gap-4" id="engineResults">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 引用漂移分析 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="fas fa-chart-line text-purple-600 mr-2"></i>引用漂移分析
+                        </h3>
+                        <span class="text-xs text-gray-500">对比上次检测</span>
+                    </div>
+                    <div class="p-6" id="driftAnalysis">
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div class="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas fa-arrow-up text-emerald-600"></i>
+                                    <span class="font-medium text-emerald-700">新增引用</span>
+                                </div>
+                                <p class="text-2xl font-bold text-emerald-600" id="newCitations">0</p>
+                                <p class="text-xs text-gray-500 mt-1">本次新发现</p>
+                            </div>
+                            <div class="p-4 bg-red-50 rounded-lg border border-red-200">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas fa-arrow-down text-red-600"></i>
+                                    <span class="font-medium text-red-700">丢失引用</span>
+                                </div>
+                                <p class="text-2xl font-bold text-red-600" id="lostCitations">0</p>
+                                <p class="text-xs text-gray-500 mt-1">需要关注</p>
+                            </div>
+                            <div class="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas fa-exchange-alt text-amber-600"></i>
+                                    <span class="font-medium text-amber-700">排名变化</span>
+                                </div>
+                                <p class="text-2xl font-bold text-amber-600" id="rankChanges">0</p>
+                                <p class="text-xs text-gray-500 mt-1">个引擎排名变动</p>
+                            </div>
+                        </div>
+                        <div id="driftDetails" class="space-y-2">
+                            <p class="text-sm text-gray-500 text-center">完成检测后查看漂移分析</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详细引用记录 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="fas fa-quote-left text-green-600 mr-2"></i>引用详情
+                        </h3>
+                    </div>
+                    <div class="divide-y divide-gray-200" id="citationDetails">
+                        <div class="p-6 text-center text-gray-400">
+                            <i class="fas fa-search text-4xl mb-3"></i>
+                            <p>点击"开始检测"查看引用详情</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 一键优化建议 -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold text-lg">发现优化机会</h3>
+                            <p class="text-sm opacity-80">基于引用分析，我们发现了 <span id="opportunityCount">3</span> 个可优化点</p>
+                        </div>
+                        <button onclick="startOptimization()" class="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-gray-100 font-medium">
+                            一键优化 <i class="fas fa-magic ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 下一步引导 -->
+                <div id="nextStepGuide" class="mt-6"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 引擎配置
+        const engines = [
+            { id: 'chatgpt', name: 'ChatGPT', icon: 'fa-robot', color: 'green' },
+            { id: 'claude', name: 'Claude', icon: 'fa-brain', color: 'orange' },
+            { id: 'gemini', name: 'Gemini', icon: 'fa-gem', color: 'blue' },
+            { id: 'perplexity', name: 'Perplexity', icon: 'fa-search', color: 'cyan' },
+            { id: 'wenxin', name: '文心一言', icon: 'fa-comment-dots', color: 'blue' },
+            { id: 'qianwen', name: '通义千问', icon: 'fa-comments', color: 'purple' }
+        ];
+
+        // 从 URL 参数获取目标网址
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlFromParam = urlParams.get('url');
+        if (urlFromParam) {
+            document.getElementById('targetUrl').value = urlFromParam;
+        }
+
+        // 添加查询
+        function addQuery() {
+            const container = document.getElementById('testQueries');
+            const div = document.createElement('div');
+            div.className = 'flex gap-2';
+            div.innerHTML = `
+                <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                       placeholder="输入测试问题...">
+                <button onclick="removeQuery(this)" class="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+
+        // 移除查询
+        function removeQuery(btn) {
+            const container = document.getElementById('testQueries');
+            if (container.children.length > 1) {
+                btn.parentElement.remove();
+            }
+        }
+
+        // 开始检测
+        async function startTracking() {
+            const target = document.getElementById('targetUrl').value.trim();
+            if (!target) {
+                alert('请输入目标网站或品牌名称');
+                return;
+            }
+
+            // 获取测试查询
+            const queries = Array.from(document.querySelectorAll('#testQueries input'))
+                .map(input => input.value.trim())
+                .filter(q => q);
+
+            if (queries.length === 0) {
+                alert('请至少输入一个测试查询');
+                return;
+            }
+
+            // 显示进度
+            document.getElementById('trackingStatus').classList.remove('hidden');
+            
+            // 模拟检测过程
+            const results = [];
+            for (let i = 0; i < engines.length; i++) {
+                const engine = engines[i];
+                
+                // 更新进度
+                const progress = ((i + 1) / engines.length) * 100;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                document.getElementById('progressText').textContent = `${i + 1}/${engines.length} 引擎`;
+                
+                // 模拟 API 调用延迟
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // 模拟结果（实际应调用真实 API）
+                const cited = Math.random() > 0.5;
+                const rank = cited ? Math.floor(Math.random() * 5) + 1 : null;
+                const context = cited ? generateMockContext(target, queries[0]) : null;
+                
+                results.push({
+                    engine: engine,
+                    cited: cited,
+                    rank: rank,
+                    query: queries[0],
+                    context: context
+                });
+            }
+
+            // 隐藏进度
+            document.getElementById('trackingStatus').classList.add('hidden');
+            
+            // 显示结果
+            displayResults(results, target);
+            
+            // 更新漂移分析
+            updateDriftAnalysis(results);
+        }
+
+        // 生成模拟上下文
+        function generateMockContext(target, query) {
+            const contexts = [
+                `根据${target}的官方资料显示，该产品在市场上具有较高的认可度...`,
+                `${target}作为行业领先品牌，其产品特点包括...`,
+                `在${query}方面，${target}提供了多种解决方案...`,
+                `据${target}发布的数据表明，用户满意度达到95%以上...`
+            ];
+            return contexts[Math.floor(Math.random() * contexts.length)];
+        }
+
+        // 显示结果
+        function displayResults(results, target) {
+            const citedCount = results.filter(r => r.cited).length;
+            const avgRank = citedCount > 0 
+                ? (results.filter(r => r.cited).reduce((sum, r) => sum + r.rank, 0) / citedCount).toFixed(1)
+                : '-';
+            const citationRate = Math.round((citedCount / results.length) * 100);
+
+            // 更新总览
+            document.getElementById('totalEngines').textContent = results.length;
+            document.getElementById('citationCount').textContent = citedCount;
+            document.getElementById('avgRank').textContent = avgRank;
+            document.getElementById('citationRate').textContent = `${citationRate}%`;
+
+            // 渲染引擎结果
+            const engineResultsHtml = results.map(r => {
+                const colorClass = r.cited ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50';
+                const statusIcon = r.cited 
+                    ? '<i class="fas fa-check-circle text-green-500"></i>' 
+                    : '<i class="fas fa-times-circle text-gray-400"></i>';
+                const statusText = r.cited 
+                    ? `<span class="text-green-600 font-medium">已引用 (排名 #${r.rank})</span>`
+                    : '<span class="text-gray-500">未发现引用</span>';
+
+                return `
+                    <div class="engine-result p-4 rounded-lg border ${colorClass}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                    <i class="fas ${r.engine.icon} text-${r.engine.color}-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">${r.engine.name}</p>
+                                    <p class="text-sm">${statusText}</p>
+                                </div>
+                            </div>
+                            ${statusIcon}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('engineResults').innerHTML = engineResultsHtml;
+
+            // 渲染引用详情
+            const citedResults = results.filter(r => r.cited);
+            if (citedResults.length > 0) {
+                const detailsHtml = citedResults.map(r => `
+                    <div class="p-4 hover:bg-gray-50">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 bg-${r.engine.color}-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas ${r.engine.icon} text-${r.engine.color}-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-900">${r.engine.name}</span>
+                                    <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">排名 #${r.rank}</span>
+                                </div>
+                                <p class="text-sm text-gray-500 mb-2">查询: "${r.query}"</p>
+                                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <p class="text-sm text-gray-700">"${r.context}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('citationDetails').innerHTML = detailsHtml;
+            } else {
+                document.getElementById('citationDetails').innerHTML = `
+                    <div class="p-6 text-center">
+                        <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-exclamation-triangle text-amber-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-medium text-gray-900 mb-2">未发现引用</h4>
+                        <p class="text-sm text-gray-500 mb-4">您的网站 "${target}" 尚未被检测的 AI 引擎引用</p>
+                        <a href="channel-optimizer.html?url=${encodeURIComponent(target)}" 
+                           class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            <i class="fas fa-lightbulb"></i>查看优化建议
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
+        // 设置定期监控
+        function scheduleTracking() {
+            alert('定期监控功能即将上线！\n\n您可以设置每日/每周自动检测，并在发现新引用时收到通知。');
+        }
+
+        // 查看历史记录
+        function viewHistory() {
+            alert('引用追踪历史记录\n\n最近7天检测记录：\n• 今天 - 引用率 50%\n• 昨天 - 引用率 45%\n• 前天 - 引用率 48%');
+        }
+
+        // 导出报告
+        function exportReport() {
+            alert('正在生成引用追踪报告...\n\n报告将包含：\n• 各引擎引用情况\n• 漂移分析\n• 优化建议');
+        }
+
+        // 一键优化 - 跳转到优化向导
+        function startOptimization() {
+            const target = document.getElementById('targetUrl').value.trim();
+            localStorage.setItem('citation_context', JSON.stringify({
+                target: target,
+                source: 'citation-tracker',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'optimization-wizard.html?from=citation&target=' + encodeURIComponent(target);
+        }
+
+        // 更新漂移分析
+        function updateDriftAnalysis(results) {
+            // 模拟漂移数据
+            const newCitations = Math.floor(Math.random() * 3);
+            const lostCitations = Math.floor(Math.random() * 2);
+            const rankChanges = Math.floor(Math.random() * 4);
+
+            document.getElementById('newCitations').textContent = newCitations;
+            document.getElementById('lostCitations').textContent = lostCitations;
+            document.getElementById('rankChanges').textContent = rankChanges;
+
+            // 更新漂移详情
+            let driftHtml = '';
+            if (newCitations > 0) {
+                driftHtml += `<div class="p-3 bg-emerald-50 rounded-lg flex items-center justify-between">
+                    <span class="text-sm text-emerald-700"><i class="fas fa-plus-circle mr-2"></i>Claude 新增引用，排名 #2</span>
+                    <button onclick="viewCitation('claude')" class="text-xs text-emerald-600 hover:underline">查看</button>
+                </div>`;
+            }
+            if (lostCitations > 0) {
+                driftHtml += `<div class="p-3 bg-red-50 rounded-lg flex items-center justify-between">
+                    <span class="text-sm text-red-700"><i class="fas fa-minus-circle mr-2"></i>Perplexity 引用丢失</span>
+                    <button onclick="recoverCitation('perplexity')" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">恢复引用</button>
+                </div>`;
+            }
+            if (rankChanges > 0) {
+                driftHtml += `<div class="p-3 bg-amber-50 rounded-lg flex items-center justify-between">
+                    <span class="text-sm text-amber-700"><i class="fas fa-arrow-down mr-2"></i>ChatGPT 排名下降 #1 → #3</span>
+                    <button onclick="improveRank('chatgpt')" class="text-xs bg-amber-600 text-white px-2 py-1 rounded hover:bg-amber-700">提升排名</button>
+                </div>`;
+            }
+            if (!driftHtml) {
+                driftHtml = '<p class="text-sm text-gray-500 text-center">引用状态稳定，无明显变化</p>';
+            }
+            document.getElementById('driftDetails').innerHTML = driftHtml;
+        }
+
+        // 查看引用
+        function viewCitation(engine) {
+            window.location.href = 'visibility-analysis.html?engine=' + engine;
+        }
+
+        // 恢复引用
+        function recoverCitation(engine) {
+            localStorage.setItem('recovery_context', JSON.stringify({
+                engine: engine,
+                action: 'recover',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'optimization-wizard.html?action=recover&engine=' + engine;
+        }
+
+        // 提升排名
+        function improveRank(engine) {
+            localStorage.setItem('rank_context', JSON.stringify({
+                engine: engine,
+                action: 'improve_rank',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'strategy-center.html?action=improve_rank&engine=' + engine;
+        }
+    </script>
+</body>
+</html>
+
+

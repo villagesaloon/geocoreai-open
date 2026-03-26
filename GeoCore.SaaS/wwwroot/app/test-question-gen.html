@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问题生成测试页面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">问题生成测试页面</h1>
+        <p class="text-gray-600 mb-4">此页面用于测试问题生成 API，代码完全借鉴自 setup-wizard.html</p>
+        
+        <!-- 输入表单 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">测试参数</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">项目 ID</label>
+                    <input type="number" id="projectId" value="17" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称</label>
+                    <input type="text" id="brandName" value="GeoCore AI" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">产品名称</label>
+                    <input type="text" id="productName" value="" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">行业</label>
+                    <input type="text" id="industry" value="AI/SaaS" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">模型选择</label>
+                <div class="flex gap-4">
+                    <label><input type="checkbox" id="model_perplexity" checked> Perplexity</label>
+                    <label><input type="checkbox" id="model_gpt"> GPT</label>
+                    <label><input type="checkbox" id="model_claude"> Claude</label>
+                </div>
+            </div>
+            
+            <button onclick="startGeneration()" id="genBtn" 
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                <i class="fas fa-play mr-2"></i>开始生成问题
+            </button>
+        </div>
+        
+        <!-- 日志输出 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">执行日志</h2>
+            <div id="logOutput" class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-64 overflow-y-auto">
+                等待开始...
+            </div>
+        </div>
+        
+        <!-- 结果展示 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">生成结果</h2>
+            <div id="resultOutput" class="text-gray-600">
+                暂无结果
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('logOutput');
+            const time = new Date().toLocaleTimeString();
+            const colors = {
+                'info': 'text-green-400',
+                'error': 'text-red-400',
+                'warn': 'text-yellow-400',
+                'success': 'text-blue-400'
+            };
+            logDiv.innerHTML += `<div class="${colors[type] || 'text-green-400'}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
+        // 完全借鉴自 setup-wizard.html 的问题生成代码
+        async function startGeneration() {
+            const btn = document.getElementById('genBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
+            
+            document.getElementById('logOutput').innerHTML = '';
+            document.getElementById('resultOutput').innerHTML = '生成中...';
+            
+            // 获取参数
+            const projectId = parseInt(document.getElementById('projectId').value) || null;
+            const brandName = document.getElementById('brandName').value;
+            const productName = document.getElementById('productName').value;
+            const industry = document.getElementById('industry').value;
+            
+            // 收集选中的模型
+            const models = [];
+            if (document.getElementById('model_perplexity').checked) models.push('perplexity');
+            if (document.getElementById('model_gpt').checked) models.push('gpt');
+            if (document.getElementById('model_claude').checked) models.push('claude');
+            
+            log(`参数: projectId=${projectId}, brandName=${brandName}, models=[${models.join(',')}]`);
+            
+            // 获取用户 ID（从 localStorage）
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const userId = user?.dbId;
+            log(`用户 ID: ${userId || '未登录'}`);
+            
+            let finalQuestions = [];
+            try {
+                // ========== Step 1: 创建任务（完全借鉴 setup-wizard.html）==========
+                const apiUrl = '/api/distillation/questions';
+                log(`🚀 创建问题生成任务: ${window.location.origin + apiUrl}`);
+                
+                const createResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(userId ? { 'X-User-Id': String(userId) } : {})
+                    },
+                    body: JSON.stringify({
+                        brandName,
+                        productName,
+                        industry,
+                        sellingPoints: [],
+                        personas: [],
+                        stages: [],
+                        models: models,
+                        competitors: [],
+                        enableGoogleTrends: false,
+                        enableRedditSearch: false,
+                        enableLightweightMode: false,
+                        answerMode: 'content',
+                        markets: ['中国大陆'],
+                        languages: ['zh_cn'],
+                        language: 'zh_cn',
+                        ...(projectId ? { projectId: projectId } : {})
+                    })
+                });
+                
+                log(`📡 createResponse status: ${createResponse.status} ${createResponse.statusText}`);
+                
+                if (!createResponse.ok) {
+                    const errorText = await createResponse.text();
+                    log(`❌ HTTP 错误: ${createResponse.status} ${errorText}`, 'error');
+                    throw new Error(`HTTP ${createResponse.status}: ${errorText}`);
+                }
+                
+                const createData = await createResponse.json();
+                log(`📦 createData: ${JSON.stringify(createData)}`);
+                
+                if (!createData.success || !createData.taskId) {
+                    throw new Error(createData.message || '任务创建失败');
+                }
+                
+                const taskId = createData.taskId;
+                log(`✅ 任务已创建, taskId: ${taskId}`, 'success');
+                
+                // ========== Step 2: 轮询任务状态（完全借鉴 setup-wizard.html）==========
+                const maxPolls = 200;
+                let pollCount = 0;
+                let data = null;
+                
+                while (pollCount < maxPolls) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    pollCount++;
+                    
+                    let statusData;
+                    try {
+                        const statusResponse = await fetch(`/api/distillation/questions/status/${taskId}`);
+                        if (!statusResponse.ok) {
+                            if (statusResponse.status === 404) {
+                                throw new Error('任务已丢失（后端可能已重启），请刷新页面后重新生成');
+                            }
+                            log(`⚠️ [${pollCount}] 轮询 HTTP ${statusResponse.status}，继续重试...`, 'warn');
+                            continue;
+                        }
+                        const contentType = statusResponse.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            log(`⚠️ [${pollCount}] 轮询返回非 JSON (${contentType})，继续重试...`, 'warn');
+                            continue;
+                        }
+                        statusData = await statusResponse.json();
+                    } catch (pollErr) {
+                        log(`⚠️ [${pollCount}] 轮询请求异常: ${pollErr.message}，继续重试...`, 'warn');
+                        continue;
+                    }
+                    
+                    if (!statusData.success) {
+                        log(`❌ 查询状态失败: ${statusData.message}`, 'error');
+                        continue;
+                    }
+                    
+                    // 更新进度显示
+                    const progress = statusData.progress || 0;
+                    const completedModels = statusData.completedModels || 0;
+                    const totalModels = statusData.totalModels || 1;
+                    const message = statusData.message || '处理中...';
+                    
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${progress}% - ${message}`;
+                    log(`📊 [${pollCount}] 进度: ${progress}%, 模型: ${completedModels}/${totalModels}, ${message}`);
+                    
+                    // 检查是否完成
+                    if (statusData.status === 'completed') {
+                        data = statusData.data;
+                        log(`🎉 任务完成！共生成 ${data?.questions?.length || 0} 个问题`, 'success');
+                        break;
+                    }
+                    
+                    if (statusData.status === 'failed') {
+                        throw new Error(statusData.message || '任务执行失败');
+                    }
+                }
+                
+                if (!data) {
+                    throw new Error('轮询超时，任务可能仍在执行中');
+                }
+                
+                finalQuestions = data.questions || [];
+                
+                // 显示结果
+                if (finalQuestions.length > 0) {
+                    let html = `<div class="text-green-600 font-semibold mb-4">✅ 成功生成 ${finalQuestions.length} 个问题</div>`;
+                    html += '<div class="space-y-2">';
+                    finalQuestions.forEach((q, i) => {
+                        html += `<div class="p-3 bg-gray-50 rounded border">
+                            <div class="font-medium">${i+1}. ${q.question || q.Question}</div>
+                            <div class="text-sm text-gray-500">模型: ${q.model || q.Model}</div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    document.getElementById('resultOutput').innerHTML = html;
+                } else {
+                    document.getElementById('resultOutput').innerHTML = '<div class="text-yellow-600">⚠️ 任务完成但没有生成问题</div>';
+                }
+                
+            } catch (error) {
+                log(`❌ 错误: ${error.message}`, 'error');
+                document.getElementById('resultOutput').innerHTML = `<div class="text-red-600">❌ 错误: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    </script>
+</body>
+</html>

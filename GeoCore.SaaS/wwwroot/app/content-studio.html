@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容工作室 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; }
+        .tab-btn:not(.active):hover { background: #f3f4f6; }
+        .metric-card { transition: all 0.3s; }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .score-ring { transition: stroke-dashoffset 0.5s ease; }
+        .dimension-bar { transition: width 0.5s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <script src="js/next-step-guide.js"></script>
+
+    <!-- 主内容 -->
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">内容工作室</h2>
+                    <p class="text-sm text-gray-500">质量评估 | 内容分析 | 优化建议 | 一键改写</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="loadFromUrl()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-link mr-2"></i>从 URL 加载
+                    </button>
+                    <button onclick="exportAnalysis()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-download mr-2"></i>导出分析
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 综合评分概览 -->
+            <div class="grid grid-cols-6 gap-4 mb-6">
+                <div class="col-span-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-80">综合 GEO 评分</p>
+                            <p id="overallScore" class="text-5xl font-bold mt-2">--</p>
+                            <p class="text-sm opacity-80 mt-1">满分 10 分</p>
+                        </div>
+                        <div class="relative w-24 h-24">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="48" cy="48" r="40" stroke="rgba(255,255,255,0.2)" stroke-width="8" fill="none"/>
+                                <circle id="scoreRing" cx="48" cy="48" r="40" stroke="white" stroke-width="8" fill="none"
+                                    stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm metric-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">事实密度</span>
+                        <i class="fas fa-check-circle text-emerald-400"></i>
+                    </div>
+                    <p id="factDensity" class="text-2xl font-bold text-emerald-600">--</p>
+                    <div class="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                        <div id="factDensityBar" class="h-full bg-emerald-500 rounded-full dimension-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm metric-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">实体密度</span>
+                        <i class="fas fa-tags text-blue-400"></i>
+                    </div>
+                    <p id="entityDensity" class="text-2xl font-bold text-blue-600">--</p>
+                    <div class="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                        <div id="entityDensityBar" class="h-full bg-blue-500 rounded-full dimension-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm metric-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">答案前置</span>
+                        <i class="fas fa-bolt text-amber-400"></i>
+                    </div>
+                    <p id="answerFirst" class="text-2xl font-bold text-amber-600">--</p>
+                    <div class="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                        <div id="answerFirstBar" class="h-full bg-amber-500 rounded-full dimension-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm metric-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">可读性</span>
+                        <i class="fas fa-book-open text-purple-400"></i>
+                    </div>
+                    <p id="readability" class="text-2xl font-bold text-purple-600">--</p>
+                    <div class="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                        <div id="readabilityBar" class="h-full bg-purple-500 rounded-full dimension-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能标签页 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="flex border-b border-gray-200 p-2 gap-2">
+                    <button onclick="switchTab('quality')" id="tab-quality" class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-star mr-2"></i>质量评估
+                    </button>
+                    <button onclick="switchTab('analysis')" id="tab-analysis" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-chart-pie mr-2"></i>内容分析
+                    </button>
+                    <button onclick="switchTab('optimize')" id="tab-optimize" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-magic mr-2"></i>优化建议
+                    </button>
+                    <button onclick="switchTab('rewrite')" id="tab-rewrite" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-edit mr-2"></i>AI 改写
+                    </button>
+                </div>
+
+                <!-- 质量评估 -->
+                <div id="content-quality" class="p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- 左侧：内容输入 -->
+                        <div class="col-span-1">
+                            <h3 class="font-semibold text-gray-900 mb-4">内容输入</h3>
+                            <textarea id="contentInput" rows="12" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm resize-none" placeholder="粘贴或输入要评估的内容..."></textarea>
+                            <div class="flex items-center justify-between mt-2">
+                                <span id="wordCount" class="text-xs text-gray-400">0 字</span>
+                                <button onclick="analyzeContent()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                                    <i class="fas fa-play mr-2"></i>开始分析
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：评估结果 -->
+                        <div class="col-span-2">
+                            <h3 class="font-semibold text-gray-900 mb-4">评估结果</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- AISEO 审计 -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">
+                                        <i class="fas fa-clipboard-check text-indigo-500 mr-2"></i>AISEO 审计
+                                    </h4>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">答案胶囊</span>
+                                            <span id="answerCapsule" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">章节长度</span>
+                                            <span id="sectionLength" class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Flesch 可读性</span>
+                                            <span id="fleschScore" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">引语归因</span>
+                                            <span id="quoteAttribution" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Listicle 优化 -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">
+                                        <i class="fas fa-list-ol text-emerald-500 mr-2"></i>Listicle 优化
+                                    </h4>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">列表格式</span>
+                                            <span id="listicleFormat" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">自我推广</span>
+                                            <span id="selfPromotion" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">第三方引用</span>
+                                            <span id="thirdPartyRef" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">检测列表项</span>
+                                            <span id="listItems" class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Schema 完整度 -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">
+                                        <i class="fas fa-code text-cyan-500 mr-2"></i>Schema 完整度
+                                    </h4>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">FAQ Schema</span>
+                                            <span id="faqSchema" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">HowTo Schema</span>
+                                            <span id="howtoSchema" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">Article Schema</span>
+                                            <span id="articleSchema" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">完整度评分</span>
+                                            <span id="schemaScore" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 高级优化 -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">
+                                        <i class="fas fa-rocket text-pink-500 mr-2"></i>高级优化
+                                    </h4>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">段落长度</span>
+                                            <span id="paragraphLength" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">标题策略</span>
+                                            <span id="titleStrategy" class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">可引用性</span>
+                                            <span id="quotability" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">--</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">前30%优化</span>
+                                            <span id="first30" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 内容分析 -->
+                <div id="content-analysis" class="p-6 hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 关键词分析 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">关键词分析</h3>
+                            <div class="p-4 bg-gray-50 rounded-lg mb-4">
+                                <canvas id="keywordChart" height="200"></canvas>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 bg-indigo-500 rounded-full"></span>
+                                        <span class="text-sm font-medium">AI 可见度</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm text-gray-500">出现 12 次</span>
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">高机会</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 bg-purple-500 rounded-full"></span>
+                                        <span class="text-sm font-medium">GEO 优化</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm text-gray-500">出现 8 次</span>
+                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">中机会</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                                        <span class="text-sm font-medium">引用追踪</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm text-gray-500">出现 5 次</span>
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">高机会</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 情感分析（简化版） -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">情感与叙事分析</h3>
+                            <!-- 简化为单一综合情感指标 -->
+                            <div class="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200 mb-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm text-gray-600">综合情感倾向</p>
+                                        <p class="text-3xl font-bold text-green-600">正面 <span class="text-lg font-normal text-gray-500">65%</span></p>
+                                    </div>
+                                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-smile text-green-500 text-2xl"></i>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">内容整体呈现积极正面的情感倾向，适合 AI 引用</p>
+                            </div>
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">叙事模式</h4>
+                                <div class="space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-indigo-500 h-2 rounded-full" style="width: 45%"></div></div>
+                                        <span class="text-xs text-gray-500 w-20">教程型 45%</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full" style="width: 30%"></div></div>
+                                        <span class="text-xs text-gray-500 w-20">分析型 30%</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: 25%"></div></div>
+                                        <span class="text-xs text-gray-500 w-20">对比型 25%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 问题洞察 -->
+                    <div class="mt-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">用户问题洞察</h3>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas fa-question-circle text-indigo-500"></i>
+                                    <span class="text-sm font-medium">什么是 GEO？</span>
+                                </div>
+                                <p class="text-xs text-gray-500">搜索量: 2,400/月</p>
+                                <span class="inline-block mt-2 px-2 py-1 bg-green-100 text-green-700 rounded text-xs">已覆盖</span>
+                            </div>
+                            <div class="p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas fa-question-circle text-amber-500"></i>
+                                    <span class="text-sm font-medium">如何提升 AI 引用？</span>
+                                </div>
+                                <p class="text-xs text-gray-500">搜索量: 1,800/月</p>
+                                <span class="inline-block mt-2 px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">部分覆盖</span>
+                            </div>
+                            <div class="p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas fa-question-circle text-red-500"></i>
+                                    <span class="text-sm font-medium">GEO vs SEO 区别？</span>
+                                </div>
+                                <p class="text-xs text-gray-500">搜索量: 1,200/月</p>
+                                <span class="inline-block mt-2 px-2 py-1 bg-red-100 text-red-700 rounded text-xs">未覆盖</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 优化建议 -->
+                <div id="content-optimize" class="p-6 hidden">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- 优先级建议 -->
+                        <div class="col-span-2">
+                            <h3 class="font-semibold text-gray-900 mb-4">优化建议（按优先级排序）</h3>
+                            <div id="suggestions" class="space-y-3">
+                                <div class="p-4 border-l-4 border-red-500 bg-red-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-red-900">添加答案胶囊</h4>
+                                        <span class="px-2 py-1 bg-red-200 text-red-800 rounded text-xs">高优先级</span>
+                                    </div>
+                                    <p class="text-sm text-red-800">在文章开头添加 40-60 词的直接答案，可提升 2.1x 引用率</p>
+                                    <button onclick="applyFix('capsule')" class="mt-2 text-sm text-red-600 hover:underline">
+                                        <i class="fas fa-magic mr-1"></i>一键修复
+                                    </button>
+                                </div>
+                                <div class="p-4 border-l-4 border-amber-500 bg-amber-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-amber-900">优化段落长度</h4>
+                                        <span class="px-2 py-1 bg-amber-200 text-amber-800 rounded text-xs">中优先级</span>
+                                    </div>
+                                    <p class="text-sm text-amber-800">当前平均段落 250 词，建议控制在 120-180 词，可提升 70% 引用率</p>
+                                    <button onclick="applyFix('paragraph')" class="mt-2 text-sm text-amber-600 hover:underline">
+                                        <i class="fas fa-magic mr-1"></i>一键修复
+                                    </button>
+                                </div>
+                                <div class="p-4 border-l-4 border-blue-500 bg-blue-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-blue-900">增加实体密度</h4>
+                                        <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">中优先级</span>
+                                    </div>
+                                    <p class="text-sm text-blue-800">当前实体密度 8/100词，建议提升至 15+/100词，可获得 4.8x 引用率</p>
+                                    <button onclick="applyFix('entity')" class="mt-2 text-sm text-blue-600 hover:underline">
+                                        <i class="fas fa-magic mr-1"></i>一键修复
+                                    </button>
+                                </div>
+                                <div class="p-4 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-green-900">添加 FAQ Schema</h4>
+                                        <span class="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">低优先级</span>
+                                    </div>
+                                    <p class="text-sm text-green-800">添加 FAQ 结构化数据，帮助 AI 更好理解内容结构</p>
+                                    <button onclick="applyFix('schema')" class="mt-2 text-sm text-green-600 hover:underline">
+                                        <i class="fas fa-code mr-1"></i>生成代码
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 预期效果 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">预期效果</h3>
+                            <div class="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 mb-4">
+                                <div class="text-center mb-4">
+                                    <p class="text-sm text-gray-600">优化后预期评分</p>
+                                    <p class="text-4xl font-bold text-indigo-600">8.5</p>
+                                    <p class="text-sm text-green-600">↑ +2.3 提升</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-gray-600">引用率预期</span>
+                                        <span class="font-medium text-indigo-600">+45%</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-gray-600">排名预期</span>
+                                        <span class="font-medium text-indigo-600">Top 3</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-gray-600">见效时间</span>
+                                        <span class="font-medium text-indigo-600">7-14 天</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="applyAllFixes()" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                                <i class="fas fa-magic mr-2"></i>一键应用所有优化
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI 改写 -->
+                <div id="content-rewrite" class="p-6 hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 原文 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">原始内容</h3>
+                            <textarea id="originalContent" rows="15" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm resize-none" placeholder="粘贴需要改写的内容..."></textarea>
+                        </div>
+
+                        <!-- 改写结果 -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold text-gray-900">AI 优化结果</h3>
+                                <div class="flex gap-2">
+                                    <select id="rewriteStyle" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                                        <option value="capsule">添加答案胶囊</option>
+                                        <option value="listicle">转换为列表格式</option>
+                                        <option value="entity">增加实体密度</option>
+                                        <option value="full">全面优化</option>
+                                    </select>
+                                    <button onclick="rewriteContent()" class="px-4 py-1 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                                        <i class="fas fa-sync mr-1"></i>改写
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="rewriteResult" class="w-full h-80 px-4 py-3 border border-gray-300 rounded-lg text-sm bg-gray-50 overflow-auto">
+                                <p class="text-gray-400">改写结果将显示在这里...</p>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-2">
+                                <button onclick="copyResult()" class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                                    <i class="fas fa-copy mr-1"></i>复制
+                                </button>
+                                <button onclick="useResult()" class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+                                    <i class="fas fa-check mr-1"></i>使用此版本
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下一步引导 -->
+            <div id="nextStepGuide"></div>
+        </div>
+    </main>
+
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            setupContentInput();
+        });
+
+        // 设置内容输入监听
+        function setupContentInput() {
+            const input = document.getElementById('contentInput');
+            input.addEventListener('input', () => {
+                const count = input.value.length;
+                document.getElementById('wordCount').textContent = `${count} 字`;
+            });
+        }
+
+        // 初始化图表
+        function initCharts() {
+            new Chart(document.getElementById('keywordChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['AI 可见度', 'GEO 优化', '引用追踪', 'SHEEP 评分', '内容质量'],
+                    datasets: [{
+                        label: '出现次数',
+                        data: [12, 8, 5, 4, 3],
+                        backgroundColor: ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899']
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // 切换标签页
+        function switchTab(tab) {
+            ['quality', 'analysis', 'optimize', 'rewrite'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+                document.getElementById(`tab-${t}`).classList.toggle('text-gray-600', t !== tab);
+                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
+            });
+        }
+
+        // 分析内容
+        function analyzeContent() {
+            const content = document.getElementById('contentInput').value;
+            if (!content) {
+                alert('请输入要分析的内容');
+                return;
+            }
+
+            // 模拟分析结果
+            const score = (Math.random() * 3 + 5).toFixed(1);
+            document.getElementById('overallScore').textContent = score;
+            
+            // 更新评分环
+            const ring = document.getElementById('scoreRing');
+            const offset = 251.2 - (251.2 * score / 10);
+            ring.style.strokeDashoffset = offset;
+
+            // 更新各项指标
+            updateMetric('factDensity', 'factDensityBar', 7.2);
+            updateMetric('entityDensity', 'entityDensityBar', 6.5);
+            updateMetric('answerFirst', 'answerFirstBar', 5.8);
+            updateMetric('readability', 'readabilityBar', 7.8);
+
+            // 更新审计结果
+            document.getElementById('answerCapsule').textContent = '未检测';
+            document.getElementById('answerCapsule').className = 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs';
+            document.getElementById('sectionLength').textContent = '偏长';
+            document.getElementById('fleschScore').textContent = '62';
+            document.getElementById('quoteAttribution').textContent = '2 处';
+
+            document.getElementById('listicleFormat').textContent = '已检测';
+            document.getElementById('selfPromotion').textContent = '低';
+            document.getElementById('selfPromotion').className = 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs';
+            document.getElementById('thirdPartyRef').textContent = '3 处';
+            document.getElementById('listItems').textContent = '5 项';
+
+            document.getElementById('faqSchema').textContent = '未添加';
+            document.getElementById('howtoSchema').textContent = '未添加';
+            document.getElementById('articleSchema').textContent = '已添加';
+            document.getElementById('articleSchema').className = 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs';
+            document.getElementById('schemaScore').textContent = '4/10';
+
+            document.getElementById('paragraphLength').textContent = '偏长';
+            document.getElementById('titleStrategy').textContent = '直陈式';
+            document.getElementById('titleStrategy').className = 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs';
+            document.getElementById('quotability').textContent = '6.5/10';
+            document.getElementById('first30').textContent = '待优化';
+        }
+
+        // 更新指标
+        function updateMetric(valueId, barId, value) {
+            document.getElementById(valueId).textContent = value.toFixed(1);
+            document.getElementById(barId).style.width = `${value * 10}%`;
+        }
+
+        // 应用修复
+        function applyFix(type) {
+            alert(`正在应用 ${type} 优化...`);
+        }
+
+        // 应用所有修复
+        function applyAllFixes() {
+            alert('正在应用所有优化建议...');
+            switchTab('rewrite');
+        }
+
+        // 改写内容
+        function rewriteContent() {
+            const original = document.getElementById('originalContent').value;
+            if (!original) {
+                alert('请输入要改写的内容');
+                return;
+            }
+
+            const style = document.getElementById('rewriteStyle').value;
+            let result = '';
+
+            switch (style) {
+                case 'capsule':
+                    result = `**答案胶囊：** ${original.substring(0, 100)}...\n\n${original}`;
+                    break;
+                case 'listicle':
+                    result = `## 核心要点\n\n1. **要点一**：${original.substring(0, 50)}...\n2. **要点二**：内容优化建议\n3. **要点三**：实施步骤\n\n${original}`;
+                    break;
+                case 'entity':
+                    result = original.replace(/内容/g, '**GEO 优化内容**').replace(/分析/g, '**AI 可见度分析**');
+                    break;
+                default:
+                    result = `**答案胶囊：** 本文介绍 GEO 优化的核心方法...\n\n## 核心要点\n\n${original}`;
+            }
+
+            document.getElementById('rewriteResult').innerHTML = `<pre class="whitespace-pre-wrap text-gray-800">${result}</pre>`;
+        }
+
+        // 复制结果
+        function copyResult() {
+            const result = document.getElementById('rewriteResult').innerText;
+            navigator.clipboard.writeText(result);
+            alert('已复制到剪贴板');
+        }
+
+        // 使用结果
+        function useResult() {
+            alert('已保存优化后的内容');
+        }
+
+        // 从 URL 加载
+        function loadFromUrl() {
+            const url = prompt('请输入页面 URL：');
+            if (url) {
+                alert(`正在从 ${url} 加载内容...`);
+            }
+        }
+
+        // 导出分析
+        function exportAnalysis() {
+            alert('正在导出内容分析报告...');
+        }
+    </script>
+</body>
+</html>

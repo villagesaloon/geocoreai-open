@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容新鲜度分析 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">内容新鲜度分析</h1>
+                        <p class="text-sm text-gray-500 mt-1">监测被 AI 引用内容的时效性</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <select id="taskSelect" class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">选择监测任务...</option>
+                        </select>
+                        <input type="text" id="brandInput" placeholder="品牌名称" 
+                               class="border border-gray-300 rounded-lg px-4 py-2 w-48 focus:ring-2 focus:ring-blue-500">
+                        <button onclick="generateReport()" 
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-clock mr-2"></i>分析新鲜度
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden">
+                    <div class="flex items-center justify-center h-64">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                            <p class="text-gray-600">正在分析内容新鲜度...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-16">
+                    <i class="fas fa-calendar-alt text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-600 mb-2">选择任务开始分析</h3>
+                    <p class="text-gray-500">选择监测任务并输入品牌名称，分析被引用内容的新鲜度</p>
+                </div>
+
+                <!-- Report Content -->
+                <div id="reportContent" class="hidden space-y-6">
+                    <!-- Alerts -->
+                    <div id="alertsContainer" class="space-y-3"></div>
+
+                    <!-- Summary Card -->
+                    <div id="summaryCard" class="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl p-6 text-white">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2 class="text-xl font-semibold mb-2">
+                                    <i class="fas fa-leaf mr-2"></i>新鲜度概览
+                                </h2>
+                                <p id="reportSummary" class="text-green-100 leading-relaxed"></p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-green-200">生成时间</p>
+                                <p id="reportTime" class="font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score and Distribution -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 col-span-2">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold text-gray-900">整体新鲜度评分</h3>
+                                <span id="freshnessLevel" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                            </div>
+                            <div class="flex items-center justify-center">
+                                <div class="relative w-40 h-40">
+                                    <canvas id="scoreGauge"></canvas>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span id="overallScore" class="text-3xl font-bold text-gray-900"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-seedling text-green-600 text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">新鲜</p>
+                                <p id="freshCount" class="text-2xl font-bold text-green-600">-</p>
+                                <p id="freshRate" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-clock text-yellow-600 text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">陈旧</p>
+                                <p id="staleCount" class="text-2xl font-bold text-yellow-600">-</p>
+                                <p id="staleRate" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">过时</p>
+                                <p id="outdatedCount" class="text-2xl font-bold text-red-600">-</p>
+                                <p id="outdatedRate" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Distribution Chart -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-chart-pie text-blue-600 mr-2"></i>新鲜度分布
+                            </h3>
+                            <div class="h-64">
+                                <canvas id="distributionChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Trend Chart -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-chart-line text-purple-600 mr-2"></i>新鲜度趋势
+                                </h3>
+                                <span id="trendDirection" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                            </div>
+                            <div class="h-64">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Items -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <i class="fas fa-list text-green-600 mr-2"></i>内容详情
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <select id="levelFilter" onchange="filterItems()" class="border border-gray-300 rounded px-3 py-1 text-sm">
+                                    <option value="">全部</option>
+                                    <option value="fresh">新鲜</option>
+                                    <option value="good">良好</option>
+                                    <option value="stale">陈旧</option>
+                                    <option value="outdated">过时</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">内容</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">年龄</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">新鲜度</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">引用次数</th>
+                                        <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">优先级</th>
+                                        <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">建议</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Suggestions -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>更新建议
+                        </h3>
+                        <div id="suggestionsContainer" class="space-y-4"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/navigation.js"></script>
+    <script>
+        let distributionChart = null;
+        let trendChart = null;
+        let scoreGauge = null;
+        let allItems = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTasks();
+        });
+
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/citation-monitoring/tasks');
+                const data = await response.json();
+                const select = document.getElementById('taskSelect');
+                
+                if (data.success && data.data) {
+                    data.data.forEach(task => {
+                        const option = document.createElement('option');
+                        option.value = task.id;
+                        option.textContent = `${task.brand} - ${task.name || '监测任务'}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+            }
+        }
+
+        async function generateReport() {
+            const taskId = document.getElementById('taskSelect').value;
+            const brand = document.getElementById('brandInput').value.trim();
+
+            if (!taskId) {
+                alert('请选择监测任务');
+                return;
+            }
+            if (!brand) {
+                alert('请输入品牌名称');
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('reportContent').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/content-freshness/analysis/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        taskId: parseInt(taskId),
+                        brand,
+                        includeTrends: true,
+                        includeAlerts: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    renderReport(data.data);
+                } else {
+                    alert(data.error || '生成报告失败');
+                    document.getElementById('emptyState').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to generate report:', error);
+                alert('生成报告失败，请重试');
+                document.getElementById('emptyState').classList.remove('hidden');
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        function renderReport(report) {
+            document.getElementById('reportContent').classList.remove('hidden');
+            allItems = report.items || [];
+
+            // Alerts
+            renderAlerts(report.alerts);
+
+            // Summary
+            document.getElementById('reportSummary').textContent = report.summary;
+            document.getElementById('reportTime').textContent = new Date(report.generatedAt).toLocaleString('zh-CN');
+
+            // Score
+            document.getElementById('overallScore').textContent = report.overallScore.toFixed(0);
+            const levelEl = document.getElementById('freshnessLevel');
+            levelEl.textContent = getLevelLabel(report.freshnessLevel);
+            levelEl.className = `px-3 py-1 rounded-full text-sm font-medium ${getLevelClass(report.freshnessLevel)}`;
+
+            // Distribution stats
+            const dist = report.distribution;
+            document.getElementById('freshCount').textContent = dist.freshCount + dist.goodCount;
+            document.getElementById('freshRate').textContent = `${((dist.freshRate + dist.goodRate) * 100).toFixed(0)}%`;
+            document.getElementById('staleCount').textContent = dist.staleCount;
+            document.getElementById('staleRate').textContent = `${(dist.staleRate * 100).toFixed(0)}%`;
+            document.getElementById('outdatedCount').textContent = dist.outdatedCount;
+            document.getElementById('outdatedRate').textContent = `${(dist.outdatedRate * 100).toFixed(0)}%`;
+
+            // Charts
+            renderScoreGauge(report.overallScore);
+            renderDistributionChart(dist);
+            renderTrendChart(report.trend);
+
+            // Trend direction
+            const trendEl = document.getElementById('trendDirection');
+            trendEl.textContent = getTrendLabel(report.trend.direction);
+            trendEl.className = `px-3 py-1 rounded-full text-sm font-medium ${getTrendClass(report.trend.direction)}`;
+
+            // Items
+            renderItems(allItems);
+
+            // Suggestions
+            renderSuggestions(report.suggestions);
+        }
+
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '';
+
+            (alerts || []).forEach(alert => {
+                const alertClass = {
+                    'critical': 'bg-red-50 border-red-200 text-red-800',
+                    'warning': 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                    'info': 'bg-blue-50 border-blue-200 text-blue-800'
+                }[alert.level] || 'bg-gray-50 border-gray-200 text-gray-800';
+
+                const iconClass = {
+                    'critical': 'fa-exclamation-circle text-red-600',
+                    'warning': 'fa-exclamation-triangle text-yellow-600',
+                    'info': 'fa-info-circle text-blue-600'
+                }[alert.level] || 'fa-info-circle text-gray-600';
+
+                container.innerHTML += `
+                    <div class="border rounded-lg p-4 ${alertClass}">
+                        <div class="flex items-start">
+                            <i class="fas ${iconClass} mt-0.5 mr-3"></i>
+                            <div class="flex-1">
+                                <h4 class="font-medium">${alert.title}</h4>
+                                <p class="text-sm mt-1 opacity-80">${alert.description}</p>
+                                <p class="text-sm mt-2"><strong>建议:</strong> ${alert.suggestedAction}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderScoreGauge(score) {
+            const ctx = document.getElementById('scoreGauge').getContext('2d');
+            if (scoreGauge) scoreGauge.destroy();
+
+            const normalizedScore = score / 100;
+            const color = score >= 60 ? '#10B981' : score >= 30 ? '#F59E0B' : '#EF4444';
+
+            scoreGauge = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [normalizedScore, 1 - normalizedScore],
+                        backgroundColor: [color, '#E5E7EB'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    rotation: -90,
+                    circumference: 180,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+        }
+
+        function renderDistributionChart(dist) {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            if (distributionChart) distributionChart.destroy();
+
+            distributionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['新鲜 (6个月内)', '良好 (6-12个月)', '陈旧 (12-24个月)', '过时 (24个月+)'],
+                    datasets: [{
+                        data: [dist.freshCount, dist.goodCount, dist.staleCount, dist.outdatedCount],
+                        backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' } }
+                }
+            });
+        }
+
+        function renderTrendChart(trend) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+
+            const dataPoints = trend.dataPoints || [];
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataPoints.map(p => new Date(p.date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        label: '平均新鲜度',
+                        data: dataPoints.map(p => p.averageScore),
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { min: 0, max: 100 } }
+                }
+            });
+        }
+
+        function renderItems(items) {
+            const tbody = document.getElementById('itemsTableBody');
+            tbody.innerHTML = '';
+
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100 hover:bg-gray-50';
+                row.setAttribute('data-level', item.freshnessLevel);
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <div class="max-w-xs truncate">
+                            <span class="font-medium text-gray-900">${item.title}</span>
+                            <p class="text-xs text-gray-500 truncate">${item.contentUrl}</p>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="text-sm">${formatAge(item.ageDays)}</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-2 py-1 rounded text-sm ${getLevelClass(item.freshnessLevel)}">
+                            ${item.freshnessScore.toFixed(0)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-medium">${item.citationCount}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-2 py-1 rounded text-sm ${getPriorityClass(item.updatePriority)}">
+                            ${item.updatePriority}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="text-sm text-gray-600">${item.updateRecommendation}</span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterItems() {
+            const level = document.getElementById('levelFilter').value;
+            const filtered = level ? allItems.filter(i => i.freshnessLevel === level) : allItems;
+            renderItems(filtered);
+        }
+
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestionsContainer');
+            container.innerHTML = '';
+
+            (suggestions || []).forEach(suggestion => {
+                const typeClass = {
+                    'rewrite': 'bg-red-100 text-red-700',
+                    'refresh': 'bg-blue-100 text-blue-700',
+                    'archive': 'bg-gray-100 text-gray-700',
+                    'strategy': 'bg-purple-100 text-purple-700'
+                }[suggestion.type] || 'bg-gray-100 text-gray-700';
+
+                const typeLabel = {
+                    'rewrite': '重写',
+                    'refresh': '刷新',
+                    'archive': '归档',
+                    'strategy': '策略'
+                }[suggestion.type] || suggestion.type;
+
+                container.innerHTML += `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center">
+                                    <span class="px-2 py-1 rounded text-xs font-medium mr-2 ${typeClass}">${typeLabel}</span>
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">优先级: ${suggestion.priority}</span>
+                                    <span class="px-2 py-1 rounded text-xs ml-2 ${getEffortClass(suggestion.effort)}">${getEffortLabel(suggestion.effort)}</span>
+                                </div>
+                                <h4 class="font-medium text-gray-900 mt-2">${suggestion.title}</h4>
+                                <p class="text-sm text-gray-600 mt-1">${suggestion.description}</p>
+                                <div class="mt-3">
+                                    <ul class="space-y-1">
+                                        ${(suggestion.actionSteps || []).map(step => 
+                                            `<li class="text-sm text-gray-600 flex items-start">
+                                                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>${step}
+                                            </li>`
+                                        ).join('')}
+                                    </ul>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-2">
+                                    <i class="fas fa-calendar mr-1"></i>建议时间: ${suggestion.suggestedTimeline}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function formatAge(days) {
+            if (days < 30) return `${days} 天`;
+            if (days < 365) return `${Math.floor(days / 30)} 个月`;
+            return `${(days / 365).toFixed(1)} 年`;
+        }
+
+        function getLevelLabel(level) {
+            const labels = { 'fresh': '新鲜', 'good': '良好', 'stale': '陈旧', 'outdated': '过时' };
+            return labels[level] || level;
+        }
+
+        function getLevelClass(level) {
+            const classes = {
+                'fresh': 'bg-green-100 text-green-700',
+                'good': 'bg-blue-100 text-blue-700',
+                'stale': 'bg-yellow-100 text-yellow-700',
+                'outdated': 'bg-red-100 text-red-700'
+            };
+            return classes[level] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getTrendLabel(direction) {
+            const labels = { 'improving': '上升', 'stable': '稳定', 'declining': '下降' };
+            return labels[direction] || direction;
+        }
+
+        function getTrendClass(direction) {
+            const classes = {
+                'improving': 'bg-green-100 text-green-700',
+                'stable': 'bg-gray-100 text-gray-700',
+                'declining': 'bg-red-100 text-red-700'
+            };
+            return classes[direction] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getPriorityClass(priority) {
+            if (priority >= 8) return 'bg-red-100 text-red-700';
+            if (priority >= 5) return 'bg-yellow-100 text-yellow-700';
+            return 'bg-green-100 text-green-700';
+        }
+
+        function getEffortClass(effort) {
+            const classes = { 'low': 'bg-green-100 text-green-700', 'medium': 'bg-yellow-100 text-yellow-700', 'high': 'bg-red-100 text-red-700' };
+            return classes[effort] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getEffortLabel(effort) {
+            const labels = { 'low': '简单', 'medium': '中等', 'high': '复杂' };
+            return labels[effort] || effort;
+        }
+    </script>
+</body>
+</html>

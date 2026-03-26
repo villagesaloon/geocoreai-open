@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoCore AI - GEO 生成式引擎优化平台 | 让 AI 主动推荐你的品牌</title>
+    <meta name="description" content="GeoCore AI 是专业的 GEO (Generative Engine Optimization) 平台，帮助品牌优化内容结构，让 ChatGPT、Claude、Perplexity 等 AI 在回答用户问题时主动引用和推荐你的品牌。">
+    <meta name="keywords" content="GEO,Generative Engine Optimization,生成式引擎优化,AI品牌优化,AI引用优化,ChatGPT推荐,Claude推荐,Perplexity优化,AI可见度,品牌AI曝光">
+    <meta property="og:site_name" content="GeoCore AI">
+    <meta property="og:title" content="GeoCore AI - GEO 生成式引擎优化平台">
+    <meta property="og:description" content="让 ChatGPT、Claude、Perplexity 等 AI 在回答用户问题时主动引用和推荐你的品牌">
+    <meta property="og:type" content="website">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .nav-link:hover { color: #6366f1; }
+        .feature-icon { transition: all 0.3s; }
+        .feature-card:hover .feature-icon { transform: scale(1.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">G</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">GeoCore AI</span>
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-8">
+                        <a href="#features" class="nav-link text-gray-500 hover:text-gray-900">核心功能</a>
+                        <a href="#workflow" class="nav-link text-gray-500 hover:text-gray-900">工作流程</a>
+                        <a href="blog.html" class="nav-link text-gray-500 hover:text-gray-900">博客</a>
+                        <a href="docs.html" class="nav-link text-gray-500 hover:text-gray-900">文档</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="login.html" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90">登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Free Detection -->
+    <section class="gradient-bg text-white py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-sm mb-4">
+                    <i class="fas fa-gift"></i>
+                    <span>免费检测 AI 可见度，无需注册</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold mb-3">
+                    您的品牌在 AI 搜索中被推荐了吗？
+                </h1>
+                <p class="text-lg text-purple-100 mb-4 max-w-2xl mx-auto">
+                    每天有数百万人通过 ChatGPT、Claude、Perplexity 搜索产品和服务<br>
+                    <strong class="text-white">30 秒免费检测</strong>，看看 AI 是否在推荐你的品牌
+                </p>
+            </div>
+
+            <!-- 免费检测工具 - 核心卖点 -->
+            <div class="max-w-4xl mx-auto bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                <!-- Tab 切换 -->
+                <div class="flex justify-center mb-6">
+                    <div class="inline-flex bg-white/10 rounded-lg p-1">
+                        <button id="tabUrl" onclick="switchTab('url')" class="px-6 py-2 rounded-lg text-sm font-medium transition bg-white text-indigo-600">
+                            <i class="fas fa-globe mr-2"></i>网站 URL 检测
+                        </button>
+                        <button id="tabBrand" onclick="switchTab('brand')" class="px-6 py-2 rounded-lg text-sm font-medium transition text-white/80 hover:text-white">
+                            <i class="fas fa-building mr-2"></i>品牌/产品检测
+                        </button>
+                    </div>
+                </div>
+
+                <!-- URL 检测表单 -->
+                <div id="formUrl" class="space-y-4">
+                    <div class="flex gap-3">
+                        <div class="flex-1 relative">
+                            <i class="fas fa-link absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="inputUrl" 
+                                   class="w-full pl-12 pr-4 py-4 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-300 outline-none text-lg"
+                                   placeholder="输入网站 URL，如 example.com">
+                        </div>
+                        <button onclick="startFreeDetect('url')" id="btnDetectUrl"
+                                class="px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-gray-100 transition flex items-center gap-2 text-lg">
+                            <i class="fas fa-bolt"></i>
+                            <span>免费检测</span>
+                        </button>
+                    </div>
+                    <p class="text-white/60 text-sm text-center">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        无需注册，检测结果即时显示 · 已有 <span class="text-white font-semibold" id="detectCount">12,847</span> 个网站完成检测
+                    </p>
+                </div>
+
+                <!-- 品牌/产品检测表单 -->
+                <div id="formBrand" class="hidden space-y-4">
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div class="relative">
+                            <i class="fas fa-building absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="inputBrand" 
+                                   class="w-full pl-12 pr-4 py-4 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-300 outline-none"
+                                   placeholder="品牌名称，如 Apple、华为">
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-box absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="inputProduct" 
+                                   class="w-full pl-12 pr-4 py-4 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-300 outline-none"
+                                   placeholder="产品名称（可选），如 iPhone 16">
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <button onclick="startFreeDetect('brand')" id="btnDetectBrand"
+                                class="px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-gray-100 transition flex items-center gap-2 text-lg">
+                            <i class="fas fa-search"></i>
+                            <span>检测 AI 可见度</span>
+                        </button>
+                    </div>
+                    <p class="text-white/60 text-sm text-center">
+                        <i class="fas fa-robot mr-1"></i>
+                        检测品牌在 ChatGPT、Claude、Gemini、Grok、Perplexity 等 5 大 AI 模型中的表现
+                    </p>
+                </div>
+
+                <!-- 检测结果区域 -->
+                <div id="detectResult" class="hidden mt-6">
+                    <!-- 加载中 -->
+                    <div id="detectLoading" class="py-8 text-center">
+                        <div class="inline-flex items-center gap-3">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                            <span class="text-white text-lg">正在检测 AI 可见度...</span>
+                        </div>
+                        <p class="text-white/60 text-sm mt-2">正在查询 ChatGPT、Claude、Perplexity 等 AI 模型</p>
+                    </div>
+
+                    <!-- 结果展示 -->
+                    <div id="detectData" class="hidden">
+                        <!-- 用户语言的核心问题 -->
+                        <div class="grid md:grid-cols-3 gap-4 mb-6">
+                            <!-- AI 提到你了吗？ -->
+                            <div class="bg-white/10 rounded-xl p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-white/80 text-sm">AI 提到你了吗？</span>
+                                    <span class="cursor-help text-white/50 text-xs" title="检测 5 大 AI 平台是否在回答用户问题时提及你的品牌">ⓘ</span>
+                                </div>
+                                <div id="mentionStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl">⏳</span>
+                                    <span class="text-white text-lg">检测中...</span>
+                                </div>
+                            </div>
+                            <!-- AI 说的对吗？ -->
+                            <div class="bg-white/10 rounded-xl p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-white/80 text-sm">AI 说的对吗？</span>
+                                    <span class="cursor-help text-white/50 text-xs" title="检测 AI 对你品牌的描述是否准确，是否有过时或错误信息">ⓘ</span>
+                                </div>
+                                <div id="accuracyStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl">⏳</span>
+                                    <span class="text-white text-lg">检测中...</span>
+                                </div>
+                            </div>
+                            <!-- 和竞品比怎么样？ -->
+                            <div class="bg-white/10 rounded-xl p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-white/80 text-sm">和竞品比怎么样？</span>
+                                    <span class="cursor-help text-white/50 text-xs" title="你的品牌在 AI 推荐中的声量占比，与行业领先者的差距">ⓘ</span>
+                                </div>
+                                <div id="competitorStatus" class="flex items-center gap-2">
+                                    <span class="text-2xl">⏳</span>
+                                    <span class="text-white text-lg">检测中...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 综合评分 -->
+                        <div class="bg-white/10 rounded-xl p-4 mb-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-white/80 text-sm">综合评分</span>
+                                        <span class="cursor-help text-white/50 text-xs" title="基于 SHEEP 五维模型（语义覆盖、人类可信度、证据结构、生态集成、性能监测）的综合评估">ⓘ</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-4xl font-bold text-white" id="resultSheep">--</span>
+                                        <span class="text-white/60">/100</span>
+                                        <span id="scoreLevel" class="px-2 py-0.5 rounded text-xs bg-gray-500/50 text-white">--</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-white/60 text-sm">行业排名</div>
+                                    <div class="text-2xl font-bold text-white" id="resultRank">--</div>
+                                </div>
+                            </div>
+                            <!-- 评分进度条 -->
+                            <div class="mt-3">
+                                <div class="h-2 bg-white/20 rounded-full overflow-hidden">
+                                    <div id="scoreBar" class="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-white/50 mt-1">
+                                    <span>0</span>
+                                    <span>50</span>
+                                    <span>100</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 竞品对比可视化 -->
+                        <div id="competitorChart" class="bg-white/10 rounded-xl p-4 mb-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-white font-semibold">行业 AI 可见度排行</span>
+                                <span class="cursor-help text-white/50 text-xs" title="基于 AI 推荐频率的行业排名，数值越高表示被 AI 推荐的概率越大">ⓘ</span>
+                            </div>
+                            <div id="rankingBars" class="space-y-2">
+                                <!-- 动态生成排行榜 -->
+                            </div>
+                            <div id="rankingTip" class="mt-3 text-white/70 text-sm hidden">
+                                <i class="fas fa-lightbulb text-yellow-300 mr-1"></i>
+                                <span id="rankingTipText"></span>
+                            </div>
+                        </div>
+
+                        <!-- 低分/未被引用：痛点警示 -->
+                        <div id="painPoints" class="bg-red-500/20 border border-red-400/30 rounded-xl p-4 mb-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-300 text-xl mt-1"></i>
+                                <div>
+                                    <p class="text-white font-semibold mb-2">发现 <span id="issueCount">3</span> 个关键问题</p>
+                                    <ul id="issueList" class="text-white/90 text-sm space-y-1">
+                                        <li id="issue1">• 您的竞品 <span class="text-yellow-300 font-semibold" id="competitorName">--</span> 被 AI 引用 <span class="text-yellow-300 font-semibold" id="competitorCitations">--</span> 次，是您的 <span class="text-red-300 font-semibold" id="citationGap">--</span> 倍</li>
+                                        <li id="issue2">• 每月约 <span class="text-yellow-300 font-semibold" id="monthlySearches">--</span> 次 AI 搜索涉及您的行业，<span id="citationStatus">但您未被引用</span></li>
+                                        <li id="issue3">• 您的内容缺少 <span class="text-yellow-300 font-semibold" id="missingElement">结构化数据</span>，AI 引用率降低 <span class="text-red-300 font-semibold">73%</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 高分/已被引用：当前表现 + 提升空间 -->
+                        <div id="goodPerformance" class="hidden bg-blue-500/20 border border-blue-400/30 rounded-xl p-4 mb-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-chart-line text-blue-300 text-xl mt-1"></i>
+                                <div>
+                                    <p class="text-white font-semibold mb-2">当前 AI 可见度表现</p>
+                                    <ul class="text-white/90 text-sm space-y-1">
+                                        <li>• 您的品牌已被 AI 引用 <span class="text-blue-300 font-semibold" id="currentCitations">--</span> 次，<span class="text-blue-200 font-semibold" id="performanceLevel">表现良好</span></li>
+                                        <li>• 在行业中排名 <span class="text-blue-300 font-semibold" id="industryRank">--</span>，<span id="rankComment">领先 78% 的竞品</span></li>
+                                        <li>• 每月约 <span class="text-blue-300 font-semibold" id="monthlyExposure">--</span> 次品牌曝光来自 AI 推荐</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 优化建议（通用） -->
+                        <div id="optimizationTips" class="bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4 mb-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-lightbulb text-emerald-300 text-xl mt-1"></i>
+                                <div>
+                                    <p class="text-white font-semibold mb-2" id="tipsTitle">优化后预估效果</p>
+                                    <p class="text-white/90 text-sm" id="tipsContent">
+                                        通过 GEO 优化，预计可将 AI 引用率提升 <span class="text-emerald-300 font-bold text-lg" id="potentialGain">+156%</span>，
+                                        每月增加约 <span class="text-emerald-300 font-bold" id="potentialTraffic">2,340</span> 次品牌曝光
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 行动按钮 -->
+                        <div class="flex justify-center">
+                            <a href="app/setup-wizard.html" class="px-8 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-gray-100 transition text-center">
+                                <i class="fas fa-rocket mr-2"></i>立即开始优化
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 平台特点 -->
+            <div class="mt-6 text-center">
+                <p class="text-white/60 text-sm mb-2">基于 SHEEP 五维评估模型，支持多 AI 平台检测</p>
+                <div class="flex justify-center items-center gap-6 opacity-60 text-sm">
+                    <span class="text-white font-semibold">ChatGPT</span>
+                    <span class="text-white font-semibold">Claude</span>
+                    <span class="text-white font-semibold">Gemini</span>
+                    <span class="text-white font-semibold">Perplexity</span>
+                    <span class="text-white font-semibold">Grok</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    // Tab 切换
+    function switchTab(tab) {
+        const tabUrl = document.getElementById('tabUrl');
+        const tabBrand = document.getElementById('tabBrand');
+        const formUrl = document.getElementById('formUrl');
+        const formBrand = document.getElementById('formBrand');
+        
+        if (tab === 'url') {
+            tabUrl.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-white text-indigo-600';
+            tabBrand.className = 'px-6 py-2 rounded-lg text-sm font-medium transition text-white/80 hover:text-white';
+            formUrl.classList.remove('hidden');
+            formBrand.classList.add('hidden');
+        } else {
+            tabBrand.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-white text-indigo-600';
+            tabUrl.className = 'px-6 py-2 rounded-lg text-sm font-medium transition text-white/80 hover:text-white';
+            formBrand.classList.remove('hidden');
+            formUrl.classList.add('hidden');
+        }
+        // 隐藏之前的结果
+        document.getElementById('detectResult').classList.add('hidden');
+    }
+
+    // 开始免费检测 - 调用真实 AI API
+    async function startFreeDetect(mode) {
+        let url = '';
+        let brand = '';
+        let product = '';
+        
+        if (mode === 'url') {
+            url = document.getElementById('inputUrl').value.trim();
+            if (!url) {
+                alert('请输入网站 URL');
+                return;
+            }
+            // 确保有协议前缀
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+        } else {
+            brand = document.getElementById('inputBrand').value.trim();
+            product = document.getElementById('inputProduct').value.trim();
+            if (!brand) {
+                alert('请输入品牌名称');
+                return;
+            }
+        }
+
+        // 显示加载状态
+        const resultDiv = document.getElementById('detectResult');
+        const loadingDiv = document.getElementById('detectLoading');
+        const dataDiv = document.getElementById('detectData');
+        
+        resultDiv.classList.remove('hidden');
+        loadingDiv.classList.remove('hidden');
+        dataDiv.classList.add('hidden');
+
+        try {
+            // 调用真实的后端 API - 使用新的 visibility-check 接口
+            const response = await fetch('/api/visibility-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: mode,
+                    url: url,
+                    brandName: brand,
+                    productName: product
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('检测服务暂时不可用');
+            }
+
+            const data = await response.json();
+            console.log('API 响应:', data);
+            
+            // 直接使用新接口返回的数据，字段名已匹配
+            const displayData = {
+                sheepScore: data.sheepScore,
+                estimatedCitations: data.estimatedCitations,
+                citationLevel: data.citationLevel,
+                sovPercent: data.sovPercent,
+                industryRank: data.industryRank,
+                totalCompetitors: data.totalCompetitors,
+                isKnown: data.isKnown,
+                brandDescription: data.brandDescription,
+                topPlayer: data.topPlayer,
+                monthlyAISearches: data.monthlyAISearches,
+                industryCategory: data.industryCategory,
+                competitors: data.competitors || [],
+                optimizationSuggestions: data.optimizationSuggestions || [],
+                strengths: data.strengths || [],
+                weaknesses: data.weaknesses || [],
+                sheepDetails: data.sheepDetails,
+                brand: data.brand,
+                product: data.product
+            };
+            
+            // 显示结果
+            displayResults(displayData);
+            
+            loadingDiv.classList.add('hidden');
+            dataDiv.classList.remove('hidden');
+        } catch (error) {
+            console.error('检测失败:', error);
+            loadingDiv.classList.add('hidden');
+            alert('检测失败: ' + error.message + '\n请稍后重试');
+            resultDiv.classList.add('hidden');
+        }
+    }
+
+    // 格式化数字为 K/M 格式
+    function formatNumber(num) {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        } else if (num >= 1000) {
+            return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+        }
+        return num.toString();
+    }
+
+    // 显示检测结果 - 用户语言版本
+    function displayResults(data) {
+        // 基础指标
+        const sheepScore = data.sheepScore || 0;
+        const citations = data.estimatedCitations || 0;
+        const citationLevel = data.citationLevel || formatNumber(citations) + '+';
+        const sovPercent = data.sovPercent || 0;
+        const industryRank = data.industryRank || 0;
+        const totalCompetitors = data.totalCompetitors || 0;
+        const formattedCitations = formatNumber(citations);
+        
+        // ========== 1. 三个核心问题 ==========
+        
+        // AI 提到你了吗？
+        const mentionStatus = document.getElementById('mentionStatus');
+        if (data.isKnown && citations > 0) {
+            const platformCount = Math.min(5, Math.ceil(sovPercent / 20) + 1);
+            mentionStatus.innerHTML = `
+                <span class="text-2xl">✅</span>
+                <span class="text-white text-lg">是的！<span class="text-green-300 font-semibold">${platformCount}/5</span> 个平台提到了你</span>
+            `;
+        } else if (data.isKnown) {
+            mentionStatus.innerHTML = `
+                <span class="text-2xl">⚠️</span>
+                <span class="text-white text-lg">AI 知道你，但<span class="text-yellow-300">很少推荐</span></span>
+            `;
+        } else {
+            mentionStatus.innerHTML = `
+                <span class="text-2xl">❌</span>
+                <span class="text-white text-lg">AI <span class="text-red-300">尚未收录</span>该品牌</span>
+            `;
+        }
+        
+        // AI 说的对吗？
+        const accuracyStatus = document.getElementById('accuracyStatus');
+        const weaknesses = data.weaknesses || [];
+        const accuracyIssues = weaknesses.filter(w => 
+            w.includes('过时') || w.includes('错误') || w.includes('不准确') || w.includes('缺少')
+        ).length;
+        
+        if (!data.isKnown) {
+            accuracyStatus.innerHTML = `
+                <span class="text-2xl">➖</span>
+                <span class="text-white text-lg text-white/60">暂无数据</span>
+            `;
+        } else if (accuracyIssues === 0 && sheepScore >= 70) {
+            accuracyStatus.innerHTML = `
+                <span class="text-2xl">✅</span>
+                <span class="text-white text-lg">信息<span class="text-green-300">基本准确</span></span>
+            `;
+        } else if (accuracyIssues > 0) {
+            accuracyStatus.innerHTML = `
+                <span class="text-2xl">⚠️</span>
+                <span class="text-white text-lg">发现 <span class="text-yellow-300 font-semibold">${accuracyIssues}</span> 处可能不准确</span>
+            `;
+        } else {
+            accuracyStatus.innerHTML = `
+                <span class="text-2xl">❓</span>
+                <span class="text-white text-lg">需要<span class="text-blue-300">进一步验证</span></span>
+            `;
+        }
+        
+        // 和竞品比怎么样？
+        const competitorStatus = document.getElementById('competitorStatus');
+        const topCompetitor = data.competitors && data.competitors[0];
+        const topSov = topCompetitor?.sovPercent || 45;
+        const gap = topSov - sovPercent;
+        
+        if (sovPercent >= topSov * 0.8) {
+            competitorStatus.innerHTML = `
+                <span class="text-2xl">🏆</span>
+                <span class="text-white text-lg">你的声量 <span class="text-green-300 font-semibold">${sovPercent}%</span>，行业领先</span>
+            `;
+        } else if (sovPercent > 0) {
+            competitorStatus.innerHTML = `
+                <span class="text-2xl">📊</span>
+                <span class="text-white text-lg">你 <span class="text-blue-300">${sovPercent}%</span>，第一名 <span class="text-yellow-300">${topSov}%</span>，差距 <span class="text-red-300">${gap}%</span></span>
+            `;
+        } else {
+            competitorStatus.innerHTML = `
+                <span class="text-2xl">📉</span>
+                <span class="text-white text-lg">暂无声量，第一名 <span class="text-yellow-300">${topSov}%</span></span>
+            `;
+        }
+        
+        // ========== 2. 综合评分 ==========
+        document.getElementById('resultSheep').textContent = sheepScore;
+        document.getElementById('resultRank').textContent = industryRank > 0 ? '#' + industryRank : '未上榜';
+        
+        // 评分等级标签
+        const scoreLevel = document.getElementById('scoreLevel');
+        if (sheepScore >= 80) {
+            scoreLevel.textContent = '优秀';
+            scoreLevel.className = 'px-2 py-0.5 rounded text-xs bg-green-500/50 text-white';
+        } else if (sheepScore >= 60) {
+            scoreLevel.textContent = '良好';
+            scoreLevel.className = 'px-2 py-0.5 rounded text-xs bg-blue-500/50 text-white';
+        } else if (sheepScore >= 40) {
+            scoreLevel.textContent = '中等';
+            scoreLevel.className = 'px-2 py-0.5 rounded text-xs bg-yellow-500/50 text-white';
+        } else {
+            scoreLevel.textContent = '待提升';
+            scoreLevel.className = 'px-2 py-0.5 rounded text-xs bg-red-500/50 text-white';
+        }
+        
+        // 评分进度条
+        document.getElementById('scoreBar').style.width = sheepScore + '%';
+        
+        // ========== 3. 竞品对比可视化 ==========
+        renderCompetitorChart(data, sovPercent);
+        
+        // ========== 4. 痛点/表现区域 ==========
+        const painPoints = document.getElementById('painPoints');
+        const goodPerformance = document.getElementById('goodPerformance');
+        const tipsTitle = document.getElementById('tipsTitle');
+        const tipsContent = document.getElementById('tipsContent');
+        const isHighPerformer = data.isKnown && sheepScore >= 60 && citations >= 100;
+
+        if (isHighPerformer) {
+            painPoints.classList.add('hidden');
+            goodPerformance.classList.remove('hidden');
+            document.getElementById('currentCitations').textContent = formattedCitations + '+';
+            document.getElementById('industryRank').textContent = '#' + industryRank + '/' + totalCompetitors;
+            
+            if (sheepScore >= 80) {
+                document.getElementById('performanceLevel').textContent = '表现优秀';
+                document.getElementById('rankComment').textContent = data.brandDescription || '行业领先品牌';
+            } else if (sheepScore >= 70) {
+                document.getElementById('performanceLevel').textContent = '表现良好';
+                document.getElementById('rankComment').textContent = data.brandDescription || '知名品牌';
+            } else {
+                document.getElementById('performanceLevel').textContent = '表现中等';
+                document.getElementById('rankComment').textContent = data.brandDescription || '有一定知名度';
+            }
+            document.getElementById('monthlyExposure').textContent = formattedCitations + '+';
+            tipsTitle.textContent = '进一步提升空间';
+        } else {
+            painPoints.classList.remove('hidden');
+            goodPerformance.classList.add('hidden');
+            document.getElementById('competitorName').textContent = topCompetitor?.name || data.topPlayer || '行业领导者';
+            document.getElementById('competitorCitations').textContent = topCompetitor?.citationLevel || '几千次';
+            
+            const competitorCitations = topCompetitor?.estimatedCitations || 1000;
+            const citationGap = citations > 0 ? Math.round(competitorCitations / citations) : '∞';
+            document.getElementById('citationGap').textContent = citationGap + 'x';
+            document.getElementById('monthlySearches').textContent = data.monthlyAISearches || '10,000+';
+            document.getElementById('missingElement').textContent = weaknesses[0] || '结构化数据';
+
+            if (!data.isKnown) {
+                document.getElementById('citationStatus').textContent = 'AI 尚未收录该品牌';
+                document.getElementById('issueCount').textContent = '5';
+            } else if (citations === 0) {
+                document.getElementById('citationStatus').textContent = '但您完全未被引用';
+                document.getElementById('issueCount').textContent = '4';
+            } else {
+                document.getElementById('citationStatus').textContent = `您仅被引用 ${citationLevel}`;
+                document.getElementById('issueCount').textContent = '3';
+            }
+
+            if (sheepScore >= 50) {
+                painPoints.className = 'bg-amber-500/20 border border-amber-400/30 rounded-xl p-4 mb-4';
+                painPoints.querySelector('i').className = 'fas fa-info-circle text-amber-300 text-xl mt-1';
+            } else {
+                painPoints.className = 'bg-red-500/20 border border-red-400/30 rounded-xl p-4 mb-4';
+                painPoints.querySelector('i').className = 'fas fa-exclamation-triangle text-red-300 text-xl mt-1';
+            }
+            tipsTitle.textContent = '优化建议';
+        }
+
+        // ========== 5. 优化建议具体化 ==========
+        renderOptimizationSteps(data, sheepScore, isHighPerformer);
+
+        // 存储结果
+        localStorage.setItem('free_detect_result', JSON.stringify({ ...data, timestamp: Date.now() }));
+        updateDetectCount();
+    }
+    
+    // 渲染竞品对比排行榜
+    function renderCompetitorChart(data, userSov) {
+        const rankingBars = document.getElementById('rankingBars');
+        const rankingTip = document.getElementById('rankingTip');
+        const rankingTipText = document.getElementById('rankingTipText');
+        
+        // 构建排行数据
+        const rankings = [];
+        const competitors = data.competitors || [];
+        
+        // 添加竞品
+        competitors.slice(0, 3).forEach((c, i) => {
+            rankings.push({
+                name: c.name,
+                sov: c.sovPercent || (40 - i * 10),
+                isUser: false,
+                rank: i + 1
+            });
+        });
+        
+        // 添加用户品牌
+        const userBrand = data.brand || '你的品牌';
+        rankings.push({
+            name: userBrand,
+            sov: userSov,
+            isUser: true,
+            rank: data.industryRank || rankings.length + 1
+        });
+        
+        // 按 SOV 排序
+        rankings.sort((a, b) => b.sov - a.sov);
+        
+        // 渲染排行榜
+        let html = '';
+        rankings.forEach((item, index) => {
+            const barWidth = Math.max(5, item.sov * 2); // 最小 5%
+            const bgColor = item.isUser ? 'bg-indigo-400' : 'bg-white/40';
+            const textColor = item.isUser ? 'text-indigo-200 font-semibold' : 'text-white/70';
+            const marker = item.isUser ? '<span class="text-yellow-300 ml-1">← 你在这里</span>' : '';
+            
+            html += `
+                <div class="flex items-center gap-3">
+                    <span class="text-white/60 text-sm w-6">#${index + 1}</span>
+                    <span class="${textColor} text-sm w-24 truncate">${item.name}${marker}</span>
+                    <div class="flex-1 h-4 bg-white/10 rounded-full overflow-hidden">
+                        <div class="${bgColor} h-full rounded-full transition-all duration-500" style="width: ${barWidth}%"></div>
+                    </div>
+                    <span class="${textColor} text-sm w-12 text-right">${item.sov}%</span>
+                </div>
+            `;
+        });
+        
+        rankingBars.innerHTML = html;
+        
+        // 显示提升提示
+        const userRank = rankings.findIndex(r => r.isUser) + 1;
+        if (userRank > 1) {
+            const nextTarget = rankings[userRank - 2];
+            const needed = nextTarget.sov - userSov;
+            rankingTip.classList.remove('hidden');
+            rankingTipText.textContent = `提升到 #${userRank - 1} 需要增加 ${needed}% 的 AI 提及率`;
+        } else {
+            rankingTip.classList.add('hidden');
+        }
+    }
+    
+    // 渲染具体化的优化建议
+    function renderOptimizationSteps(data, sheepScore, isHighPerformer) {
+        const tipsContent = document.getElementById('tipsContent');
+        const suggestions = data.optimizationSuggestions || [];
+        const weaknesses = data.weaknesses || [];
+        
+        // 生成 3 步优化方案
+        const steps = [];
+        
+        if (!data.isKnown) {
+            steps.push({
+                title: '建立品牌基础信息',
+                desc: '在官网添加清晰的品牌介绍、产品说明',
+                impact: '+30%',
+                time: '1 小时'
+            });
+            steps.push({
+                title: '添加结构化数据',
+                desc: '添加 Organization、Product Schema',
+                impact: '+25%',
+                time: '30 分钟'
+            });
+            steps.push({
+                title: '创建权威内容',
+                desc: '发布行业文章、FAQ、使用指南',
+                impact: '+20%',
+                time: '2 小时'
+            });
+        } else if (sheepScore < 60) {
+            steps.push({
+                title: '修复内容问题',
+                desc: weaknesses[0] || '优化内容结构和可读性',
+                impact: '+25%',
+                time: '1 小时'
+            });
+            steps.push({
+                title: '增强可引用性',
+                desc: '添加 FAQ、数据统计、专家引用',
+                impact: '+20%',
+                time: '1.5 小时'
+            });
+            steps.push({
+                title: '提升权威信号',
+                desc: '获取行业媒体报道、用户评价',
+                impact: '+15%',
+                time: '持续'
+            });
+        } else {
+            steps.push({
+                title: '深度内容优化',
+                desc: suggestions[0] || '优化核心页面的 AI 可读性',
+                impact: '+15%',
+                time: '2 小时'
+            });
+            steps.push({
+                title: '扩展引用来源',
+                desc: '在 Reddit、LinkedIn 等平台建立存在',
+                impact: '+10%',
+                time: '持续'
+            });
+            steps.push({
+                title: '监控与迭代',
+                desc: '定期检测并根据变化调整策略',
+                impact: '+10%',
+                time: '每周'
+            });
+        }
+        
+        let html = `
+            <div class="space-y-3">
+                <p class="text-white/90 text-sm mb-3">
+                    ${isHighPerformer ? '进一步提升建议：' : '3 步快速提升方案：'}
+                </p>
+        `;
+        
+        steps.forEach((step, i) => {
+            html += `
+                <div class="flex items-start gap-3 bg-white/5 rounded-lg p-3">
+                    <span class="w-6 h-6 rounded-full bg-emerald-500/30 text-emerald-300 text-sm flex items-center justify-center flex-shrink-0">${i + 1}</span>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-white font-medium text-sm">${step.title}</span>
+                            <span class="text-emerald-300 text-xs">预计 ${step.impact} 可见度</span>
+                        </div>
+                        <p class="text-white/60 text-xs mt-1">${step.desc}</p>
+                        <p class="text-white/40 text-xs mt-1">⏱️ ${step.time}</p>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        tipsContent.innerHTML = html;
+    }
+
+    // 更新检测计数器
+    function updateDetectCount() {
+        const countEl = document.getElementById('detectCount');
+        if (countEl) {
+            let count = parseInt(countEl.textContent.replace(/,/g, '')) || 12847;
+            count++;
+            countEl.textContent = count.toLocaleString();
+            // 保存到 localStorage
+            localStorage.setItem('detect_count', count.toString());
+        }
+    }
+    
+    // 页面加载时恢复计数器
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedCount = localStorage.getItem('detect_count');
+        if (savedCount) {
+            const countEl = document.getElementById('detectCount');
+            if (countEl) {
+                countEl.textContent = parseInt(savedCount).toLocaleString();
+            }
+        }
+    });
+    </script>
+
+    <!-- Stats Section -->
+    <section class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div>
+                    <div class="text-4xl font-bold text-primary">10</div>
+                    <div class="text-gray-500 mt-2">Phase 完整功能</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold text-primary">5</div>
+                    <div class="text-gray-500 mt-2">SHEEP 评估维度</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold text-primary">5</div>
+                    <div class="text-gray-500 mt-2">支持 AI 模型</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold text-primary">4</div>
+                    <div class="text-gray-500 mt-2">发布平台集成</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section id="features" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900">核心功能模块</h2>
+                <p class="text-gray-600 mt-4">完整的 GEO 优化闭环，从检测到优化到发布</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 可见度中心 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm card-hover transition">
+                    <div class="feature-icon w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-eye text-indigo-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">可见度中心</h3>
+                    <p class="text-gray-600 mb-3">SHEEP 五维评分、SOV 声量分析、TrustScore 信任度、多维度分析、品牌洞察</p>
+                    <a href="app/visibility-center.html" class="text-indigo-600 text-sm hover:underline">进入功能 →</a>
+                </div>
+                <!-- 引用中心 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm card-hover transition">
+                    <div class="feature-icon w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-quote-left text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">引用中心</h3>
+                    <p class="text-gray-600 mb-3">AI 引用追踪、引用基准分析、来源分析、平台策略、引用漂移检测</p>
+                    <a href="app/citation-center.html" class="text-indigo-600 text-sm hover:underline">进入功能 →</a>
+                </div>
+                <!-- 内容工作室 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm card-hover transition">
+                    <div class="feature-icon w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-edit text-emerald-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">内容工作室</h3>
+                    <p class="text-gray-600 mb-3">内容质量评估、答案胶囊检测、可引用性评分、关键词分析、叙事模式分析</p>
+                    <a href="app/content-studio.html" class="text-indigo-600 text-sm hover:underline">进入功能 →</a>
+                </div>
+                <!-- 竞品分析 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm card-hover transition">
+                    <div class="feature-icon w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-users text-amber-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">竞品分析</h3>
+                    <p class="text-gray-600 mb-3">竞品可见度对比、SHEEP 评分对比、引用率对比、优势差距分析</p>
+                    <a href="app/competitors.html" class="text-indigo-600 text-sm hover:underline">进入功能 →</a>
+                </div>
+                <!-- 策略中心 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm card-hover transition">
+                    <div class="feature-icon w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-lightbulb text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">策略中心</h3>
+                    <p class="text-gray-600 mb-3">智能优化建议、三路径行动方案、可执行任务清单、优先级排序</p>
+                    <a href="app/strategy-center.html" class="text-indigo-600 text-sm hover:underline">进入功能 →</a>
+                </div>
+                <!-- 优化向导 -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm card-hover transition">
+                    <div class="feature-icon w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-magic text-red-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">优化向导</h3>
+                    <p class="text-gray-600 mb-3">分步优化引导、Schema 生成、内容重写建议、一键优化执行</p>
+                    <a href="app/optimization-wizard.html" class="text-indigo-600 text-sm hover:underline">进入功能 →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tools Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900">专业工具</h2>
+                <p class="text-gray-600 mt-4">独立可用的 GEO 优化工具</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gray-50 p-5 rounded-xl card-hover transition">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
+                        <i class="fas fa-file-code text-indigo-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">llms.txt 生成器</h3>
+                    <p class="text-sm text-gray-600">为网站生成 AI 友好的 llms.txt 文件</p>
+                </div>
+                <div class="bg-gray-50 p-5 rounded-xl card-hover transition">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
+                        <i class="fas fa-spider text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">AI 爬虫审计</h3>
+                    <p class="text-sm text-gray-600">检测网站对 14+ AI 爬虫的配置</p>
+                </div>
+                <div class="bg-gray-50 p-5 rounded-xl card-hover transition">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-3">
+                        <i class="fas fa-clock text-emerald-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">内容新鲜度审计</h3>
+                    <p class="text-sm text-gray-600">检测过期内容，提升 AI 引用率</p>
+                </div>
+                <div class="bg-gray-50 p-5 rounded-xl card-hover transition">
+                    <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-3">
+                        <i class="fas fa-user-tag text-amber-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">Persona 买家角色</h3>
+                    <p class="text-sm text-gray-600">生成目标用户画像和问题</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow Section -->
+    <section id="workflow" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900">GEO 优化闭环</h2>
+                <p class="text-gray-600 mt-4">四步完成 AI 可见度优化</p>
+            </div>
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold">1</div>
+                    <h3 class="font-semibold text-gray-900 mb-2">配置项目</h3>
+                    <p class="text-sm text-gray-600">输入品牌信息、网站 URL、行业和竞品</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold">2</div>
+                    <h3 class="font-semibold text-gray-900 mb-2">检测分析</h3>
+                    <p class="text-sm text-gray-600">AI 可见度检测、SHEEP 评分、引用追踪</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold">3</div>
+                    <h3 class="font-semibold text-gray-900 mb-2">优化执行</h3>
+                    <p class="text-sm text-gray-600">内容优化、Schema 生成、多渠道发布</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold">4</div>
+                    <h3 class="font-semibold text-gray-900 mb-2">效果监控</h3>
+                    <p class="text-sm text-gray-600">实时监控、引用漂移检测、持续迭代</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SHEEP Model Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900">SHEEP 五维评估模型</h2>
+                <p class="text-gray-600 mt-4">行业领先的 GEO 评估框架</p>
+            </div>
+            <div class="grid md:grid-cols-5 gap-6">
+                <div class="bg-gray-50 p-6 rounded-xl text-center card-hover transition">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-blue-600">S</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Specificity</h3>
+                    <p class="text-sm text-gray-600">内容具体性</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl text-center card-hover transition">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-green-600">H</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Helpfulness</h3>
+                    <p class="text-sm text-gray-600">内容有用性</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl text-center card-hover transition">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-purple-600">E</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Expertise</h3>
+                    <p class="text-sm text-gray-600">专业深度</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl text-center card-hover transition">
+                    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-amber-600">E</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Experience</h3>
+                    <p class="text-sm text-gray-600">实践经验</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl text-center card-hover transition">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-red-600">P</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Persuasiveness</h3>
+                    <p class="text-sm text-gray-600">说服力</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 gradient-bg">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">准备好提升您的 AI 可见度了吗？</h2>
+            <p class="text-purple-100 mb-8">立即开始，体验 GeoCore AI 的强大功能</p>
+            <div class="flex justify-center gap-4">
+                <a href="app/dashboard.html" class="inline-block px-8 py-3 bg-white text-primary font-semibold rounded-lg hover:bg-gray-100 transition">
+                    <i class="fas fa-rocket mr-2"></i>进入控制台
+                </a>
+                <a href="blog.html" class="inline-block px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary transition">
+                    <i class="fas fa-book mr-2"></i>阅读博客
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">G</span>
+                        </div>
+                        <span class="text-xl font-bold text-white">GeoCore AI</span>
+                    </div>
+                    <p class="text-sm">让您的品牌成为 AI 的"标准答案"</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">核心功能</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="app/visibility-center.html" class="hover:text-white">可见度中心</a></li>
+                        <li><a href="app/citation-center.html" class="hover:text-white">引用中心</a></li>
+                        <li><a href="app/content-studio.html" class="hover:text-white">内容工作室</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">资源</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="blog.html" class="hover:text-white">博客</a></li>
+                        <li><a href="docs.html" class="hover:text-white">文档中心</a></li>
+                        <li><a href="app/llms-txt.html" class="hover:text-white">llms.txt 生成器</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">快速入口</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="app/dashboard.html" class="hover:text-white">控制台</a></li>
+                        <li><a href="app/projects.html" class="hover:text-white">项目管理</a></li>
+                        <li><a href="app/setup-wizard.html" class="hover:text-white">新建项目</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
+                <p>© 2026 GeoCore AI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

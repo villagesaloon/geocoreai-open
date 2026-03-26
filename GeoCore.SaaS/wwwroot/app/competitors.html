@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>竞品分析 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn { transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom-color: #6366f1; color: #6366f1; }
+        .tab-btn:not(.active):hover { color: #6366f1; }
+        .competitor-card { transition: all 0.2s; cursor: pointer; }
+        .competitor-card:hover { transform: translateY(-2px); }
+        .competitor-card.selected { box-shadow: 0 0 0 2px #6366f1; }
+        .action-item { transition: all 0.2s; }
+        .action-item:hover { background: #f9fafb; }
+        .expand-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .expand-content.expanded { max-height: 1000px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">竞品分析</h2>
+                    <p class="text-sm text-gray-500">深度洞察 | 差距诊断 | 行动方案</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="manageCompetitors()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-cog mr-2"></i>管理竞品
+                    </button>
+                    <button onclick="refreshAnalysis()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-sync-alt mr-2"></i>刷新分析
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 竞品选择卡片 -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-medium text-gray-700">选择对比竞品</h3>
+                    <span id="urlTip" class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded hidden">
+                        <i class="fas fa-info-circle mr-1"></i>部分竞品未配置URL，深度分析功能受限
+                    </span>
+                </div>
+                <div class="grid grid-cols-4 gap-4">
+                    <!-- 我的品牌 -->
+                    <div class="competitor-card bg-white rounded-xl p-4 shadow-sm border-2 border-indigo-500">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">我的品牌</span>
+                            <span class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded">基准</span>
+                        </div>
+                        <p class="text-2xl font-bold text-indigo-600">68.5</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <i class="fas fa-globe text-gray-400 text-xs"></i>
+                            <span class="text-xs text-gray-500 truncate">techbrand.com</span>
+                        </div>
+                    </div>
+                    <!-- 竞品A (有URL) -->
+                    <div class="competitor-card bg-white rounded-xl p-4 shadow-sm border-2 border-transparent hover:border-red-300 selected" onclick="selectCompetitor('A')">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">竞品 A</span>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">领先</span>
+                        </div>
+                        <p class="text-2xl font-bold text-red-500">72.3</p>
+                        <p class="text-xs text-red-400">+3.8 vs 我方</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <i class="fas fa-globe text-emerald-500 text-xs"></i>
+                            <span class="text-xs text-gray-500 truncate">competitor-a.com</span>
+                        </div>
+                    </div>
+                    <!-- 竞品B (有URL) -->
+                    <div class="competitor-card bg-white rounded-xl p-4 shadow-sm border-2 border-transparent hover:border-blue-300" onclick="selectCompetitor('B')">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">竞品 B</span>
+                            <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">落后</span>
+                        </div>
+                        <p class="text-2xl font-bold text-blue-500">65.1</p>
+                        <p class="text-xs text-emerald-400">-3.4 vs 我方</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <i class="fas fa-globe text-emerald-500 text-xs"></i>
+                            <span class="text-xs text-gray-500 truncate">competitor-b.com</span>
+                        </div>
+                    </div>
+                    <!-- 竞品C (无URL) -->
+                    <div class="competitor-card bg-white rounded-xl p-4 shadow-sm border-2 border-transparent hover:border-purple-300" onclick="selectCompetitor('C')">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-900">竞品 C</span>
+                            <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">落后</span>
+                        </div>
+                        <p class="text-2xl font-bold text-purple-500">58.7</p>
+                        <p class="text-xs text-emerald-400">-9.8 vs 我方</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <i class="fas fa-globe text-gray-300 text-xs"></i>
+                            <span class="text-xs text-gray-400">未配置URL</span>
+                            <a href="project-detail.html" class="text-xs text-indigo-600 hover:underline">配置</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 导航 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="flex border-b border-gray-200 px-6 overflow-x-auto">
+                    <button id="tab-overview" class="tab-btn active px-4 py-4 text-sm font-medium whitespace-nowrap" onclick="switchTab('overview')">
+                        <i class="fas fa-chart-pie mr-2"></i>综合对比
+                    </button>
+                    <button id="tab-website" class="tab-btn px-4 py-4 text-sm font-medium text-gray-500 whitespace-nowrap" onclick="switchTab('website')">
+                        <i class="fas fa-globe mr-2"></i>网站深度分析
+                    </button>
+                    <button id="tab-sheep" class="tab-btn px-4 py-4 text-sm font-medium text-gray-500 whitespace-nowrap" onclick="switchTab('sheep')">
+                        <i class="fas fa-layer-group mr-2"></i>SHEEP维度差距
+                    </button>
+                    <button id="tab-samples" class="tab-btn px-4 py-4 text-sm font-medium text-gray-500 whitespace-nowrap" onclick="switchTab('samples')">
+                        <i class="fas fa-comments mr-2"></i>AI回复对比
+                    </button>
+                    <button id="tab-monitor" class="tab-btn px-4 py-4 text-sm font-medium text-gray-500 whitespace-nowrap" onclick="switchTab('monitor')">
+                        <i class="fas fa-bell mr-2"></i>动态监控
+                    </button>
+                    <button id="tab-actions" class="tab-btn px-4 py-4 text-sm font-medium text-gray-500 whitespace-nowrap" onclick="switchTab('actions')">
+                        <i class="fas fa-tasks mr-2"></i>行动方案
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==================== Tab 1: 综合对比 ==================== -->
+            <div id="content-overview" class="tab-content">
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">SHEEP 维度对比</h3>
+                        <canvas id="sheepRadar" height="250"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">各模型可见度对比</h3>
+                        <canvas id="modelComparison" height="250"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">详细指标对比</h3>
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 text-sm font-medium text-gray-500">指标</th>
+                                <th class="text-center py-3 text-sm font-medium text-indigo-600">我的品牌</th>
+                                <th class="text-center py-3 text-sm font-medium text-red-500">竞品 A</th>
+                                <th class="text-center py-3 text-sm font-medium text-blue-500">竞品 B</th>
+                                <th class="text-center py-3 text-sm font-medium text-purple-500">竞品 C</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b border-gray-100">
+                                <td class="py-3 text-gray-700">AI 可见度</td>
+                                <td class="py-3 text-center font-medium">68.5</td>
+                                <td class="py-3 text-center text-red-500 font-bold">72.3 ★</td>
+                                <td class="py-3 text-center">65.1</td>
+                                <td class="py-3 text-center">58.7</td>
+                            </tr>
+                            <tr class="border-b border-gray-100">
+                                <td class="py-3 text-gray-700">SOV 份额</td>
+                                <td class="py-3 text-center font-medium">23.5%</td>
+                                <td class="py-3 text-center text-red-500 font-bold">28.2% ★</td>
+                                <td class="py-3 text-center">18.5%</td>
+                                <td class="py-3 text-center">15.3%</td>
+                            </tr>
+                            <tr class="border-b border-gray-100">
+                                <td class="py-3 text-gray-700">推荐率</td>
+                                <td class="py-3 text-center font-bold text-indigo-600">34.2% ★</td>
+                                <td class="py-3 text-center">31.5%</td>
+                                <td class="py-3 text-center">28.3%</td>
+                                <td class="py-3 text-center">22.1%</td>
+                            </tr>
+                            <tr class="border-b border-gray-100">
+                                <td class="py-3 text-gray-700">情感评分</td>
+                                <td class="py-3 text-center font-bold text-indigo-600">82 ★</td>
+                                <td class="py-3 text-center">78</td>
+                                <td class="py-3 text-center">75</td>
+                                <td class="py-3 text-center">71</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-gray-700">SHEEP 综合</td>
+                                <td class="py-3 text-center font-medium">75</td>
+                                <td class="py-3 text-center text-red-500 font-bold">78 ★</td>
+                                <td class="py-3 text-center">72</td>
+                                <td class="py-3 text-center">68</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ==================== Tab 2: 网站深度分析 ==================== -->
+            <div id="content-website" class="tab-content hidden">
+                <!-- 页面结构分析 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-sitemap text-indigo-600 mr-2"></i>页面结构分析</h3>
+                        <span class="text-xs text-gray-500">最后扫描: 2小时前</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 font-medium text-gray-500">内容类型</th>
+                                    <th class="text-center py-3 font-medium text-indigo-600">我方</th>
+                                    <th class="text-center py-3 font-medium text-red-500">竞品A</th>
+                                    <th class="text-center py-3 font-medium text-gray-500">差距</th>
+                                    <th class="text-right py-3 font-medium text-gray-500">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">产品页</td>
+                                    <td class="py-3 text-center">5</td>
+                                    <td class="py-3 text-center font-medium text-red-500">12</td>
+                                    <td class="py-3 text-center text-red-500">-7</td>
+                                    <td class="py-3 text-right"><button onclick="createProductPages()" class="text-xs text-indigo-600 hover:underline">创建更多</button></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">FAQ 问答</td>
+                                    <td class="py-3 text-center">12</td>
+                                    <td class="py-3 text-center font-medium text-red-500">45</td>
+                                    <td class="py-3 text-center text-red-500">-33</td>
+                                    <td class="py-3 text-right"><button onclick="generateFAQ()" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">AI生成FAQ</button></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">博客文章</td>
+                                    <td class="py-3 text-center">15</td>
+                                    <td class="py-3 text-center font-medium text-red-500">89</td>
+                                    <td class="py-3 text-center text-red-500">-74</td>
+                                    <td class="py-3 text-right"><button onclick="planContent()" class="text-xs text-indigo-600 hover:underline">内容规划</button></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">案例研究</td>
+                                    <td class="py-3 text-center">3</td>
+                                    <td class="py-3 text-center font-medium text-red-500">23</td>
+                                    <td class="py-3 text-center text-red-500">-20</td>
+                                    <td class="py-3 text-right"><button class="text-xs text-indigo-600 hover:underline">创建案例</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-gray-700">白皮书/报告</td>
+                                    <td class="py-3 text-center">1</td>
+                                    <td class="py-3 text-center font-medium text-red-500">14</td>
+                                    <td class="py-3 text-center text-red-500">-13</td>
+                                    <td class="py-3 text-right"><button class="text-xs text-indigo-600 hover:underline">规划报告</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Schema 标记对比 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-code text-purple-600 mr-2"></i>Schema 标记对比</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 font-medium text-gray-500">Schema 类型</th>
+                                    <th class="text-center py-3 font-medium text-indigo-600">我方</th>
+                                    <th class="text-center py-3 font-medium text-red-500">竞品A</th>
+                                    <th class="text-right py-3 font-medium text-gray-500">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">Organization</td>
+                                    <td class="py-3 text-center text-emerald-500"><i class="fas fa-check-circle"></i></td>
+                                    <td class="py-3 text-center text-emerald-500"><i class="fas fa-check-circle"></i></td>
+                                    <td class="py-3 text-right text-gray-400">-</td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">Product</td>
+                                    <td class="py-3 text-center text-red-500"><i class="fas fa-times-circle"></i></td>
+                                    <td class="py-3 text-center text-emerald-500"><i class="fas fa-check-circle"></i></td>
+                                    <td class="py-3 text-right"><button onclick="generateSchema('Product')" class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">生成代码</button></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">FAQPage</td>
+                                    <td class="py-3 text-center text-red-500"><i class="fas fa-times-circle"></i></td>
+                                    <td class="py-3 text-center text-emerald-500"><i class="fas fa-check-circle"></i></td>
+                                    <td class="py-3 text-right"><button onclick="generateSchema('FAQPage')" class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">生成代码</button></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-3 text-gray-700">HowTo</td>
+                                    <td class="py-3 text-center text-red-500"><i class="fas fa-times-circle"></i></td>
+                                    <td class="py-3 text-center text-emerald-500"><i class="fas fa-check-circle"></i></td>
+                                    <td class="py-3 text-right"><button onclick="generateSchema('HowTo')" class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">生成代码</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-gray-700">Review / AggregateRating</td>
+                                    <td class="py-3 text-center text-red-500"><i class="fas fa-times-circle"></i></td>
+                                    <td class="py-3 text-center text-emerald-500"><i class="fas fa-check-circle"></i></td>
+                                    <td class="py-3 text-right"><button onclick="generateSchema('Review')" class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">生成代码</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 权威引用分析 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-award text-amber-600 mr-2"></i>权威引用来源分析</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-sm font-medium text-red-600 mb-3">竞品A 被引用的权威来源</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-star text-amber-500"></i>
+                                        <span class="text-sm">Gartner</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">3次引用 - "领导者象限"</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-star text-amber-500"></i>
+                                        <span class="text-sm">Forrester</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">2次引用 - "Wave报告推荐"</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-newspaper text-blue-500"></i>
+                                        <span class="text-sm">TechCrunch</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">5次引用 - 产品评测</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-users text-emerald-500"></i>
+                                        <span class="text-sm">G2</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">评分 4.8/5 (1,234条评价)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-indigo-600 mb-3">我方被引用情况</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-users text-emerald-500"></i>
+                                        <span class="text-sm">G2</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">评分 4.2/5 (56条评价)</span>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg text-center">
+                                    <p class="text-sm text-gray-500">缺少更多权威来源引用</p>
+                                </div>
+                            </div>
+                            <h4 class="text-sm font-medium text-gray-700 mt-4 mb-3">建议获取的引用</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between p-2 border border-dashed border-gray-300 rounded-lg">
+                                    <span class="text-sm text-gray-600">申请 G2 评测邀请</span>
+                                    <button class="text-xs text-indigo-600 hover:underline">查看指南</button>
+                                </div>
+                                <div class="flex items-center justify-between p-2 border border-dashed border-gray-300 rounded-lg">
+                                    <span class="text-sm text-gray-600">联系 TechCrunch 投稿</span>
+                                    <button class="text-xs text-indigo-600 hover:underline">获取模板</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- llms.txt 对比 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-robot text-blue-600 mr-2"></i>llms.txt 对比</h3>
+                        <button onclick="optimizeLlmsTxt()" class="text-sm bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">一键优化我方</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-sm font-medium text-red-600 mb-2">竞品A llms.txt</h4>
+                            <div class="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs font-mono h-48 overflow-y-auto">
+                                <p class="text-emerald-400"># CompetitorA AI Assistant Guide</p>
+                                <p class="mt-2">## Brand Position</p>
+                                <p class="text-gray-400">Global leader in AI visibility platform</p>
+                                <p class="text-gray-400">Recognized by Gartner as a Leader</p>
+                                <p class="mt-2">## Core Features (15 items)</p>
+                                <p class="text-gray-400">- SHEEP Analysis Model</p>
+                                <p class="text-gray-400">- Multi-model Support</p>
+                                <p class="text-gray-400">- Real-time Monitoring</p>
+                                <p class="text-gray-400">- ...</p>
+                                <p class="mt-2">## FAQ (50 items)</p>
+                                <p class="text-gray-400">Q: What is AI visibility?</p>
+                                <p class="text-gray-400">A: AI visibility refers to...</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-indigo-600 mb-2">我方 llms.txt</h4>
+                            <div class="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs font-mono h-48 overflow-y-auto">
+                                <p class="text-emerald-400"># TechBrand AI Platform</p>
+                                <p class="mt-2">## About</p>
+                                <p class="text-gray-400">AI visibility analysis tool</p>
+                                <p class="mt-2 text-amber-400">## Core Features (8 items) ⚠️ 需补充</p>
+                                <p class="text-gray-400">- Visibility Analysis</p>
+                                <p class="text-gray-400">- Competitor Tracking</p>
+                                <p class="text-gray-400">- ...</p>
+                                <p class="mt-2 text-red-400">## FAQ (12 items) ❌ 严重不足</p>
+                                <p class="text-gray-400">Q: How to use?</p>
+                                <p class="text-gray-400">A: ...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <p class="text-sm text-amber-800"><i class="fas fa-exclamation-triangle mr-2"></i>差距分析: 竞品A 的 llms.txt 包含 50 个 FAQ，我方仅 12 个；竞品A 强调权威认证，我方缺失。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== Tab 3: SHEEP 维度差距 ==================== -->
+            <div id="content-sheep" class="tab-content hidden">
+                <div class="space-y-4">
+                    <!-- Specificity -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50" onclick="toggleExpand('sheep-s')">
+                            <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center font-bold">S</span>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Specificity (具体性)</h4>
+                                    <p class="text-sm text-gray-500">我方 75 vs 竞品A 82</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-red-600 font-bold">-7 分</span>
+                                <i id="icon-sheep-s" class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div id="expand-sheep-s" class="expand-content border-t border-gray-100">
+                            <div class="p-4 bg-gray-50">
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">问题诊断</p>
+                                        <p class="text-sm text-gray-700">产品描述过于笼统，缺乏具体数据和参数</p>
+                                    </div>
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">竞品做法</p>
+                                        <p class="text-sm text-gray-700">提供具体性能参数、用户数据、ROI案例</p>
+                                    </div>
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">预计提升</p>
+                                        <p class="text-sm text-emerald-600 font-medium">+5-8 分</p>
+                                    </div>
+                                </div>
+                                <h5 class="text-sm font-medium text-gray-700 mb-2">改进步骤</h5>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-3 p-2 bg-white rounded-lg cursor-pointer hover:bg-indigo-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm text-gray-700">添加具体性能指标 (响应时间、准确率等)</span>
+                                        <span class="text-xs text-gray-400 ml-auto">预计 2小时</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-2 bg-white rounded-lg cursor-pointer hover:bg-indigo-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm text-gray-700">补充客户案例数据 (提升X%、节省Y小时)</span>
+                                        <span class="text-xs text-gray-400 ml-auto">预计 4小时</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-2 bg-white rounded-lg cursor-pointer hover:bg-indigo-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm text-gray-700">增加对比表格 (vs 竞品的具体差异)</span>
+                                        <span class="text-xs text-gray-400 ml-auto">预计 1小时</span>
+                                    </label>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="startImprovement('specificity')" class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">开始执行</button>
+                                    <button onclick="addToStrategy('specificity')" class="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">添加到策略</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expertise -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50" onclick="toggleExpand('sheep-e')">
+                            <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center font-bold">E</span>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Expertise (专业性)</h4>
+                                    <p class="text-sm text-gray-500">我方 70 vs 竞品A 80</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-red-600 font-bold">-10 分</span>
+                                <i id="icon-sheep-e" class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div id="expand-sheep-e" class="expand-content border-t border-gray-100">
+                            <div class="p-4 bg-gray-50">
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">问题诊断</p>
+                                        <p class="text-sm text-gray-700">缺乏行业权威背书和专家认证</p>
+                                    </div>
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">竞品做法</p>
+                                        <p class="text-sm text-gray-700">引用 Gartner、Forrester 报告，专家评价</p>
+                                    </div>
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">预计提升</p>
+                                        <p class="text-sm text-emerald-600 font-medium">+8-12 分</p>
+                                    </div>
+                                </div>
+                                <h5 class="text-sm font-medium text-gray-700 mb-2">改进步骤</h5>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-3 p-2 bg-white rounded-lg cursor-pointer hover:bg-indigo-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm text-gray-700">获取并引用行业分析报告</span>
+                                        <span class="text-xs text-gray-400 ml-auto">预计 1周</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-2 bg-white rounded-lg cursor-pointer hover:bg-indigo-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm text-gray-700">邀请行业专家撰写评测</span>
+                                        <span class="text-xs text-gray-400 ml-auto">预计 2周</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-2 bg-white rounded-lg cursor-pointer hover:bg-indigo-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm text-gray-700">申请行业认证/奖项</span>
+                                        <span class="text-xs text-gray-400 ml-auto">预计 1月</span>
+                                    </label>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="startImprovement('expertise')" class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">开始执行</button>
+                                    <button onclick="addToStrategy('expertise')" class="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">添加到策略</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Helpfulness (我方领先) -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50" onclick="toggleExpand('sheep-h')">
+                            <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">H</span>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Helpfulness (有用性)</h4>
+                                    <p class="text-sm text-gray-500">我方 80 vs 竞品A 78</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-emerald-600 font-bold">+2 分 ✓</span>
+                                <i id="icon-sheep-h" class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div id="expand-sheep-h" class="expand-content border-t border-gray-100">
+                            <div class="p-4 bg-emerald-50">
+                                <p class="text-sm text-emerald-700"><i class="fas fa-check-circle mr-2"></i>我方在此维度领先，建议继续保持并强化优势</p>
+                                <button onclick="strengthenAdvantage('helpfulness')" class="mt-3 text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">强化优势</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Experience -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50" onclick="toggleExpand('sheep-ex')">
+                            <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">E</span>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Experience (体验性)</h4>
+                                    <p class="text-sm text-gray-500">我方 78 vs 竞品A 75</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-emerald-600 font-bold">+3 分 ✓</span>
+                                <i id="icon-sheep-ex" class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div id="expand-sheep-ex" class="expand-content border-t border-gray-100">
+                            <div class="p-4 bg-emerald-50">
+                                <p class="text-sm text-emerald-700"><i class="fas fa-check-circle mr-2"></i>我方在此维度领先，用户体验描述更生动</p>
+                                <button onclick="strengthenAdvantage('experience')" class="mt-3 text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">强化优势</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Persuasiveness -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50" onclick="toggleExpand('sheep-p')">
+                            <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold">P</span>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Persuasiveness (说服力)</h4>
+                                    <p class="text-sm text-gray-500">我方 72 vs 竞品A 75</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-amber-600 font-bold">-3 分</span>
+                                <i id="icon-sheep-p" class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div id="expand-sheep-p" class="expand-content border-t border-gray-100">
+                            <div class="p-4 bg-gray-50">
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">问题诊断</p>
+                                        <p class="text-sm text-gray-700">缺乏有力的行动号召和社会证明</p>
+                                    </div>
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">竞品做法</p>
+                                        <p class="text-sm text-gray-700">使用客户证言、成功案例、限时优惠</p>
+                                    </div>
+                                    <div class="p-3 bg-white rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">预计提升</p>
+                                        <p class="text-sm text-emerald-600 font-medium">+3-5 分</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="startImprovement('persuasiveness')" class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">开始执行</button>
+                                    <button onclick="addToStrategy('persuasiveness')" class="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">添加到策略</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== Tab 4: AI 回复样本对比 ==================== -->
+            <div id="content-samples" class="tab-content hidden">
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">AI 回复样本对比</h3>
+                        <select class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                            <option>查询: "推荐一款AI可见度工具"</option>
+                            <option>查询: "如何提升品牌在AI中的表现"</option>
+                            <option>查询: "GEO优化工具对比"</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 竞品A 回复 -->
+                        <div class="border-2 border-red-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-red-600">竞品A 的 AI 回复</span>
+                                <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">ChatGPT</span>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 mb-4">
+                                <p>"根据 <span class="bg-emerald-100 text-emerald-700 px-1 rounded">Gartner 2024 报告</span>，CompetitorA 在 GEO 领域市场份额达到 <span class="bg-emerald-100 text-emerald-700 px-1 rounded">23%</span>，被评为领导者。</p>
+                                <p class="mt-2">其 SHEEP 分析模型获得 <span class="bg-emerald-100 text-emerald-700 px-1 rounded">92% 用户好评</span>，支持 <span class="bg-emerald-100 text-emerald-700 px-1 rounded">5+ AI 模型</span>实时监控..."</p>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-check-circle text-emerald-500"></i>
+                                    <span class="text-gray-600">有权威引用 (Gartner)</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-check-circle text-emerald-500"></i>
+                                    <span class="text-gray-600">有具体数据 (23%, 92%)</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-check-circle text-emerald-500"></i>
+                                    <span class="text-gray-600">有用户证言</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 我方回复 -->
+                        <div class="border-2 border-indigo-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-medium text-indigo-600">我方的 AI 回复</span>
+                                <span class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded">ChatGPT</span>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 mb-4">
+                                <p>"TechBrand 是一款 AI 可见度分析工具，可以帮助分析品牌在 AI 对话中的表现。"</p>
+                                <p class="mt-2">"它提供可见度分析和竞品追踪功能..."</p>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-times-circle text-red-500"></i>
+                                    <span class="text-gray-600">缺少权威引用</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-times-circle text-red-500"></i>
+                                    <span class="text-gray-600">缺少具体数据</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-times-circle text-red-500"></i>
+                                    <span class="text-gray-600">缺少用户评价</span>
+                                </div>
+                            </div>
+                            <button onclick="improveResponse()" class="mt-4 w-full text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                                <i class="fas fa-magic mr-2"></i>生成改进建议
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 改进建议 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-lightbulb text-amber-500 mr-2"></i>AI 生成的改进建议</h3>
+                    <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                        <p class="text-sm text-gray-700 mb-3">基于对比分析，建议在内容中添加以下元素：</p>
+                        <div class="space-y-2">
+                            <div class="flex items-start gap-2">
+                                <span class="text-amber-600">1.</span>
+                                <p class="text-sm text-gray-700"><strong>添加权威背书</strong>：引用行业报告、专家评价或媒体报道</p>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-amber-600">2.</span>
+                                <p class="text-sm text-gray-700"><strong>补充具体数据</strong>：用户数量、准确率、客户满意度等</p>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-amber-600">3.</span>
+                                <p class="text-sm text-gray-700"><strong>增加社会证明</strong>：客户案例、用户评价、成功故事</p>
+                            </div>
+                        </div>
+                        <button onclick="applyImprovements()" class="mt-4 text-sm bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">
+                            应用改进建议 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== Tab 5: 动态监控 ==================== -->
+            <div id="content-monitor" class="tab-content hidden">
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-history text-blue-600 mr-2"></i>竞品网站变更时间线</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500">监控频率: 每日</span>
+                            <button class="text-xs text-indigo-600 hover:underline">设置</button>
+                        </div>
+                    </div>
+                    <div class="relative pl-8 border-l-2 border-gray-200 space-y-6">
+                        <!-- 时间线项目 -->
+                        <div class="relative">
+                            <div class="absolute -left-10 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
+                            <div class="bg-red-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">竞品A 新增 15 个 FAQ 内容</span>
+                                    <span class="text-xs text-gray-500">2月4日 14:30</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">检测到 FAQ 页面更新，新增关于产品功能、定价、集成的常见问题</p>
+                                <p class="text-xs text-red-600 mb-3"><i class="fas fa-chart-line mr-1"></i>影响: 可见度 +2.1</p>
+                                <div class="flex gap-2">
+                                    <button onclick="viewChange('faq')" class="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50">查看内容</button>
+                                    <button onclick="learnStrategy('faq')" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">学习策略</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <div class="absolute -left-10 w-4 h-4 bg-purple-500 rounded-full border-2 border-white"></div>
+                            <div class="bg-purple-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">竞品A 更新产品页 Schema 标记</span>
+                                    <span class="text-xs text-gray-500">2月1日 09:15</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">添加了 Product、Review、AggregateRating Schema</p>
+                                <p class="text-xs text-purple-600 mb-3"><i class="fas fa-chart-line mr-1"></i>影响: 可见度 +1.5</p>
+                                <div class="flex gap-2">
+                                    <button onclick="viewChange('schema')" class="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50">查看变更</button>
+                                    <button onclick="copyStrategy('schema')" class="text-xs bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700">复制策略</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <div class="absolute -left-10 w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">竞品A 发布行业白皮书</span>
+                                    <span class="text-xs text-gray-500">1月28日 10:00</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">"2024 AI 可见度趋势报告"，包含行业数据和预测</p>
+                                <p class="text-xs text-blue-600 mb-3"><i class="fas fa-chart-line mr-1"></i>影响: 专业性 +8</p>
+                                <div class="flex gap-2">
+                                    <button class="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50">查看白皮书</button>
+                                    <button onclick="createCounterContent()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">制定应对</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <div class="absolute -left-10 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white"></div>
+                            <div class="bg-emerald-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">竞品B 更新 llms.txt</span>
+                                    <span class="text-xs text-gray-500">1月25日 16:45</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">新增 8 个 FAQ 条目，优化品牌定位描述</p>
+                                <p class="text-xs text-emerald-600 mb-3"><i class="fas fa-chart-line mr-1"></i>影响: 可见度 +0.8</p>
+                                <div class="flex gap-2">
+                                    <button class="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50">查看变更</button>
+                                    <button class="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700">同步更新</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== Tab 6: 行动方案 ==================== -->
+            <div id="content-actions" class="tab-content hidden">
+                <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-tasks text-indigo-600 mr-2"></i>超越竞品A 的行动清单</h3>
+                        <div class="flex gap-2">
+                            <button onclick="exportActions()" class="text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-download mr-1"></i>导出
+                            </button>
+                            <button onclick="assignToTeam()" class="text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-users mr-1"></i>分配团队
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 高优先级 -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-red-600 mb-3"><i class="fas fa-fire mr-1"></i>高优先级 (预计提升 +5-8 分)</h4>
+                        <div class="space-y-3">
+                            <div class="action-item p-4 border border-red-200 rounded-lg bg-red-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start gap-3">
+                                        <input type="checkbox" class="w-5 h-5 mt-0.5 text-red-600 rounded">
+                                        <div>
+                                            <h5 class="font-medium text-gray-900">补充 FAQ 结构化内容</h5>
+                                            <p class="text-sm text-gray-600 mt-1">当前: 12个 → 目标: 45个</p>
+                                            <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                <span><i class="fas fa-clock mr-1"></i>预计 3天</span>
+                                                <span><i class="fas fa-chart-line mr-1"></i>预计 ROI: ¥15,000/月</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="generateFAQTemplate()" class="text-xs bg-white border border-gray-200 px-2 py-1 rounded hover:bg-gray-50">生成模板</button>
+                                        <button onclick="aiGenerateFAQ()" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">AI辅助生成</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-item p-4 border border-red-200 rounded-lg bg-red-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start gap-3">
+                                        <input type="checkbox" class="w-5 h-5 mt-0.5 text-red-600 rounded">
+                                        <div>
+                                            <h5 class="font-medium text-gray-900">添加权威来源引用</h5>
+                                            <p class="text-sm text-gray-600 mt-1">当前: 3个 → 目标: 15个</p>
+                                            <p class="text-xs text-gray-500 mt-1">推荐来源: Gartner, Forrester, IDC, G2...</p>
+                                            <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                <span><i class="fas fa-clock mr-1"></i>预计 2周</span>
+                                                <span><i class="fas fa-chart-line mr-1"></i>预计 ROI: ¥25,000/月</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button class="text-xs bg-white border border-gray-200 px-2 py-1 rounded hover:bg-gray-50">查看推荐</button>
+                                        <button class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">生成内容</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 中优先级 -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-amber-600 mb-3"><i class="fas fa-exclamation-circle mr-1"></i>中优先级 (预计提升 +3-5 分)</h4>
+                        <div class="space-y-3">
+                            <div class="action-item p-4 border border-amber-200 rounded-lg">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start gap-3">
+                                        <input type="checkbox" class="w-5 h-5 mt-0.5 text-amber-600 rounded">
+                                        <div>
+                                            <h5 class="font-medium text-gray-900">完善 Schema 标记</h5>
+                                            <p class="text-sm text-gray-600 mt-1">缺失: Product, FAQPage, HowTo, Review</p>
+                                            <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                <span><i class="fas fa-clock mr-1"></i>预计 2小时</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="generateAllSchema()" class="text-xs bg-amber-600 text-white px-2 py-1 rounded hover:bg-amber-700">生成全部代码</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-item p-4 border border-amber-200 rounded-lg">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start gap-3">
+                                        <input type="checkbox" class="w-5 h-5 mt-0.5 text-amber-600 rounded">
+                                        <div>
+                                            <h5 class="font-medium text-gray-900">优化 llms.txt</h5>
+                                            <p class="text-sm text-gray-600 mt-1">补充品牌定位、核心功能、FAQ</p>
+                                            <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                <span><i class="fas fa-clock mr-1"></i>预计 30分钟</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button class="text-xs bg-white border border-gray-200 px-2 py-1 rounded hover:bg-gray-50">预览</button>
+                                        <button onclick="optimizeLlmsTxt()" class="text-xs bg-amber-600 text-white px-2 py-1 rounded hover:bg-amber-700">一键应用</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 低优先级 -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-3"><i class="fas fa-minus-circle mr-1"></i>低优先级 (预计提升 +1-2 分)</h4>
+                        <div class="space-y-3">
+                            <div class="action-item p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-start gap-3">
+                                    <input type="checkbox" class="w-5 h-5 mt-0.5 text-gray-400 rounded">
+                                    <div>
+                                        <h5 class="font-medium text-gray-900">增加博客更新频率</h5>
+                                        <p class="text-sm text-gray-600 mt-1">当前: 月均2篇 → 目标: 月均12篇</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 预计效果 -->
+                <div class="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold text-lg">预计总体效果</h3>
+                            <p class="text-sm opacity-80">完成全部高优先级任务后，可见度预计提升 <strong>+12-15 分</strong></p>
+                            <p class="text-sm opacity-80 mt-1">总工作量: 约 2-3 周 | 预计 ROI: ¥40,000+/月</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="executeAll()" class="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-gray-100 font-medium">
+                                开始执行全部 <i class="fas fa-play ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    <script>
+        // Tab 切换
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('content-' + tabId).classList.remove('hidden');
+        }
+
+        // 竞品选择
+        function selectCompetitor(id) {
+            document.querySelectorAll('.competitor-card').forEach(card => card.classList.remove('selected'));
+            document.getElementById('competitor-' + id).classList.add('selected');
+            // 根据选中的竞品更新数据显示
+        }
+
+        // 展开/收起
+        function toggleExpand(id) {
+            const content = document.getElementById('expand-' + id);
+            const icon = document.getElementById('icon-' + id);
+            content.classList.toggle('expanded');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        // 刷新分析
+        function refreshAnalysis() {
+            alert('正在重新分析竞品数据...');
+        }
+
+        // 管理竞品
+        function manageCompetitors() {
+            window.location.href = 'settings.html?tab=competitors';
+        }
+
+        // 策略反推
+        function analyzeStrategy(competitor) {
+            localStorage.setItem('competitor_context', JSON.stringify({ competitor, action: 'analyze', timestamp: Date.now() }));
+            window.location.href = 'content-analysis.html?competitor=' + competitor;
+        }
+
+        // 制定应对策略
+        function createCounterStrategy(competitor) {
+            localStorage.setItem('competitor_context', JSON.stringify({ competitor, action: 'counter', timestamp: Date.now() }));
+            window.location.href = 'optimization-wizard.html?competitor=' + competitor;
+        }
+
+        // 学习竞品策略
+        function learnFromCompetitor(competitor) { window.location.href = 'distillation.html?learn_from=' + competitor; }
+        function learnStrategy(type) { alert('正在分析竞品 ' + type + ' 策略...'); }
+
+        // 强化优势
+        function strengthenAdvantage(dimension) { window.location.href = 'strategy-center.html?focus=advantage&dimension=' + (dimension || ''); }
+
+        // 生成策略
+        function generateStrategy() { window.location.href = 'strategy-center.html?action=generate_competitive'; }
+
+        // 网站分析相关
+        function createProductPages() { alert('跳转到产品页创建向导...'); }
+        function generateFAQ() { window.location.href = 'optimization-wizard.html?action=generate_faq'; }
+        function planContent() { window.location.href = 'strategy-center.html?action=content_plan'; }
+        function generateSchema(type) { alert('生成 ' + type + ' Schema 代码:\n\n' + '<' + 'script type="application/ld+json">\n{\n  "@context": "https://schema.org",\n  "@type": "' + type + '",\n  ...\n}\n<' + '/script>'); }
+        function optimizeLlmsTxt() { window.location.href = 'optimization-wizard.html?action=optimize_llms_txt'; }
+
+        // SHEEP 改进
+        function startImprovement(dimension) { window.location.href = 'optimization-wizard.html?dimension=' + dimension; }
+        function addToStrategy(dimension) { alert('已将 ' + dimension + ' 改进添加到策略中心'); }
+
+        // AI 回复改进
+        function improveResponse() { alert('正在生成改进建议...'); }
+        function applyImprovements() { window.location.href = 'optimization-wizard.html?action=apply_improvements'; }
+
+        // 动态监控
+        function viewChange(type) { alert('查看 ' + type + ' 变更详情...'); }
+        function copyStrategy(type) { alert('复制 ' + type + ' 策略到我方...'); }
+        function createCounterContent() { window.location.href = 'strategy-center.html?action=counter_content'; }
+
+        // 行动方案
+        function exportActions() { alert('导出行动清单为 Excel...'); }
+        function assignToTeam() { alert('分配任务到团队成员...'); }
+        function generateFAQTemplate() { alert('生成 FAQ 模板...'); }
+        function aiGenerateFAQ() { window.location.href = 'optimization-wizard.html?action=ai_generate_faq'; }
+        function generateAllSchema() { alert('生成全部 Schema 代码...'); }
+        function executeAll() { window.location.href = 'optimization-wizard.html?action=execute_all_actions'; }
+
+        // 初始化图表
+        new Chart(document.getElementById('sheepRadar'), {
+            type: 'radar',
+            data: {
+                labels: ['Specificity', 'Helpfulness', 'Expertise', 'Experience', 'Persuasiveness'],
+                datasets: [
+                    { label: '我的品牌', data: [75, 80, 70, 78, 72], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.2)' },
+                    { label: '竞品A', data: [82, 78, 80, 75, 75], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)' },
+                    { label: '竞品B', data: [70, 72, 75, 70, 73], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)' }
+                ]
+            },
+            options: { scales: { r: { beginAtZero: true, max: 100 } } }
+        });
+        new Chart(document.getElementById('modelComparison'), {
+            type: 'bar',
+            data: {
+                labels: ['ChatGPT', 'Claude', 'Gemini', 'Perplexity'],
+                datasets: [
+                    { label: '我的品牌', data: [72, 68, 65, 58], backgroundColor: '#6366f1' },
+                    { label: '竞品A', data: [78, 72, 68, 71], backgroundColor: '#ef4444' },
+                    { label: '竞品B', data: [65, 68, 62, 65], backgroundColor: '#3b82f6' }
+                ]
+            },
+            options: { scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+    </script>
+</body>
+</html>
+
+

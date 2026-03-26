@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略中心 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .strategy-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">策略中心</h2>
+                    <p class="text-sm text-gray-500">AI 生成优化策略 | 机会矩阵 | 行动计划 | 执行追踪</p>
+                </div>
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-robot mr-2"></i>生成新策略
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 策略概览 -->
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">活跃策略</p>
+                    <p class="text-3xl font-bold text-indigo-600">12</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">执行中任务</p>
+                    <p class="text-3xl font-bold text-amber-600">28</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">本周完成</p>
+                    <p class="text-3xl font-bold text-emerald-600">15</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">预计提升</p>
+                    <p class="text-3xl font-bold text-purple-600">+18%</p>
+                </div>
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-5 shadow-sm text-white">
+                    <p class="text-sm opacity-80 mb-1">预估月ROI</p>
+                    <p class="text-3xl font-bold">¥37.2K</p>
+                    <p class="text-xs opacity-70 mt-1">↑ 12% vs 上月</p>
+                </div>
+            </div>
+
+            <!-- 机会矩阵 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">机会矩阵</h3>
+                    <div class="flex gap-2">
+                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">立即行动: 8个</span>
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">重点攻克: 12个</span>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">长期培育: 15个</span>
+                        <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">暂时观望: 5个</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <canvas id="matrixChart" height="220"></canvas>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-emerald-50 rounded-lg border-l-4 border-emerald-500">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-medium text-gray-900">立即行动</span>
+                                <span class="text-xs text-emerald-600">高可见度 + 低竞争</span>
+                            </div>
+                            <p class="text-sm text-gray-600">这些机会最容易获得成果，应优先执行</p>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                <span class="text-xs bg-white px-2 py-0.5 rounded">AI品牌优化</span>
+                                <span class="text-xs bg-white px-2 py-0.5 rounded">GEO工具</span>
+                                <span class="text-xs bg-white px-2 py-0.5 rounded">+6更多</span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-medium text-gray-900">重点攻克</span>
+                                <span class="text-xs text-amber-600">高可见度 + 高竞争</span>
+                            </div>
+                            <p class="text-sm text-gray-600">需要投入资源，但回报丰厚</p>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                <span class="text-xs bg-white px-2 py-0.5 rounded">ChatGPT营销</span>
+                                <span class="text-xs bg-white px-2 py-0.5 rounded">AI搜索优化</span>
+                                <span class="text-xs bg-white px-2 py-0.5 rounded">+10更多</span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-medium text-gray-900">长期培育</span>
+                                <span class="text-xs text-blue-600">低可见度 + 低竞争</span>
+                            </div>
+                            <p class="text-sm text-gray-600">新兴机会，需要时间培育</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 优先策略 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">高优先级策略</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="strategy-card p-4 border-2 border-red-200 bg-red-50 rounded-xl transition-all cursor-pointer">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="px-2 py-0.5 bg-red-500 text-white text-xs rounded">紧急</span>
+                            <span class="text-xs text-gray-500">预计影响 +8%</span>
+                            <span class="text-xs text-emerald-600 font-medium ml-auto">¥12,500/月</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">提升产品对比场景可见度</h4>
+                        <p class="text-sm text-gray-600 mb-3">当前在"产品对比"场景中排名较低，需优化内容结构化数据</p>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">执行中</span>
+                            <div class="flex-1 h-1.5 bg-gray-200 rounded-full"><div class="h-full bg-amber-500 rounded-full" style="width:40%"></div></div>
+                            <span class="text-xs text-gray-500">40%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">3个待执行任务</span>
+                            <div class="flex gap-2">
+                                <button onclick="executeStrategy('s1')" class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">一键执行</button>
+                                <button class="text-xs text-indigo-600 hover:underline">详情 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="strategy-card p-4 border-2 border-amber-200 bg-amber-50 rounded-xl transition-all cursor-pointer">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="px-2 py-0.5 bg-amber-500 text-white text-xs rounded">高</span>
+                            <span class="text-xs text-gray-500">预计影响 +5%</span>
+                            <span class="text-xs text-emerald-600 font-medium ml-auto">¥8,200/月</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">增强专业性维度表现</h4>
+                        <p class="text-sm text-gray-600 mb-3">SHEEP分析显示E(专业性)得分偏低，需补充权威来源引用</p>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">待执行</span>
+                            <div class="flex-1 h-1.5 bg-gray-200 rounded-full"><div class="h-full bg-gray-400 rounded-full" style="width:0%"></div></div>
+                            <span class="text-xs text-gray-500">0%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">5个待执行任务</span>
+                            <div class="flex gap-2">
+                                <button onclick="executeStrategy('s2')" class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">一键执行</button>
+                                <button class="text-xs text-indigo-600 hover:underline">详情 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="strategy-card p-4 border-2 border-blue-200 bg-blue-50 rounded-xl transition-all cursor-pointer">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="px-2 py-0.5 bg-blue-500 text-white text-xs rounded">中</span>
+                            <span class="text-xs text-gray-500">预计影响 +3%</span>
+                            <span class="text-xs text-emerald-600 font-medium ml-auto">¥5,500/月</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">扩展日语市场覆盖</h4>
+                        <p class="text-sm text-gray-600 mb-3">三维分析显示日本市场有较大增长空间</p>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">已验证</span>
+                            <div class="flex-1 h-1.5 bg-gray-200 rounded-full"><div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div></div>
+                            <span class="text-xs text-emerald-600">100%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">已完成并验证效果</span>
+                            <div class="flex gap-2">
+                                <button onclick="viewReport('s3')" class="text-xs bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700">查看报告</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- 执行任务列表 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">今日任务</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" class="w-5 h-5 rounded text-indigo-600">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">更新产品功能页面结构化数据</p>
+                                <p class="text-xs text-gray-500">策略: 提升产品对比场景可见度</p>
+                            </div>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">紧急</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" class="w-5 h-5 rounded text-indigo-600">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">添加3篇权威来源引用</p>
+                                <p class="text-xs text-gray-500">策略: 增强专业性维度表现</p>
+                            </div>
+                            <span class="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded">高</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" checked class="w-5 h-5 rounded text-indigo-600">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900 line-through">发布llms.txt文件</p>
+                                <p class="text-xs text-gray-500">策略: 基础GEO优化</p>
+                            </div>
+                            <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded">完成</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI 建议 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">AI 策略建议</h3>
+                    <div class="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-robot text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-700 mb-3">根据最新的分析数据，我建议优先关注以下方面:</p>
+                                <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                                    <li><strong>Claude模型优化</strong> - 当前在Claude中的可见度较低，建议增加FAQ结构化内容</li>
+                                    <li><strong>竞品差异化</strong> - 与竞品A的内容重叠度较高，需强化独特卖点</li>
+                                    <li><strong>长尾关键词</strong> - 发现12个低竞争高潜力关键词可布局</li>
+                                </ol>
+                                <button class="mt-3 text-sm text-indigo-600 hover:underline">生成详细策略 →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 执行策略
+        function executeStrategy(strategyId) {
+            localStorage.setItem('strategy_context', JSON.stringify({
+                strategyId: strategyId,
+                source: 'strategy-center',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'optimization-wizard.html?strategy=' + strategyId;
+        }
+
+        // 查看报告
+        function viewReport(strategyId) {
+            window.location.href = 'monitoring.html?strategy=' + strategyId;
+        }
+
+        // 创建测试
+        function createTest(strategyId) {
+            window.location.href = 'test-center.html?strategy=' + strategyId;
+        }
+
+        // 机会矩阵图表
+        new Chart(document.getElementById('matrixChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '立即行动',
+                    data: [{x:85,y:30},{x:78,y:25},{x:82,y:35},{x:90,y:28},{x:88,y:32},{x:75,y:22},{x:80,y:28},{x:92,y:35}],
+                    backgroundColor: '#10b981',
+                    pointRadius: 8
+                },{
+                    label: '重点攻克',
+                    data: [{x:75,y:72},{x:88,y:80},{x:70,y:68},{x:82,y:75},{x:78,y:82},{x:85,y:70},{x:72,y:78},{x:80,y:85}],
+                    backgroundColor: '#f59e0b',
+                    pointRadius: 8
+                },{
+                    label: '长期培育',
+                    data: [{x:35,y:28},{x:42,y:35},{x:30,y:22},{x:45,y:30},{x:38,y:25},{x:48,y:32}],
+                    backgroundColor: '#3b82f6',
+                    pointRadius: 8
+                },{
+                    label: '暂时观望',
+                    data: [{x:28,y:75},{x:35,y:82},{x:32,y:78}],
+                    backgroundColor: '#9ca3af',
+                    pointRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: '可见度 (%)' }, min: 0, max: 100 },
+                    y: { title: { display: true, text: '竞争度 (%)' }, min: 0, max: 100 }
+                },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    </script>
+</body>
+</html>
+

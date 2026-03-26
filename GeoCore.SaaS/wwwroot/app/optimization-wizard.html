@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优化向导 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .step-item { transition: all 0.2s; }
+        .step-item.active { background: #eef2ff; border-color: #6366f1; }
+        .step-item.completed { background: #f0fdf4; border-color: #10b981; }
+        .optimization-card { transition: all 0.2s; cursor: pointer; }
+        .optimization-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .optimization-card.selected { border-color: #6366f1; background: #eef2ff; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">优化向导</h2>
+                    <p class="text-sm text-gray-500">AI 驱动的智能优化建议</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-gray-500">步骤 <span id="currentStep">1</span> / 4</span>
+                    <button onclick="exitWizard()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-times mr-2"></i>退出
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 步骤指示器 -->
+            <div class="flex items-center justify-center mb-8">
+                <div class="flex items-center">
+                    <div id="step1" class="step-item active flex items-center gap-3 px-6 py-3 border-2 rounded-lg">
+                        <span class="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">1</span>
+                        <span class="font-medium text-gray-900">选择优化类型</span>
+                    </div>
+                    <div class="w-12 h-0.5 bg-gray-200"></div>
+                    <div id="step2" class="step-item flex items-center gap-3 px-6 py-3 border-2 border-gray-200 rounded-lg">
+                        <span class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center font-bold">2</span>
+                        <span class="font-medium text-gray-500">配置参数</span>
+                    </div>
+                    <div class="w-12 h-0.5 bg-gray-200"></div>
+                    <div id="step3" class="step-item flex items-center gap-3 px-6 py-3 border-2 border-gray-200 rounded-lg">
+                        <span class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center font-bold">3</span>
+                        <span class="font-medium text-gray-500">预览结果</span>
+                    </div>
+                    <div class="w-12 h-0.5 bg-gray-200"></div>
+                    <div id="step4" class="step-item flex items-center gap-3 px-6 py-3 border-2 border-gray-200 rounded-lg">
+                        <span class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center font-bold">4</span>
+                        <span class="font-medium text-gray-500">应用优化</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤1: 选择优化类型 -->
+            <div id="content-step1" class="step-content">
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">选择优化类型</h3>
+                    <p class="text-gray-500">根据您的需求选择一个或多个优化方向</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    <div class="optimization-card bg-white rounded-xl p-6 border-2 border-gray-200" onclick="toggleOptimization(this, 'schema')">
+                        <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+                            <i class="fas fa-code text-purple-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Schema 标记优化</h4>
+                        <p class="text-sm text-gray-500 mb-4">添加结构化数据，提升 AI 理解能力</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-emerald-600 font-medium">预计 +3-5 分</span>
+                            <span class="text-gray-400">~30分钟</span>
+                        </div>
+                    </div>
+
+                    <div class="optimization-card bg-white rounded-xl p-6 border-2 border-gray-200" onclick="toggleOptimization(this, 'faq')">
+                        <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                            <i class="fas fa-question-circle text-blue-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">FAQ 内容生成</h4>
+                        <p class="text-sm text-gray-500 mb-4">AI 生成常见问题，覆盖更多查询</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-emerald-600 font-medium">预计 +5-8 分</span>
+                            <span class="text-gray-400">~2小时</span>
+                        </div>
+                    </div>
+
+                    <div class="optimization-card bg-white rounded-xl p-6 border-2 border-gray-200" onclick="toggleOptimization(this, 'llms')">
+                        <div class="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
+                            <i class="fas fa-robot text-emerald-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">llms.txt 优化</h4>
+                        <p class="text-sm text-gray-500 mb-4">优化 AI 专用文件，提升品牌表达</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-emerald-600 font-medium">预计 +2-4 分</span>
+                            <span class="text-gray-400">~15分钟</span>
+                        </div>
+                    </div>
+
+                    <div class="optimization-card bg-white rounded-xl p-6 border-2 border-gray-200" onclick="toggleOptimization(this, 'content')">
+                        <div class="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mb-4">
+                            <i class="fas fa-file-alt text-amber-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">内容优化</h4>
+                        <p class="text-sm text-gray-500 mb-4">优化现有内容的 SHEEP 维度表现</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-emerald-600 font-medium">预计 +4-6 分</span>
+                            <span class="text-gray-400">~1小时</span>
+                        </div>
+                    </div>
+
+                    <div class="optimization-card bg-white rounded-xl p-6 border-2 border-gray-200" onclick="toggleOptimization(this, 'citation')">
+                        <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mb-4">
+                            <i class="fas fa-link text-red-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">引用来源优化</h4>
+                        <p class="text-sm text-gray-500 mb-4">增加权威来源引用，提升可信度</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-emerald-600 font-medium">预计 +3-5 分</span>
+                            <span class="text-gray-400">~1周</span>
+                        </div>
+                    </div>
+
+                    <div class="optimization-card bg-white rounded-xl p-6 border-2 border-gray-200" onclick="toggleOptimization(this, 'competitor')">
+                        <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
+                            <i class="fas fa-users text-indigo-600 text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 mb-2">竞品策略学习</h4>
+                        <p class="text-sm text-gray-500 mb-4">分析竞品优势，生成超越策略</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-emerald-600 font-medium">预计 +5-10 分</span>
+                            <span class="text-gray-400">~3天</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-8">
+                    <p class="text-sm text-gray-500 mb-4">已选择 <span id="selectedCount">0</span> 项优化</p>
+                    <button onclick="nextStep()" id="nextBtn" class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        下一步 <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤2: 配置参数 -->
+            <div id="content-step2" class="step-content hidden">
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">配置优化参数</h3>
+                    <p class="text-gray-500">根据您的需求调整优化设置</p>
+                </div>
+
+                <div class="max-w-3xl mx-auto space-y-6">
+                    <!-- Schema 配置 -->
+                    <div id="config-schema" class="config-section bg-white rounded-xl p-6 shadow-sm hidden">
+                        <h4 class="font-semibold text-gray-900 mb-4"><i class="fas fa-code text-purple-600 mr-2"></i>Schema 标记配置</h4>
+                        <div class="space-y-4">
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">Organization Schema</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">Product Schema</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">FAQPage Schema</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">HowTo Schema</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">Review / AggregateRating Schema</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 配置 -->
+                    <div id="config-faq" class="config-section bg-white rounded-xl p-6 shadow-sm hidden">
+                        <h4 class="font-semibold text-gray-900 mb-4"><i class="fas fa-question-circle text-blue-600 mr-2"></i>FAQ 生成配置</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">生成数量</label>
+                                <input type="range" min="5" max="50" value="20" class="w-full" id="faqCount">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>5</span>
+                                    <span id="faqCountValue">20 条</span>
+                                    <span>50</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">FAQ 类别</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                        <span class="text-sm">产品功能</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                        <span class="text-sm">定价方案</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                        <span class="text-sm">技术支持</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                        <span class="text-sm">集成对接</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- llms.txt 配置 -->
+                    <div id="config-llms" class="config-section bg-white rounded-xl p-6 shadow-sm hidden">
+                        <h4 class="font-semibold text-gray-900 mb-4"><i class="fas fa-robot text-emerald-600 mr-2"></i>llms.txt 优化配置</h4>
+                        <div class="space-y-4">
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">优化品牌定位描述</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">补充核心功能列表</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">添加 FAQ 摘要</span>
+                            </label>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded">
+                                <span class="text-sm text-gray-700">添加竞争优势说明</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 通用配置 -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h4 class="font-semibold text-gray-900 mb-4"><i class="fas fa-cog text-gray-600 mr-2"></i>通用设置</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">语言风格</label>
+                                <select class="w-full border border-gray-200 rounded-lg px-4 py-2">
+                                    <option>专业正式</option>
+                                    <option>友好亲切</option>
+                                    <option>简洁明了</option>
+                                </select>
+                            </div>
+                            <label class="flex items-center gap-3">
+                                <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded" checked>
+                                <span class="text-sm text-gray-700">生成后自动预览</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4 mt-8">
+                    <button onclick="prevStep()" class="px-6 py-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i>上一步
+                    </button>
+                    <button onclick="nextStep()" class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        生成优化 <i class="fas fa-magic ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤3: 预览结果 -->
+            <div id="content-step3" class="step-content hidden">
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">预览优化结果</h3>
+                    <p class="text-gray-500">检查 AI 生成的优化内容</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                            <span class="font-medium text-gray-900">生成的优化内容</span>
+                            <div class="flex gap-2">
+                                <button onclick="regenerate()" class="text-sm text-indigo-600 hover:underline">
+                                    <i class="fas fa-redo mr-1"></i>重新生成
+                                </button>
+                                <button onclick="editContent()" class="text-sm text-gray-600 hover:underline">
+                                    <i class="fas fa-edit mr-1"></i>手动编辑
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div id="previewContent" class="prose max-w-none">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-3">Schema 标记代码</h4>
+                                <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>&lt;script type="application/ld+json"&gt;
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "TechBrand",
+  "description": "AI 可见度分析平台，帮助品牌优化在 AI 对话中的表现",
+  "url": "https://techbrand.com",
+  "sameAs": [
+    "https://twitter.com/techbrand",
+    "https://linkedin.com/company/techbrand"
+  ]
+}
+&lt;/script&gt;</code></pre>
+
+                                <h4 class="text-lg font-semibold text-gray-900 mt-6 mb-3">FAQ 内容 (部分预览)</h4>
+                                <div class="space-y-3">
+                                    <div class="p-4 bg-gray-50 rounded-lg">
+                                        <p class="font-medium text-gray-900">Q: 什么是 AI 可见度？</p>
+                                        <p class="text-gray-600 mt-1">A: AI 可见度是指品牌在 AI 对话系统（如 ChatGPT、Claude 等）中被提及和推荐的程度...</p>
+                                    </div>
+                                    <div class="p-4 bg-gray-50 rounded-lg">
+                                        <p class="font-medium text-gray-900">Q: 如何提升品牌的 AI 可见度？</p>
+                                        <p class="text-gray-600 mt-1">A: 可以通过优化网站结构化数据、增加权威来源引用、完善 FAQ 内容等方式提升...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 预计效果 -->
+                    <div class="mt-6 p-6 bg-emerald-50 rounded-xl border border-emerald-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold text-emerald-800">预计效果</h4>
+                                <p class="text-sm text-emerald-600 mt-1">应用这些优化后，预计可见度提升 <strong>+8-12 分</strong></p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-bold text-emerald-600">68.5 → 78+</p>
+                                <p class="text-xs text-emerald-500">预计可见度</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4 mt-8">
+                    <button onclick="prevStep()" class="px-6 py-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i>上一步
+                    </button>
+                    <button onclick="nextStep()" class="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                        应用优化 <i class="fas fa-check ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤4: 应用完成 -->
+            <div id="content-step4" class="step-content hidden">
+                <div class="text-center py-12">
+                    <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-check text-emerald-600 text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">优化已应用！</h3>
+                    <p class="text-gray-500 mb-8">所有优化内容已成功应用到您的项目</p>
+
+                    <div class="max-w-md mx-auto bg-white rounded-xl p-6 shadow-sm mb-8">
+                        <h4 class="font-medium text-gray-900 mb-4">优化摘要</h4>
+                        <div class="space-y-3 text-left">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Schema 标记</span>
+                                <span class="text-sm text-emerald-600"><i class="fas fa-check mr-1"></i>已添加 3 种</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">FAQ 内容</span>
+                                <span class="text-sm text-emerald-600"><i class="fas fa-check mr-1"></i>已生成 20 条</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">llms.txt</span>
+                                <span class="text-sm text-emerald-600"><i class="fas fa-check mr-1"></i>已优化</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center gap-4">
+                        <a href="visibility-analysis.html" class="px-6 py-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <i class="fas fa-chart-line mr-2"></i>查看效果
+                        </a>
+                        <a href="dashboard.html" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <i class="fas fa-home mr-2"></i>返回首页
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentStep = 1;
+        let selectedOptimizations = [];
+
+        function toggleOptimization(card, type) {
+            card.classList.toggle('selected');
+            if (selectedOptimizations.includes(type)) {
+                selectedOptimizations = selectedOptimizations.filter(t => t !== type);
+            } else {
+                selectedOptimizations.push(type);
+            }
+            document.getElementById('selectedCount').textContent = selectedOptimizations.length;
+            document.getElementById('nextBtn').disabled = selectedOptimizations.length === 0;
+        }
+
+        function nextStep() {
+            if (currentStep < 4) {
+                document.getElementById('content-step' + currentStep).classList.add('hidden');
+                currentStep++;
+                document.getElementById('content-step' + currentStep).classList.remove('hidden');
+                document.getElementById('currentStep').textContent = currentStep;
+                updateStepIndicators();
+                
+                if (currentStep === 2) {
+                    showConfigSections();
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                document.getElementById('content-step' + currentStep).classList.add('hidden');
+                currentStep--;
+                document.getElementById('content-step' + currentStep).classList.remove('hidden');
+                document.getElementById('currentStep').textContent = currentStep;
+                updateStepIndicators();
+            }
+        }
+
+        function updateStepIndicators() {
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active', 'completed');
+                if (i < currentStep) {
+                    step.classList.add('completed');
+                    step.querySelector('span:first-child').innerHTML = '<i class="fas fa-check"></i>';
+                    step.querySelector('span:first-child').classList.remove('bg-gray-200', 'text-gray-500');
+                    step.querySelector('span:first-child').classList.add('bg-emerald-500', 'text-white');
+                } else if (i === currentStep) {
+                    step.classList.add('active');
+                }
+            }
+        }
+
+        function showConfigSections() {
+            document.querySelectorAll('.config-section').forEach(s => s.classList.add('hidden'));
+            selectedOptimizations.forEach(type => {
+                const section = document.getElementById('config-' + type);
+                if (section) section.classList.remove('hidden');
+            });
+        }
+
+        function exitWizard() {
+            if (confirm('确定要退出优化向导吗？')) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        function regenerate() {
+            alert('正在重新生成优化内容...');
+        }
+
+        function editContent() {
+            alert('打开编辑器...');
+        }
+
+        // FAQ 数量滑块
+        document.getElementById('faqCount')?.addEventListener('input', function() {
+            document.getElementById('faqCountValue').textContent = this.value + ' 条';
+        });
+
+        // 检查 URL 参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        if (action) {
+            const actionMap = {
+                'generate_faq': 'faq',
+                'optimize_llms_txt': 'llms',
+                'ai_generate_faq': 'faq'
+            };
+            if (actionMap[action]) {
+                const cards = document.querySelectorAll('.optimization-card');
+                cards.forEach(card => {
+                    if (card.onclick.toString().includes(actionMap[action])) {
+                        toggleOptimization(card, actionMap[action]);
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
+

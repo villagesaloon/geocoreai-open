@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 引用源优化 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <script src="js/next-step-guide.js"></script>
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">LLM 引用源优化</h1>
+                        <p class="text-sm text-gray-500 mt-1">Phase 7: 平台特定引用策略 + 30 天路线图</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('platforms')" id="tab-platforms" 
+                            class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-database mr-2"></i>平台偏好数据
+                    </button>
+                    <button onclick="switchTab('optimize')" id="tab-optimize"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-magic mr-2"></i>优化策略生成
+                    </button>
+                    <button onclick="switchTab('templates')" id="tab-templates"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-file-alt mr-2"></i>内容模板
+                    </button>
+                    <button onclick="switchTab('priority')" id="tab-priority"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-sort-amount-down mr-2"></i>平台优先级
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Tab: Platforms -->
+                <div id="content-platforms" class="tab-content">
+                    <!-- Key Insight -->
+                    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-6 text-white mb-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-lightbulb text-3xl mr-4 mt-1"></i>
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2">关键洞察：仅 11% 引用来源重叠</h3>
+                                <p class="text-purple-100">研究显示，不同 LLM 平台的引用来源仅有约 11% 重叠。这意味着需要针对每个平台制定独立的优化策略，而不是"一刀切"的方法。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Cards -->
+                    <div id="platformCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="text-center py-12 col-span-full">
+                            <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                            <p class="text-gray-600">加载平台数据...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Optimize -->
+                <div id="content-optimize" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Input Form -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-cog text-blue-500 mr-2"></i>优化配置
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称</label>
+                                    <input type="text" id="brandName" placeholder="Your Brand" 
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">行业</label>
+                                    <input type="text" id="industry" placeholder="科技/金融/医疗..." 
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">网站 URL</label>
+                                    <input type="url" id="websiteUrl" placeholder="https://example.com" 
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">目标平台</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center"><input type="checkbox" class="target-platform mr-2" value="chatgpt" checked> ChatGPT</label>
+                                        <label class="flex items-center"><input type="checkbox" class="target-platform mr-2" value="perplexity" checked> Perplexity</label>
+                                        <label class="flex items-center"><input type="checkbox" class="target-platform mr-2" value="gemini" checked> Gemini</label>
+                                        <label class="flex items-center"><input type="checkbox" class="target-platform mr-2" value="claude" checked> Claude</label>
+                                        <label class="flex items-center"><input type="checkbox" class="target-platform mr-2" value="grok" checked> Grok</label>
+                                    </div>
+                                </div>
+                                
+                                <button onclick="generateOptimization()" 
+                                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                                    <i class="fas fa-magic mr-2"></i>生成优化策略
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Results -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <div id="optimizeLoading" class="hidden text-center py-12">
+                                <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                                <p class="text-gray-600">生成优化策略...</p>
+                            </div>
+
+                            <div id="optimizeResults" class="hidden space-y-6">
+                                <!-- Quick Wins -->
+                                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                    <h3 class="font-semibold text-gray-900 mb-4">
+                                        <i class="fas fa-bolt text-yellow-500 mr-2"></i>快速见效 (Quick Wins)
+                                    </h3>
+                                    <div id="quickWins" class="space-y-3"></div>
+                                </div>
+
+                                <!-- Platform Strategies -->
+                                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                    <h3 class="font-semibold text-gray-900 mb-4">
+                                        <i class="fas fa-chess text-blue-500 mr-2"></i>平台策略
+                                    </h3>
+                                    <div id="platformStrategies" class="space-y-4"></div>
+                                </div>
+
+                                <!-- Cross Platform Analysis -->
+                                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                    <h3 class="font-semibold text-gray-900 mb-4">
+                                        <i class="fas fa-project-diagram text-purple-500 mr-2"></i>跨平台分析
+                                    </h3>
+                                    <div id="crossPlatform"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Templates -->
+                <div id="content-templates" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-file-alt text-green-500 mr-2"></i>内容模板生成
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">目标平台</label>
+                                    <select id="templatePlatform" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="reddit">Reddit</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="linkedin">LinkedIn</option>
+                                        <option value="youtube">YouTube</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">内容主题</label>
+                                    <input type="text" id="templateTopic" placeholder="如：AI 工具使用指南" 
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称</label>
+                                    <input type="text" id="templateBrand" placeholder="Your Brand" 
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500">
+                                </div>
+                                
+                                <button onclick="generateTemplate()" 
+                                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium">
+                                    <i class="fas fa-file-alt mr-2"></i>生成模板
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold text-gray-900">生成结果</h3>
+                                <button onclick="copyTemplate()" class="text-green-600 hover:text-green-700 text-sm hidden" id="copyTemplateBtn">
+                                    <i class="fas fa-copy mr-1"></i>复制
+                                </button>
+                            </div>
+                            <div id="templateResult" class="space-y-4">
+                                <p class="text-gray-500 text-center py-8">选择平台和主题后生成模板</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Effect Timelines -->
+                    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-clock text-blue-500 mr-2"></i>各平台效果预期时间线
+                        </h3>
+                        <div id="timelines" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- Tab: Priority -->
+                <div id="content-priority" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fas fa-sliders-h text-purple-500 mr-2"></i>优先级配置
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">行业</label>
+                                    <input type="text" id="priorityIndustry" placeholder="科技/金融/医疗..." 
+                                           class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">目标受众</label>
+                                    <select id="priorityAudience" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="B2B">B2B 企业客户</option>
+                                        <option value="B2C">B2C 消费者</option>
+                                        <option value="technical">技术人员</option>
+                                        <option value="general">通用大众</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">内容类型</label>
+                                    <select id="priorityContentType" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                        <option value="technical">技术内容</option>
+                                        <option value="marketing">营销内容</option>
+                                        <option value="educational">教育内容</option>
+                                        <option value="news">新闻资讯</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">预算 (1-5)</label>
+                                    <input type="range" id="priorityBudget" min="1" max="5" value="3" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>有限</span><span>充足</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">团队规模 (1-5)</label>
+                                    <input type="range" id="priorityTeamSize" min="1" max="5" value="3" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>小型</span><span>大型</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">目标</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center"><input type="checkbox" class="priority-goal mr-2" value="brand_awareness" checked> 品牌知名度</label>
+                                        <label class="flex items-center"><input type="checkbox" class="priority-goal mr-2" value="lead_generation"> 线索生成</label>
+                                        <label class="flex items-center"><input type="checkbox" class="priority-goal mr-2" value="thought_leadership"> 思想领导力</label>
+                                    </div>
+                                </div>
+                                
+                                <button onclick="calculatePriority()" 
+                                        class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium">
+                                    <i class="fas fa-calculator mr-2"></i>计算优先级
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2">
+                            <div id="priorityResults" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                <h3 class="font-semibold text-gray-900 mb-4">平台优先级排名</h3>
+                                <p class="text-gray-500 text-center py-8">配置参数后计算优先级</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 7.1 加载平台偏好数据
+        async function loadPlatforms() {
+            try {
+                const response = await fetch('/api/llm-citation/platforms');
+                const platforms = await response.json();
+                renderPlatformCards(platforms);
+            } catch (error) {
+                console.error('Failed to load platforms:', error);
+            }
+        }
+
+        function renderPlatformCards(platforms) {
+            const container = document.getElementById('platformCards');
+            container.innerHTML = platforms.map(p => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-900">${p.displayName}</h3>
+                        <span class="text-xs text-gray-500">${p.lastUpdated}</span>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">
+                            <i class="fas fa-heart text-red-400 mr-1"></i>偏好: ${p.characteristics.contentPreference}
+                        </p>
+                        <p class="text-sm text-gray-600 mb-2">
+                            <i class="fas fa-quote-left text-blue-400 mr-1"></i>引用数: ${p.characteristics.typicalCitationCount}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-clock text-green-400 mr-1"></i>见效: ${p.characteristics.effectiveTimeframe}
+                        </p>
+                    </div>
+                    
+                    <div class="border-t pt-4">
+                        <p class="text-xs font-medium text-gray-700 mb-2">Top 引用来源:</p>
+                        <div class="space-y-2">
+                            ${p.topSources.slice(0, 5).map(s => `
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="flex items-center">
+                                        <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center mr-2">${s.rank}</span>
+                                        ${s.domain}
+                                    </span>
+                                    <span class="text-gray-500">${s.citationShare.toFixed(1)}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <button onclick="showPlatformDetail('${p.platform}')" 
+                            class="mt-4 w-full text-blue-600 text-sm hover:text-blue-700">
+                        查看详情 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 7.2 生成优化策略
+        async function generateOptimization() {
+            const brandName = document.getElementById('brandName').value;
+            const industry = document.getElementById('industry').value;
+            
+            if (!brandName || !industry) {
+                alert('请填写品牌名称和行业');
+                return;
+            }
+
+            const targetPlatforms = Array.from(document.querySelectorAll('.target-platform:checked')).map(cb => cb.value);
+
+            document.getElementById('optimizeLoading').classList.remove('hidden');
+            document.getElementById('optimizeResults').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/llm-citation/optimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        brandName,
+                        industry,
+                        targetPlatforms,
+                        currentWebsiteUrl: document.getElementById('websiteUrl').value
+                    })
+                });
+                const data = await response.json();
+                renderOptimizationResults(data);
+            } catch (error) {
+                alert('生成失败: ' + error.message);
+            } finally {
+                document.getElementById('optimizeLoading').classList.add('hidden');
+            }
+        }
+
+        function renderOptimizationResults(data) {
+            document.getElementById('optimizeResults').classList.remove('hidden');
+
+            // Quick Wins
+            document.getElementById('quickWins').innerHTML = data.quickWins.map(qw => `
+                <div class="flex items-start p-3 bg-yellow-50 rounded-lg">
+                    <i class="fas fa-bolt text-yellow-500 mt-1 mr-3"></i>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="font-medium text-gray-900">${qw.title}</p>
+                            <span class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700">${qw.daysToImplement} 天</span>
+                        </div>
+                        <p class="text-sm text-gray-600">${qw.description}</p>
+                        <p class="text-xs text-green-600 mt-1">${qw.expectedResult}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // Platform Strategies
+            document.getElementById('platformStrategies').innerHTML = data.strategies.map(s => `
+                <div class="border rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${s.priorityLevel === 'P0' ? 'bg-red-100 text-red-700' : s.priorityLevel === 'P1' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'}">${s.priorityLevel}</span>
+                            <h4 class="font-medium text-gray-900 ml-2">${s.displayName}</h4>
+                        </div>
+                        <span class="text-sm text-gray-500">Score: ${s.priorityScore}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">${s.expectedImpact}</p>
+                    <div class="space-y-1">
+                        ${s.actionItems.slice(0, 3).map(a => `
+                            <p class="text-sm text-gray-700">• ${a.action}</p>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            // Cross Platform
+            const cp = data.crossPlatformAnalysis;
+            document.getElementById('crossPlatform').innerHTML = `
+                <div class="mb-4 p-4 bg-purple-50 rounded-lg">
+                    <p class="text-sm text-purple-800">${cp.summary}</p>
+                    <p class="text-2xl font-bold text-purple-600 mt-2">${cp.overlapPercentage}% 重叠率</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    ${cp.uniqueOpportunities.slice(0, 4).map(uo => `
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <p class="font-medium text-gray-900">${uo.platform}</p>
+                            <p class="text-sm text-gray-600">${uo.source}</p>
+                            <p class="text-xs text-green-600">${uo.reason}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 7.5 生成内容模板
+        async function generateTemplate() {
+            const platform = document.getElementById('templatePlatform').value;
+            const topic = document.getElementById('templateTopic').value;
+            const brandName = document.getElementById('templateBrand').value;
+
+            if (!topic) {
+                alert('请输入内容主题');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/llm-citation/template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform, topic, brandName })
+                });
+                const data = await response.json();
+                renderTemplate(data);
+            } catch (error) {
+                alert('生成失败: ' + error.message);
+            }
+        }
+
+        function renderTemplate(data) {
+            document.getElementById('copyTemplateBtn').classList.remove('hidden');
+            document.getElementById('templateResult').innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-gray-900">${data.platform} - ${data.contentType}</span>
+                        <span class="text-sm text-gray-500">${data.optimalLength}</span>
+                    </div>
+                    
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-auto max-h-64 font-mono whitespace-pre-wrap">${data.template}</pre>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm font-medium text-green-600 mb-2">✓ Do</p>
+                            ${data.doList.map(d => `<p class="text-sm text-gray-600">• ${d}</p>`).join('')}
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-red-600 mb-2">✗ Don't</p>
+                            ${data.dontList.map(d => `<p class="text-sm text-gray-600">• ${d}</p>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-500">
+                        <i class="fas fa-clock mr-1"></i>最佳发布时间: ${data.bestPostingTime}
+                    </p>
+                </div>
+            `;
+        }
+
+        function copyTemplate() {
+            const template = document.querySelector('#templateResult pre')?.textContent;
+            if (template) {
+                navigator.clipboard.writeText(template);
+                alert('已复制到剪贴板');
+            }
+        }
+
+        // 7.7 加载效果时间线
+        async function loadTimelines() {
+            try {
+                const response = await fetch('/api/llm-citation/timelines');
+                const timelines = await response.json();
+                renderTimelines(timelines);
+            } catch (error) {
+                console.error('Failed to load timelines:', error);
+            }
+        }
+
+        function renderTimelines(timelines) {
+            document.getElementById('timelines').innerHTML = timelines.map(t => `
+                <div class="border rounded-lg p-4">
+                    <h4 class="font-medium text-gray-900 mb-2">${t.platform}</h4>
+                    <div class="flex items-center justify-between text-sm mb-3">
+                        <span class="text-gray-500">初见效果</span>
+                        <span class="font-medium text-green-600">${t.initialEffectTime}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm mb-3">
+                        <span class="text-gray-500">完全见效</span>
+                        <span class="font-medium text-blue-600">${t.fullEffectTime}</span>
+                    </div>
+                    <div class="space-y-2">
+                        ${t.stages.map(s => `
+                            <div class="text-xs p-2 bg-gray-50 rounded">
+                                <span class="font-medium">${s.stage}</span>: ${s.timeframe}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">${t.notes}</p>
+                </div>
+            `).join('');
+        }
+
+        // 7.8 计算平台优先级
+        async function calculatePriority() {
+            const industry = document.getElementById('priorityIndustry').value;
+            if (!industry) {
+                alert('请输入行业');
+                return;
+            }
+
+            const goals = Array.from(document.querySelectorAll('.priority-goal:checked')).map(cb => cb.value);
+
+            try {
+                const response = await fetch('/api/llm-citation/priority', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        industry,
+                        targetAudience: document.getElementById('priorityAudience').value,
+                        contentType: document.getElementById('priorityContentType').value,
+                        budget: parseInt(document.getElementById('priorityBudget').value),
+                        teamSize: parseInt(document.getElementById('priorityTeamSize').value),
+                        goals
+                    })
+                });
+                const data = await response.json();
+                renderPriorityResults(data);
+            } catch (error) {
+                alert('计算失败: ' + error.message);
+            }
+        }
+
+        function renderPriorityResults(data) {
+            document.getElementById('priorityResults').innerHTML = `
+                <h3 class="font-semibold text-gray-900 mb-4">平台优先级排名</h3>
+                <div class="space-y-4 mb-6">
+                    ${data.rankings.map(r => `
+                        <div class="flex items-center p-4 border rounded-lg ${r.rank === 1 ? 'border-yellow-400 bg-yellow-50' : ''}">
+                            <div class="w-10 h-10 rounded-full ${r.rank === 1 ? 'bg-yellow-400' : r.rank === 2 ? 'bg-gray-300' : r.rank === 3 ? 'bg-orange-300' : 'bg-gray-200'} flex items-center justify-center text-white font-bold mr-4">
+                                ${r.rank}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-medium text-gray-900">${r.displayName}</h4>
+                                    <span class="text-lg font-bold text-blue-600">${r.score}</span>
+                                </div>
+                                <p class="text-sm text-gray-600">${r.rationale}</p>
+                                <p class="text-xs text-green-600 mt-1">${r.roiEstimate}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-900 mb-2">建议</h4>
+                    ${data.recommendations.map(r => `<p class="text-sm text-blue-800">• ${r}</p>`).join('')}
+                </div>
+            `;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+            loadPlatforms();
+            loadTimelines();
+
+            // 添加下一步引导
+            if (typeof NextStepGuide !== 'undefined') {
+                const mainContent = document.querySelector('.flex-1.overflow-auto');
+                if (mainContent) {
+                    const guideContainer = document.createElement('div');
+                    guideContainer.id = 'nextStepGuide';
+                    guideContainer.className = 'px-6 pb-6';
+                    mainContent.appendChild(guideContainer);
+                    NextStepGuide.render('nextStepGuide');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

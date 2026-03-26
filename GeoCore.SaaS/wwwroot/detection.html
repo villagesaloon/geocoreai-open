@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 可见度检测 - GeoCore AI</title>
+    <meta name="description" content="检测您的品牌在 AI 搜索中的可见度，获取优化建议">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .progress-bar { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <div class="w-9 h-9 gradient-bg rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">G</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">GeoCore AI</span>
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-8">
+                        <a href="detection.html" class="text-primary font-medium">AI 检测</a>
+                        <a href="ai-visibility.html" class="text-gray-500 hover:text-gray-900">可见度分析</a>
+                        <a href="citation-dashboard.html" class="text-gray-500 hover:text-gray-900">引用追踪</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="login.html" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90">登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <!-- 检测入口 -->
+        <div id="detection-entry" class="mb-8">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-3">AI 可见度检测</h1>
+                <p class="text-gray-600">检测您的网站在 AI 搜索引擎中的表现，获取优化建议</p>
+            </div>
+
+            <!-- 检测表单 -->
+            <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">网站 URL</label>
+                    <div class="relative">
+                        <i class="fas fa-globe absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="websiteUrl" 
+                               class="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-lg"
+                               placeholder="输入网站 URL，如 example.com">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">检测类型</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="taskType" value="full" checked class="peer sr-only">
+                            <div class="p-4 border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-primary/5 transition">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-search-plus text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900">完整检测</div>
+                                        <div class="text-sm text-gray-500">AI 可见度 + 网站审计</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="taskType" value="quick" class="peer sr-only">
+                            <div class="p-4 border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-primary/5 transition">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-bolt text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900">快速检测</div>
+                                        <div class="text-sm text-gray-500">仅 AI 可见度</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="startDetection()" 
+                        class="w-full py-4 gradient-bg text-white rounded-xl font-medium text-lg hover:opacity-90 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-play"></i>
+                    开始检测
+                </button>
+
+                <!-- 每日限制提示 -->
+                <div class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-info-circle text-amber-500 mt-0.5"></i>
+                        <div class="text-sm text-amber-800">
+                            <strong>每日限制：</strong>完整检测每天 1 次，快速检测不限次数。
+                            <span id="limitStatus" class="block mt-1"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 检测进度（初始隐藏）-->
+        <div id="detection-progress" class="hidden">
+            <div class="max-w-2xl mx-auto">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">检测进行中</h2>
+                    <p class="text-gray-500">任务 ID: <code id="taskIdDisplay" class="bg-gray-100 px-2 py-1 rounded text-sm"></code></p>
+                </div>
+
+                <!-- 进度条 -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full progress-bar rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span id="progressText" class="text-lg font-semibold text-primary min-w-[50px]">0%</span>
+                    </div>
+
+                    <!-- 阶段列表 -->
+                    <div id="phaseList" class="space-y-3">
+                        <div class="phase-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl" data-phase="data_prep">
+                            <div class="phase-icon w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">数据准备</div>
+                                <div class="text-sm text-gray-500">检查项目卖点、画像、阶段</div>
+                            </div>
+                            <span class="phase-status text-sm text-gray-400">等待中</span>
+                        </div>
+                        <div class="phase-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl" data-phase="question_gen">
+                            <div class="phase-icon w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">问题生成</div>
+                                <div class="text-sm text-gray-500">生成检测问题，Google Trends 验证</div>
+                            </div>
+                            <span class="phase-status text-sm text-gray-400">等待中</span>
+                        </div>
+                        <div class="phase-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl" data-phase="ai_detection">
+                            <div class="phase-icon w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">AI 可见度检测</div>
+                                <div class="text-sm text-gray-500">检测 5 个 AI 模型的响应</div>
+                            </div>
+                            <span class="phase-status text-sm text-gray-400">等待中</span>
+                        </div>
+                        <div class="phase-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl" data-phase="website_audit">
+                            <div class="phase-icon w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">网站审计</div>
+                                <div class="text-sm text-gray-500">技术审计、内容审计、E-E-A-T 审计</div>
+                            </div>
+                            <span class="phase-status text-sm text-gray-400">等待中</span>
+                        </div>
+                        <div class="phase-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl" data-phase="analysis">
+                            <div class="phase-icon w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">结果分析</div>
+                                <div class="text-sm text-gray-500">计算指标、生成优化建议</div>
+                            </div>
+                            <span class="phase-status text-sm text-gray-400">等待中</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 状态消息 -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
+                    <p id="statusMessage" class="text-gray-700 mb-2">正在初始化...</p>
+                    <p id="estimatedTime" class="text-sm text-gray-500">预计剩余时间：约 5 分钟</p>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="mt-6 text-center">
+                    <button onclick="cancelTask()" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:border-red-500 hover:text-red-500 transition">
+                        取消任务
+                    </button>
+                    <p class="mt-4 text-sm text-gray-400">您可以关闭此页面，任务将在后台继续执行。完成后会发送邮件通知。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 检测结果（初始隐藏）-->
+        <div id="detection-result" class="hidden">
+            <!-- 头部 -->
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">域名概览：<span id="resultDomain" class="text-primary"></span></h1>
+                    <p class="text-gray-500 mt-1">检测完成于 <span id="resultDate"></span></p>
+                </div>
+                <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 flex items-center gap-2">
+                    <i class="fas fa-download"></i>
+                    导出报告
+                </button>
+            </div>
+
+            <!-- 国家选择器 -->
+            <div class="flex items-center gap-2 mb-6 flex-wrap">
+                <button class="country-btn px-4 py-2 rounded-full border border-primary bg-primary text-white text-sm" data-country="ALL">
+                    🌐 全世界
+                </button>
+                <button class="country-btn px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 text-sm hover:border-primary" data-country="US">
+                    🇺🇸 US
+                </button>
+                <button class="country-btn px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 text-sm hover:border-primary" data-country="CN">
+                    🇨🇳 CN
+                </button>
+                <button class="country-btn px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-700 text-sm hover:border-primary" data-country="GB">
+                    🇬🇧 UK
+                </button>
+            </div>
+
+            <!-- 指标卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- AI 搜索卡片 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-900">AI 搜索</h3>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">今天</span>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex gap-8 mb-6">
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">AI 可见度</div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-3xl font-bold text-gray-900" id="visibilityScore">--</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">提及</div>
+                                <div class="text-2xl font-semibold text-gray-900" id="mentionCount">--</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">引用页面</div>
+                                <div class="text-2xl font-semibold text-gray-900" id="citationCount">--</div>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-100 pt-4 space-y-3">
+                            <div class="flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span>📊</span>
+                                    <span class="text-gray-700">ChatGPT</span>
+                                </div>
+                                <div class="flex gap-6 text-gray-500">
+                                    <span id="chatgptMentions">--</span>
+                                    <span id="chatgptCitations">--</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span>💎</span>
+                                    <span class="text-gray-700">Gemini</span>
+                                </div>
+                                <div class="flex gap-6 text-gray-500">
+                                    <span id="geminiMentions">--</span>
+                                    <span id="geminiCitations">--</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span>🤖</span>
+                                    <span class="text-gray-700">Claude</span>
+                                </div>
+                                <div class="flex gap-6 text-gray-500">
+                                    <span id="claudeMentions">--</span>
+                                    <span id="claudeCitations">--</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span>🔮</span>
+                                    <span class="text-gray-700">Perplexity</span>
+                                </div>
+                                <div class="flex gap-6 text-gray-500">
+                                    <span id="perplexityMentions">--</span>
+                                    <span id="perplexityCitations">--</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span>⚡</span>
+                                    <span class="text-gray-700">Grok</span>
+                                </div>
+                                <div class="flex gap-6 text-gray-500">
+                                    <span id="grokMentions">--</span>
+                                    <span id="grokCitations">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 网站健康度卡片 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100">
+                        <h3 class="font-semibold text-gray-900">网站健康度</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">技术得分</div>
+                                <div class="text-2xl font-bold text-gray-900" id="technicalScore">--</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">内容得分</div>
+                                <div class="text-2xl font-bold text-gray-900" id="contentScore">--</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">E-E-A-T</div>
+                                <div class="text-2xl font-bold text-gray-900" id="eeatScore">--</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center gap-6 mb-6 text-sm">
+                            <span class="text-amber-600"><i class="fas fa-exclamation-triangle mr-1"></i><span id="issuesCount">0</span> 个问题</span>
+                            <span class="text-primary"><i class="fas fa-lightbulb mr-1"></i><span id="recommendationsCount">0</span> 条建议</span>
+                        </div>
+                        <a href="#suggestions" class="block w-full py-3 gradient-bg text-white rounded-xl text-center font-medium hover:opacity-90 transition">
+                            查看详细报告
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 品牌提及分析 -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-900">品牌提及分析</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <div class="flex gap-8 mb-4">
+                                <div>
+                                    <div class="text-sm text-gray-500 mb-1">品牌提及率</div>
+                                    <div class="text-3xl font-bold text-primary" id="brandMentionRate">--%</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500 mb-1">平均提及位置</div>
+                                    <div class="text-3xl font-bold text-gray-900">第 <span id="avgPosition">--</span> 位</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500 mb-2">情感分析</div>
+                            <div class="flex h-6 rounded-lg overflow-hidden">
+                                <div id="sentimentPositive" class="bg-green-400 flex items-center justify-center text-xs text-white" style="width: 68%">😊 68%</div>
+                                <div id="sentimentNeutral" class="bg-amber-400 flex items-center justify-center text-xs text-white" style="width: 25%">😐 25%</div>
+                                <div id="sentimentNegative" class="bg-red-400 flex items-center justify-center text-xs text-white" style="width: 7%">😞 7%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 优化建议 -->
+            <div id="suggestions" class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900">优化建议</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 text-sm rounded-full bg-red-100 text-red-700">高优先级 <span id="highCount">0</span></button>
+                        <button class="px-3 py-1 text-sm rounded-full bg-amber-100 text-amber-700">中优先级 <span id="mediumCount">0</span></button>
+                        <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-700">低优先级 <span id="lowCount">0</span></button>
+                    </div>
+                </div>
+                <div id="suggestionsList" class="divide-y divide-gray-100">
+                    <!-- 建议项将通过 JS 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentTaskId = null;
+        let pollInterval = null;
+
+        // 开始检测
+        async function startDetection() {
+            const url = document.getElementById('websiteUrl').value.trim();
+            if (!url) {
+                alert('请输入网站 URL');
+                return;
+            }
+
+            const taskType = document.querySelector('input[name="taskType"]:checked').value;
+
+            try {
+                // 调用 API 开始检测
+                const response = await fetch('/api/detection/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId: 1, taskType, url })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    currentTaskId = result.data.taskId;
+                    showProgress();
+                    startPolling();
+                } else {
+                    alert(result.error?.message || '启动检测失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // 演示模式：模拟检测
+                currentTaskId = 'demo-' + Date.now();
+                showProgress();
+                simulateProgress();
+            }
+        }
+
+        // 显示进度页面
+        function showProgress() {
+            document.getElementById('detection-entry').classList.add('hidden');
+            document.getElementById('detection-progress').classList.remove('hidden');
+            document.getElementById('detection-result').classList.add('hidden');
+            document.getElementById('taskIdDisplay').textContent = currentTaskId;
+        }
+
+        // 显示结果页面
+        function showResult() {
+            document.getElementById('detection-entry').classList.add('hidden');
+            document.getElementById('detection-progress').classList.add('hidden');
+            document.getElementById('detection-result').classList.remove('hidden');
+        }
+
+        // 开始轮询状态
+        function startPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/detection/status/${currentTaskId}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        updateProgress(result.data);
+                        
+                        if (result.data.status === 'completed') {
+                            stopPolling();
+                            loadResult();
+                        } else if (result.data.status === 'failed') {
+                            stopPolling();
+                            alert('检测失败: ' + result.data.errorMessage);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 2000);
+        }
+
+        // 停止轮询
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // 更新进度显示
+        function updateProgress(data) {
+            document.getElementById('progressBar').style.width = data.progress + '%';
+            document.getElementById('progressText').textContent = data.progress + '%';
+            document.getElementById('statusMessage').textContent = data.message || '处理中...';
+            document.getElementById('estimatedTime').textContent = data.estimatedTimeRemaining || '';
+
+            // 更新阶段状态
+            const phases = ['data_prep', 'question_gen', 'ai_detection', 'website_audit', 'analysis'];
+            const currentPhaseIndex = phases.indexOf(data.currentPhase);
+            
+            document.querySelectorAll('.phase-item').forEach((item, index) => {
+                const icon = item.querySelector('.phase-icon');
+                const status = item.querySelector('.phase-status');
+                
+                if (index < currentPhaseIndex) {
+                    // 已完成
+                    icon.className = 'phase-icon w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white';
+                    icon.innerHTML = '<i class="fas fa-check text-sm"></i>';
+                    status.textContent = '已完成';
+                    status.className = 'phase-status text-sm text-green-600';
+                    item.className = 'phase-item flex items-center gap-4 p-4 bg-green-50 rounded-xl';
+                } else if (index === currentPhaseIndex) {
+                    // 进行中
+                    icon.className = 'phase-icon w-8 h-8 rounded-full bg-primary flex items-center justify-center';
+                    icon.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full spinner"></div>';
+                    status.textContent = '进行中';
+                    status.className = 'phase-status text-sm text-primary font-medium';
+                    item.className = 'phase-item flex items-center gap-4 p-4 bg-primary/5 rounded-xl border border-primary/20';
+                } else {
+                    // 等待中
+                    icon.className = 'phase-icon w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400';
+                    icon.innerHTML = '<i class="fas fa-circle text-xs"></i>';
+                    status.textContent = '等待中';
+                    status.className = 'phase-status text-sm text-gray-400';
+                    item.className = 'phase-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+                }
+            });
+        }
+
+        // 模拟进度（演示模式）
+        function simulateProgress() {
+            const phases = ['data_prep', 'question_gen', 'ai_detection', 'website_audit', 'analysis'];
+            let progress = 0;
+            let phaseIndex = 0;
+
+            const interval = setInterval(() => {
+                progress += Math.random() * 10 + 5;
+                if (progress >= 100) progress = 100;
+
+                phaseIndex = Math.floor(progress / 20);
+                if (phaseIndex >= phases.length) phaseIndex = phases.length - 1;
+
+                updateProgress({
+                    progress: Math.round(progress),
+                    currentPhase: phases[phaseIndex],
+                    message: `正在执行: ${getPhaseLabel(phases[phaseIndex])}`,
+                    estimatedTimeRemaining: `预计剩余时间：约 ${Math.ceil((100 - progress) / 10)} 分钟`
+                });
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loadDemoResult();
+                    }, 1000);
+                }
+            }, 800);
+        }
+
+        function getPhaseLabel(phase) {
+            const labels = {
+                'data_prep': '数据准备',
+                'question_gen': '问题生成',
+                'ai_detection': 'AI 可见度检测',
+                'website_audit': '网站审计',
+                'analysis': '结果分析'
+            };
+            return labels[phase] || phase;
+        }
+
+        // 加载检测结果
+        async function loadResult() {
+            try {
+                const response = await fetch(`/api/detection/result/${currentTaskId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayResult(result.data);
+                    showResult();
+                }
+            } catch (error) {
+                console.error('Load result error:', error);
+                loadDemoResult();
+            }
+        }
+
+        // 加载演示结果
+        function loadDemoResult() {
+            const url = document.getElementById('websiteUrl').value || 'example.com';
+            displayResult({
+                domain: url,
+                completedAt: new Date().toLocaleString('zh-CN'),
+                summary: {
+                    visibilityScore: 73,
+                    mentionCount: 33600,
+                    citationCount: 3800,
+                    brandMentionRate: 0.42,
+                    avgMentionPosition: 2.3
+                },
+                sentiment: { positive: 68, neutral: 25, negative: 7 },
+                byModel: {
+                    chatgpt: { mentions: 5200, citations: 2400 },
+                    gemini: { mentions: 7100, citations: 272 },
+                    claude: { mentions: 3500, citations: 180 },
+                    perplexity: { mentions: 4200, citations: 320 },
+                    grok: { mentions: 2100, citations: 95 }
+                },
+                websiteAudit: {
+                    technicalScore: 85,
+                    contentScore: 72,
+                    eeatScore: 65,
+                    issuesCount: 12,
+                    recommendationsCount: 8
+                },
+                suggestions: [
+                    { priority: 'high', title: 'robots.txt 阻止了 AI 爬虫', description: '您的 robots.txt 文件阻止了 GPTBot 和 ClaudeBot 爬取网站内容', impactScore: 10, effortLevel: 'easy' },
+                    { priority: 'high', title: '缺少 Answer Capsule', description: '您的内容缺少 Answer Capsule（直接回答问题的精炼段落）', impactScore: 9, effortLevel: 'medium' },
+                    { priority: 'high', title: '缺少 Schema 标记', description: '您的网站缺少 Schema.org 结构化数据标记', impactScore: 8, effortLevel: 'medium' },
+                    { priority: 'medium', title: '缺少 llms.txt 文件', description: '您的网站缺少 llms.txt 文件', impactScore: 5, effortLevel: 'easy' },
+                    { priority: 'medium', title: '缺少作者信息', description: '您的内容缺少作者信息', impactScore: 6, effortLevel: 'easy' },
+                    { priority: 'low', title: '缺少 Open Graph 标签', description: '您的页面缺少 Open Graph 标签', impactScore: 3, effortLevel: 'easy' }
+                ]
+            });
+            showResult();
+        }
+
+        // 显示结果数据
+        function displayResult(data) {
+            document.getElementById('resultDomain').textContent = data.domain || 'example.com';
+            document.getElementById('resultDate').textContent = data.completedAt || new Date().toLocaleString('zh-CN');
+
+            // AI 搜索指标
+            document.getElementById('visibilityScore').textContent = data.summary?.visibilityScore || '--';
+            document.getElementById('mentionCount').textContent = formatNumber(data.summary?.mentionCount);
+            document.getElementById('citationCount').textContent = formatNumber(data.summary?.citationCount);
+
+            // 各模型数据
+            if (data.byModel) {
+                document.getElementById('chatgptMentions').textContent = formatNumber(data.byModel.chatgpt?.mentions);
+                document.getElementById('chatgptCitations').textContent = formatNumber(data.byModel.chatgpt?.citations);
+                document.getElementById('geminiMentions').textContent = formatNumber(data.byModel.gemini?.mentions);
+                document.getElementById('geminiCitations').textContent = formatNumber(data.byModel.gemini?.citations);
+                document.getElementById('claudeMentions').textContent = formatNumber(data.byModel.claude?.mentions);
+                document.getElementById('claudeCitations').textContent = formatNumber(data.byModel.claude?.citations);
+                document.getElementById('perplexityMentions').textContent = formatNumber(data.byModel.perplexity?.mentions);
+                document.getElementById('perplexityCitations').textContent = formatNumber(data.byModel.perplexity?.citations);
+                document.getElementById('grokMentions').textContent = formatNumber(data.byModel.grok?.mentions);
+                document.getElementById('grokCitations').textContent = formatNumber(data.byModel.grok?.citations);
+            }
+
+            // 网站健康度
+            if (data.websiteAudit) {
+                document.getElementById('technicalScore').textContent = data.websiteAudit.technicalScore;
+                document.getElementById('contentScore').textContent = data.websiteAudit.contentScore;
+                document.getElementById('eeatScore').textContent = data.websiteAudit.eeatScore;
+                document.getElementById('issuesCount').textContent = data.websiteAudit.issuesCount;
+                document.getElementById('recommendationsCount').textContent = data.websiteAudit.recommendationsCount;
+            }
+
+            // 品牌提及
+            document.getElementById('brandMentionRate').textContent = Math.round((data.summary?.brandMentionRate || 0) * 100) + '%';
+            document.getElementById('avgPosition').textContent = data.summary?.avgMentionPosition?.toFixed(1) || '--';
+
+            // 情感分析
+            if (data.sentiment) {
+                document.getElementById('sentimentPositive').style.width = data.sentiment.positive + '%';
+                document.getElementById('sentimentPositive').textContent = '😊 ' + data.sentiment.positive + '%';
+                document.getElementById('sentimentNeutral').style.width = data.sentiment.neutral + '%';
+                document.getElementById('sentimentNeutral').textContent = '😐 ' + data.sentiment.neutral + '%';
+                document.getElementById('sentimentNegative').style.width = data.sentiment.negative + '%';
+                document.getElementById('sentimentNegative').textContent = '😞 ' + data.sentiment.negative + '%';
+            }
+
+            // 优化建议
+            if (data.suggestions) {
+                const highCount = data.suggestions.filter(s => s.priority === 'high').length;
+                const mediumCount = data.suggestions.filter(s => s.priority === 'medium').length;
+                const lowCount = data.suggestions.filter(s => s.priority === 'low').length;
+                
+                document.getElementById('highCount').textContent = highCount;
+                document.getElementById('mediumCount').textContent = mediumCount;
+                document.getElementById('lowCount').textContent = lowCount;
+
+                const listHtml = data.suggestions.map(s => `
+                    <div class="p-6 hover:bg-gray-50 transition">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center ${getPriorityBg(s.priority)}">
+                                ${getPriorityIcon(s.priority)}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium text-gray-900">${s.title}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded ${getPriorityClass(s.priority)}">${getPriorityLabel(s.priority)}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">${s.description}</p>
+                                <div class="flex items-center gap-4 text-xs text-gray-500">
+                                    <span>影响分数: ${s.impactScore}</span>
+                                    <span>难度: ${getEffortLabel(s.effortLevel)}</span>
+                                </div>
+                            </div>
+                            <button class="px-3 py-1 text-sm border border-gray-200 rounded-lg hover:border-primary hover:text-primary transition">
+                                查看详情
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('suggestionsList').innerHTML = listHtml;
+            }
+        }
+
+        function formatNumber(num) {
+            if (!num) return '--';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        function getPriorityBg(priority) {
+            const bgs = { high: 'bg-red-100', medium: 'bg-amber-100', low: 'bg-gray-100' };
+            return bgs[priority] || 'bg-gray-100';
+        }
+
+        function getPriorityIcon(priority) {
+            const icons = { 
+                high: '<i class="fas fa-exclamation text-red-600"></i>', 
+                medium: '<i class="fas fa-minus text-amber-600"></i>', 
+                low: '<i class="fas fa-info text-gray-600"></i>' 
+            };
+            return icons[priority] || icons.low;
+        }
+
+        function getPriorityClass(priority) {
+            const classes = { high: 'bg-red-100 text-red-700', medium: 'bg-amber-100 text-amber-700', low: 'bg-gray-100 text-gray-700' };
+            return classes[priority] || classes.low;
+        }
+
+        function getPriorityLabel(priority) {
+            const labels = { high: '高优先级', medium: '中优先级', low: '低优先级' };
+            return labels[priority] || '低优先级';
+        }
+
+        function getEffortLabel(effort) {
+            const labels = { easy: '简单 🟢', medium: '中等 🟡', hard: '困难 🔴' };
+            return labels[effort] || effort;
+        }
+
+        // 取消任务
+        async function cancelTask() {
+            if (!currentTaskId) return;
+            
+            if (!confirm('确定要取消此任务吗？')) return;
+
+            try {
+                await fetch(`/api/detection/cancel/${currentTaskId}`, { method: 'POST' });
+            } catch (error) {
+                console.error('Cancel error:', error);
+            }
+
+            stopPolling();
+            document.getElementById('detection-entry').classList.remove('hidden');
+            document.getElementById('detection-progress').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

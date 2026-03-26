@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 可见度监测 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css" rel="stylesheet">
+    <style>
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .score-excellent { background: linear-gradient(135deg, #10b981, #059669); }
+        .score-good { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .score-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .score-critical { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .crawler-allowed { background-color: #dcfce7; border-color: #86efac; }
+        .crawler-blocked { background-color: #fee2e2; border-color: #fca5a5; }
+        .crawler-partial { background-color: #fef3c7; border-color: #fcd34d; }
+        .loading { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-xl font-bold text-blue-600">GeoCore AI</a>
+                <span class="text-gray-400">/</span>
+                <span class="text-gray-600">AI 可见度监测</span>
+            </div>
+            <div class="text-sm text-gray-500">Phase 4: AI Visibility Monitoring</div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- 输入区域 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">网站 AI 可见度分析</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="websiteUrl" placeholder="输入网站 URL（如 https://example.com）"
+                    class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <button onclick="runComprehensiveAudit()" id="auditBtn"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center">
+                    <span>开始分析</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 标签页导航 -->
+        <div class="bg-white rounded-lg shadow-sm mb-6">
+            <div class="flex border-b">
+                <button onclick="switchTab('overview')" id="tab-overview" class="px-6 py-3 font-medium tab-active">
+                    📊 综合概览
+                </button>
+                <button onclick="switchTab('crawler')" id="tab-crawler" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    🤖 爬虫审计
+                </button>
+                <button onclick="switchTab('llmstxt')" id="tab-llmstxt" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    📄 llms.txt
+                </button>
+                <button onclick="switchTab('ga4')" id="tab-ga4" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    📈 GA4 配置
+                </button>
+                <button onclick="switchTab('freshness')" id="tab-freshness" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    🕐 新鲜度审计
+                </button>
+            </div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div id="content-area">
+            <!-- 综合概览 -->
+            <div id="panel-overview" class="space-y-6">
+                <div class="text-center py-12 text-gray-500">
+                    <p class="text-lg">输入网站 URL 开始 AI 可见度分析</p>
+                    <p class="text-sm mt-2">将检测 AI 爬虫配置、生成 llms.txt、配置 GA4 追踪、审计内容新鲜度</p>
+                </div>
+            </div>
+
+            <!-- 爬虫审计 -->
+            <div id="panel-crawler" class="hidden space-y-6">
+                <div id="crawler-content" class="text-center py-12 text-gray-500">
+                    <p>运行分析后查看 AI 爬虫配置审计结果</p>
+                </div>
+            </div>
+
+            <!-- llms.txt -->
+            <div id="panel-llmstxt" class="hidden space-y-6">
+                <div id="llmstxt-content" class="text-center py-12 text-gray-500">
+                    <p>运行分析后生成 llms.txt 文件</p>
+                </div>
+            </div>
+
+            <!-- GA4 配置 -->
+            <div id="panel-ga4" class="hidden space-y-6">
+                <div id="ga4-content" class="text-center py-12 text-gray-500">
+                    <p>运行分析后查看 GA4 AI 流量追踪配置</p>
+                </div>
+            </div>
+
+            <!-- 新鲜度审计 -->
+            <div id="panel-freshness" class="hidden space-y-6">
+                <div id="freshness-content" class="text-center py-12 text-gray-500">
+                    <p>运行分析后查看内容新鲜度审计结果</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        function switchTab(tabName) {
+            // 更新标签样式
+            document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+                tab.classList.remove('tab-active');
+                tab.classList.add('text-gray-500');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+            document.getElementById(`tab-${tabName}`).classList.remove('text-gray-500');
+
+            // 显示对应面板
+            document.querySelectorAll('[id^="panel-"]').forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            document.getElementById(`panel-${tabName}`).classList.remove('hidden');
+        }
+
+        async function runComprehensiveAudit() {
+            const url = document.getElementById('websiteUrl').value.trim();
+            if (!url) {
+                alert('请输入网站 URL');
+                return;
+            }
+
+            const btn = document.getElementById('auditBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading">分析中...</span>';
+
+            try {
+                const response = await fetch('/api/ai-visibility/comprehensive-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        websiteUrl: url,
+                        includeCrawlerAudit: true,
+                        includeLlmsTxt: true,
+                        includeGA4Config: true,
+                        includeFreshnessAudit: true
+                    })
+                });
+
+                if (!response.ok) throw new Error('分析失败');
+
+                currentData = await response.json();
+                renderResults(currentData);
+            } catch (error) {
+                alert('分析失败: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>开始分析</span>';
+            }
+        }
+
+        function renderResults(data) {
+            renderOverview(data);
+            if (data.crawlerAudit) renderCrawlerAudit(data.crawlerAudit);
+            if (data.llmsTxt) renderLlmsTxt(data.llmsTxt);
+            if (data.ga4Config) renderGA4Config(data.ga4Config);
+            if (data.freshnessAudit) renderFreshnessAudit(data.freshnessAudit);
+        }
+
+        function renderOverview(data) {
+            const scoreClass = data.overallScore >= 80 ? 'score-excellent' :
+                              data.overallScore >= 60 ? 'score-good' :
+                              data.overallScore >= 40 ? 'score-warning' : 'score-critical';
+
+            document.getElementById('panel-overview').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- 综合评分 -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="text-sm text-gray-500 mb-2">综合评分</div>
+                        <div class="${scoreClass} text-white text-4xl font-bold rounded-lg p-4 text-center">
+                            ${data.overallScore}
+                        </div>
+                        <div class="text-center mt-2 text-sm text-gray-600">${getScoreLevelText(data.scoreLevel)}</div>
+                    </div>
+
+                    <!-- 爬虫配置 -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="text-sm text-gray-500 mb-2">🤖 爬虫配置评分</div>
+                        <div class="text-3xl font-bold ${getScoreColor(data.summary?.crawlerScore)}">${data.summary?.crawlerScore ?? '-'}</div>
+                        <div class="text-sm text-gray-600 mt-2">检测 ${data.crawlerAudit?.crawlers?.length ?? 0} 个 AI 爬虫</div>
+                    </div>
+
+                    <!-- 内容新鲜度 -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="text-sm text-gray-500 mb-2">🕐 内容新鲜度评分</div>
+                        <div class="text-3xl font-bold ${getScoreColor(data.summary?.freshnessScore)}">${data.summary?.freshnessScore ?? '-'}</div>
+                        <div class="text-sm text-gray-600 mt-2">分析 ${data.freshnessAudit?.totalPages ?? 0} 个页面</div>
+                    </div>
+
+                    <!-- llms.txt -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="text-sm text-gray-500 mb-2">📄 llms.txt 页面</div>
+                        <div class="text-3xl font-bold text-blue-600">${data.summary?.llmsTxtPages ?? 0}</div>
+                        <div class="text-sm text-gray-600 mt-2">已生成可下载文件</div>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="font-semibold mb-4">快速操作</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="switchTab('crawler')" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">
+                            查看爬虫详情
+                        </button>
+                        <button onclick="downloadLlmsTxt()" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200">
+                            下载 llms.txt
+                        </button>
+                        <button onclick="switchTab('ga4')" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200">
+                            获取 GA4 代码
+                        </button>
+                        <button onclick="switchTab('freshness')" class="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200">
+                            查看过时内容
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 问题摘要 -->
+                ${renderIssuesSummary(data)}
+            `;
+        }
+
+        function renderIssuesSummary(data) {
+            const issues = [];
+            if (data.crawlerAudit?.issues) issues.push(...data.crawlerAudit.issues);
+            if (data.freshnessAudit?.issues) issues.push(...data.freshnessAudit.issues);
+
+            if (issues.length === 0) {
+                return `<div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="text-green-700 font-medium">✅ 未发现严重问题</div>
+                </div>`;
+            }
+
+            const criticalIssues = issues.filter(i => i.level === 'critical');
+            const warningIssues = issues.filter(i => i.level === 'warning');
+
+            return `
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="font-semibold mb-4">发现的问题</h3>
+                    <div class="space-y-3">
+                        ${criticalIssues.map(i => `
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <div class="font-medium text-red-700">🚨 ${i.title}</div>
+                                <div class="text-sm text-red-600 mt-1">${i.description}</div>
+                            </div>
+                        `).join('')}
+                        ${warningIssues.slice(0, 3).map(i => `
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div class="font-medium text-yellow-700">⚠️ ${i.title}</div>
+                                <div class="text-sm text-yellow-600 mt-1">${i.description}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCrawlerAudit(data) {
+            const crawlers = data.crawlers || [];
+            const allowed = crawlers.filter(c => c.status === 'allowed');
+            const blocked = crawlers.filter(c => c.status === 'blocked');
+            const partial = crawlers.filter(c => c.status === 'partial');
+
+            document.getElementById('crawler-content').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-green-600">${allowed.length}</div>
+                        <div class="text-sm text-green-700">允许访问</div>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-red-600">${blocked.length}</div>
+                        <div class="text-sm text-red-700">禁止访问</div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-yellow-600">${partial.length}</div>
+                        <div class="text-sm text-yellow-700">部分限制</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="p-4 border-b">
+                        <h3 class="font-semibold">AI 爬虫状态详情</h3>
+                    </div>
+                    <div class="divide-y">
+                        ${crawlers.map(c => `
+                            <div class="p-4 flex items-center justify-between crawler-${c.status}">
+                                <div>
+                                    <div class="font-medium">${c.crawlerName}</div>
+                                    <div class="text-sm text-gray-500">${c.company} - ${c.platform}</div>
+                                    <div class="text-xs text-gray-400">${c.purpose}</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 rounded text-sm ${getStatusBadge(c.status)}">${getStatusText(c.status)}</span>
+                                    <div class="text-xs text-gray-500 mt-1">重要性: ${c.importance}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                ${data.suggestions?.length ? `
+                    <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                        <h3 class="font-semibold mb-4">优化建议</h3>
+                        <div class="space-y-4">
+                            ${data.suggestions.map(s => `
+                                <div class="border rounded-lg p-4">
+                                    <div class="font-medium">${s.title}</div>
+                                    <div class="text-sm text-gray-600 mt-1">${s.description}</div>
+                                    ${s.exampleCode ? `<pre class="bg-gray-100 p-3 rounded mt-2 text-xs overflow-x-auto">${escapeHtml(s.exampleCode)}</pre>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function renderLlmsTxt(data) {
+            document.getElementById('llmstxt-content').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-blue-600">${data.pageCount}</div>
+                        <div class="text-sm text-blue-700">包含页面</div>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-purple-600">${data.stats?.fileSizeBytes || 0}</div>
+                        <div class="text-sm text-purple-700">文件大小 (字节)</div>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <button onclick="downloadLlmsTxt()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            📥 下载 llms.txt
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-semibold">生成的 llms.txt 内容</h3>
+                        <button onclick="copyLlmsTxt()" class="text-sm text-blue-600 hover:text-blue-800">复制内容</button>
+                    </div>
+                    <pre id="llmstxt-preview" class="p-4 bg-gray-50 text-sm overflow-x-auto max-h-96">${escapeHtml(data.content || '')}</pre>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                    <h3 class="font-semibold mb-4">部署说明</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600">
+                        ${(data.deploymentInstructions || []).map(i => `<li>${i}</li>`).join('')}
+                    </ol>
+                </div>
+            `;
+        }
+
+        function renderGA4Config(data) {
+            document.getElementById('ga4-content').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="font-semibold mb-4">AI 流量来源</h3>
+                        <div class="space-y-3">
+                            ${(data.trafficSources || []).slice(0, 6).map(s => `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <div class="font-medium">${s.name}</div>
+                                        <div class="text-xs text-gray-500">${s.platform}</div>
+                                    </div>
+                                    <div class="text-sm text-gray-600">${s.estimatedShare}%</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="font-semibold mb-4">实施步骤</h3>
+                        <div class="space-y-2">
+                            ${(data.implementationSteps || []).slice(0, 4).map(s => `
+                                <div class="flex items-start">
+                                    <span class="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">${s.stepNumber}</span>
+                                    <div>
+                                        <div class="font-medium text-sm">${s.title}</div>
+                                        <div class="text-xs text-gray-500">${s.estimatedMinutes} 分钟</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-semibold">GA4 AI 流量追踪代码</h3>
+                        <button onclick="copyGA4Code()" class="text-sm text-blue-600 hover:text-blue-800">复制代码</button>
+                    </div>
+                    <pre id="ga4-code" class="p-4 bg-gray-50 text-xs overflow-x-auto max-h-96">${escapeHtml(data.customEventCode || '')}</pre>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                    <h3 class="font-semibold mb-4">推荐报告</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${(data.recommendedReports || []).map(r => `
+                            <div class="border rounded-lg p-4">
+                                <div class="font-medium">${r.name}</div>
+                                <div class="text-sm text-gray-600 mt-1">${r.description}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFreshnessAudit(data) {
+            const summary = data.summary || {};
+            document.getElementById('freshness-content').innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600">${summary.freshCount || 0}</div>
+                        <div class="text-xs text-green-700">新鲜 (&lt;60天)</div>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600">${summary.attentionCount || 0}</div>
+                        <div class="text-xs text-blue-700">需关注 (60-90天)</div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-yellow-600">${summary.warningCount || 0}</div>
+                        <div class="text-xs text-yellow-700">警告 (90-180天)</div>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-red-600">${summary.criticalCount || 0}</div>
+                        <div class="text-xs text-red-700">严重 (&gt;180天)</div>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-gray-600">${summary.unknownCount || 0}</div>
+                        <div class="text-xs text-gray-700">未知</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-sm text-gray-500">新鲜度比率</div>
+                            <div class="text-2xl font-bold">${((summary.freshRate || 0) * 100).toFixed(1)}%</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">平均页面年龄</div>
+                            <div class="text-2xl font-bold">${(summary.averageAgeDays || 0).toFixed(0)} 天</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">引用率影响</div>
+                            <div class="text-sm">${summary.citationImpactEstimate || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="p-4 border-b">
+                        <h3 class="font-semibold">需要更新的页面</h3>
+                    </div>
+                    <div class="divide-y max-h-96 overflow-y-auto">
+                        ${(data.pages || []).filter(p => p.needsUpdate).slice(0, 20).map(p => `
+                            <div class="p-4 flex items-center justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium truncate">${p.title || p.url}</div>
+                                    <div class="text-xs text-gray-500 truncate">${p.url}</div>
+                                </div>
+                                <div class="text-right ml-4">
+                                    <span class="px-2 py-1 rounded text-xs ${getFreshnessStatusBadge(p.freshnessStatus)}">${p.ageDays || '?'} 天</span>
+                                    <div class="text-xs text-gray-500 mt-1">优先级: ${p.updatePriority}/10</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getScoreColor(score) {
+            if (score >= 80) return 'text-green-600';
+            if (score >= 60) return 'text-blue-600';
+            if (score >= 40) return 'text-yellow-600';
+            return 'text-red-600';
+        }
+
+        function getScoreLevelText(level) {
+            const map = { excellent: '优秀', good: '良好', warning: '需改进', critical: '严重' };
+            return map[level] || level;
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                allowed: 'bg-green-100 text-green-700',
+                blocked: 'bg-red-100 text-red-700',
+                partial: 'bg-yellow-100 text-yellow-700'
+            };
+            return map[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        function getStatusText(status) {
+            const map = { allowed: '允许', blocked: '禁止', partial: '部分限制' };
+            return map[status] || status;
+        }
+
+        function getFreshnessStatusBadge(status) {
+            const map = {
+                fresh: 'bg-green-100 text-green-700',
+                attention: 'bg-blue-100 text-blue-700',
+                warning: 'bg-yellow-100 text-yellow-700',
+                critical: 'bg-red-100 text-red-700',
+                unknown: 'bg-gray-100 text-gray-700'
+            };
+            return map[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function downloadLlmsTxt() {
+            if (!currentData?.llmsTxt?.content) {
+                alert('请先运行分析');
+                return;
+            }
+            const blob = new Blob([currentData.llmsTxt.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'llms.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function copyLlmsTxt() {
+            const content = document.getElementById('llmstxt-preview')?.textContent;
+            if (content) {
+                navigator.clipboard.writeText(content);
+                alert('已复制到剪贴板');
+            }
+        }
+
+        function copyGA4Code() {
+            const content = document.getElementById('ga4-code')?.textContent;
+            if (content) {
+                navigator.clipboard.writeText(content);
+                alert('已复制到剪贴板');
+            }
+        }
+    </script>
+</body>
+</html>

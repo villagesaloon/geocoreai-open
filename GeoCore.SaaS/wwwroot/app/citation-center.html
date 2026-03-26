@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引用中心 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; }
+        .tab-btn:not(.active):hover { background: #f3f4f6; }
+        .card-hover { transition: all 0.3s; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .engine-badge { transition: all 0.2s; }
+        .engine-badge:hover { transform: scale(1.05); }
+        .progress-ring { transition: stroke-dashoffset 0.5s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <script src="js/next-step-guide.js"></script>
+
+    <!-- 主内容 -->
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">引用中心</h2>
+                    <p class="text-sm text-gray-500">引用追踪 | 基准分析 | 来源优化 | 平台策略</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportReport()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-download mr-2"></i>导出报告
+                    </button>
+                    <button onclick="startFullScan()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-sync mr-2"></i>全面扫描
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 核心指标概览 -->
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 shadow-sm card-hover">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">总引用数</span>
+                        <i class="fas fa-link text-indigo-400"></i>
+                    </div>
+                    <p id="totalCitations" class="text-3xl font-bold text-indigo-600">--</p>
+                    <p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up mr-1"></i>+12% vs 上周</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm card-hover">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">平均排名</span>
+                        <i class="fas fa-trophy text-amber-400"></i>
+                    </div>
+                    <p id="avgRank" class="text-3xl font-bold text-amber-600">--</p>
+                    <p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up mr-1"></i>提升 2 位</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm card-hover">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">引用率</span>
+                        <i class="fas fa-percentage text-emerald-400"></i>
+                    </div>
+                    <p id="citationRate" class="text-3xl font-bold text-emerald-600">--</p>
+                    <p class="text-xs text-gray-400 mt-1">行业均值 23%</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm card-hover">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">覆盖平台</span>
+                        <i class="fas fa-globe text-blue-400"></i>
+                    </div>
+                    <p id="platformCount" class="text-3xl font-bold text-blue-600">--</p>
+                    <p class="text-xs text-gray-400 mt-1">共 6 个主流平台</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm card-hover">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">来源多样性</span>
+                        <i class="fas fa-sitemap text-purple-400"></i>
+                    </div>
+                    <p id="sourceDiversity" class="text-3xl font-bold text-purple-600">--</p>
+                    <p class="text-xs text-gray-400 mt-1">健康值 >0.6</p>
+                </div>
+            </div>
+
+            <!-- 功能标签页 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="flex border-b border-gray-200 p-2 gap-2">
+                    <button onclick="switchTab('tracker')" id="tab-tracker" class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-search mr-2"></i>引用追踪
+                    </button>
+                    <button onclick="switchTab('benchmark')" id="tab-benchmark" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-balance-scale mr-2"></i>基准分析
+                    </button>
+                    <button onclick="switchTab('sources')" id="tab-sources" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-sitemap mr-2"></i>来源分析
+                    </button>
+                    <button onclick="switchTab('strategy')" id="tab-strategy" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600">
+                        <i class="fas fa-bullseye mr-2"></i>平台策略
+                    </button>
+                </div>
+
+                <!-- 引用追踪 -->
+                <div id="content-tracker" class="p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- 左侧：检测配置 -->
+                        <div class="col-span-1">
+                            <h3 class="font-semibold text-gray-900 mb-4">检测配置</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-gray-600 mb-1">目标网站/品牌</label>
+                                    <input type="text" id="targetUrl" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="example.com 或品牌名称">
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-gray-600 mb-1">行业</label>
+                                    <select id="industry" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                        <option value="tech">科技/SaaS</option>
+                                        <option value="ecommerce">电商/零售</option>
+                                        <option value="finance">金融/保险</option>
+                                        <option value="health">医疗/健康</option>
+                                        <option value="education">教育/培训</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-gray-600 mb-1">测试查询</label>
+                                    <div id="testQueries" class="space-y-2">
+                                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="输入测试问题...">
+                                    </div>
+                                    <button onclick="addQuery()" class="mt-2 text-sm text-indigo-600 hover:underline">
+                                        <i class="fas fa-plus mr-1"></i>添加查询
+                                    </button>
+                                </div>
+                                <button onclick="startDetection()" id="detectBtn" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                                    <i class="fas fa-play mr-2"></i>开始检测
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：检测结果 -->
+                        <div class="col-span-2">
+                            <h3 class="font-semibold text-gray-900 mb-4">各平台引用状态</h3>
+                            <div id="engineResults" class="grid grid-cols-3 gap-4">
+                                <!-- 动态生成 -->
+                            </div>
+
+                            <!-- 引用漂移分析 -->
+                            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                                <h4 class="font-medium text-gray-900 mb-3">
+                                    <i class="fas fa-chart-line mr-2 text-indigo-500"></i>引用漂移分析
+                                </h4>
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div class="text-center p-3 bg-white rounded-lg">
+                                        <p id="newCitations" class="text-2xl font-bold text-green-600">0</p>
+                                        <p class="text-xs text-gray-500">新增引用</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-white rounded-lg">
+                                        <p id="lostCitations" class="text-2xl font-bold text-red-600">0</p>
+                                        <p class="text-xs text-gray-500">丢失引用</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-white rounded-lg">
+                                        <p id="rankChanges" class="text-2xl font-bold text-amber-600">0</p>
+                                        <p class="text-xs text-gray-500">排名变化</p>
+                                    </div>
+                                </div>
+                                <div id="driftDetails" class="space-y-2">
+                                    <p class="text-sm text-gray-400 text-center">检测后显示漂移详情</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基准分析 -->
+                <div id="content-benchmark" class="p-6 hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 平台基准对比 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">平台引用基准</h3>
+                            <div class="space-y-3">
+                                <div class="p-4 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-robot text-green-600"></i>
+                                            </div>
+                                            <span class="font-medium">ChatGPT</span>
+                                        </div>
+                                        <span class="text-sm text-gray-500">平均 3.2 引用/回答</span>
+                                    </div>
+                                    <div class="flex gap-2 text-xs">
+                                        <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded">偏好: 权威来源</span>
+                                        <span class="px-2 py-1 bg-purple-50 text-purple-600 rounded">结构: FAQ/列表</span>
+                                    </div>
+                                </div>
+                                <div class="p-4 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-search text-cyan-600"></i>
+                                            </div>
+                                            <span class="font-medium">Perplexity</span>
+                                        </div>
+                                        <span class="text-sm text-gray-500">平均 5.8 引用/回答</span>
+                                    </div>
+                                    <div class="flex gap-2 text-xs">
+                                        <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded">偏好: 新鲜内容</span>
+                                        <span class="px-2 py-1 bg-purple-50 text-purple-600 rounded">结构: 深度文章</span>
+                                    </div>
+                                </div>
+                                <div class="p-4 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-brain text-orange-600"></i>
+                                            </div>
+                                            <span class="font-medium">Claude</span>
+                                        </div>
+                                        <span class="text-sm text-gray-500">平均 2.5 引用/回答</span>
+                                    </div>
+                                    <div class="flex gap-2 text-xs">
+                                        <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded">偏好: 深度分析</span>
+                                        <span class="px-2 py-1 bg-purple-50 text-purple-600 rounded">结构: 长篇论述</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 内容结构评分 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">内容结构评分</h3>
+                            <div class="p-4 border border-gray-200 rounded-lg mb-4">
+                                <textarea id="benchmarkContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="粘贴内容进行结构评分..."></textarea>
+                                <button onclick="analyzeBenchmark()" class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">
+                                    分析结构
+                                </button>
+                            </div>
+                            <div id="benchmarkResult" class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-sm text-gray-600">段落长度</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-24 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-full bg-green-500 rounded-full" style="width: 75%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">7.5/10</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-sm text-gray-600">答案胶囊</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-24 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-full bg-amber-500 rounded-full" style="width: 60%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">6.0/10</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-sm text-gray-600">实体密度</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-24 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-full bg-blue-500 rounded-full" style="width: 80%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">8.0/10</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-sm text-gray-600">Listicle 结构</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-24 h-2 bg-gray-200 rounded-full">
+                                            <div class="h-full bg-purple-500 rounded-full" style="width: 90%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">9.0/10</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 来源分析 -->
+                <div id="content-sources" class="p-6 hidden">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- 来源分布（合并为单一可视化） -->
+                        <div class="col-span-2">
+                            <h3 class="font-semibold text-gray-900 mb-4">引用来源分布</h3>
+                            <!-- 合并图表：综合来源分析 -->
+                            <div class="p-4 bg-gray-50 rounded-lg mb-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex gap-2">
+                                        <button onclick="switchSourceView('type')" id="btn-source-type" class="px-3 py-1 bg-indigo-600 text-white rounded text-sm">按类型</button>
+                                        <button onclick="switchSourceView('domain')" id="btn-source-domain" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">按域名</button>
+                                    </div>
+                                    <span class="text-xs text-gray-500">共 12 个来源</span>
+                                </div>
+                                <canvas id="sourceChart" height="220"></canvas>
+                            </div>
+                            
+                            <!-- 来源详情表格 -->
+                            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">来源</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">类型</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">引用次数</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">占比</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">可操作性</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sourceTable" class="divide-y divide-gray-200">
+                                        <!-- 动态生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 来源健康度 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">来源健康度</h3>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-green-800">多样性指数</span>
+                                        <span class="text-lg font-bold text-green-600">0.72</span>
+                                    </div>
+                                    <p class="text-xs text-green-600">健康：来源分布均匀</p>
+                                </div>
+                                <div class="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-amber-800">集中度风险</span>
+                                        <span class="text-lg font-bold text-amber-600">中</span>
+                                    </div>
+                                    <p class="text-xs text-amber-600">Reddit 占比 35%，建议分散</p>
+                                </div>
+                                <div class="p-4 bg-white rounded-lg border border-gray-200">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-3">推荐参与社区</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600">r/technology</span>
+                                            <span class="text-green-600">高活跃</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600">r/startups</span>
+                                            <span class="text-amber-600">中活跃</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600">r/SaaS</span>
+                                            <span class="text-green-600">高活跃</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 平台策略 -->
+                <div id="content-strategy" class="p-6 hidden">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- 策略生成器 -->
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-4">策略生成器</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-gray-600 mb-1">品牌名称</label>
+                                    <input type="text" id="strategyBrand" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="您的品牌名称">
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-gray-600 mb-1">目标平台</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                            <input type="checkbox" value="chatgpt" checked class="platform-check">
+                                            <span class="text-sm">ChatGPT</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                            <input type="checkbox" value="perplexity" checked class="platform-check">
+                                            <span class="text-sm">Perplexity</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                            <input type="checkbox" value="claude" class="platform-check">
+                                            <span class="text-sm">Claude</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                            <input type="checkbox" value="gemini" class="platform-check">
+                                            <span class="text-sm">Gemini</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <button onclick="generateStrategy()" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                                    <i class="fas fa-magic mr-2"></i>生成优化策略
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 30天路线图 -->
+                        <div class="col-span-2">
+                            <h3 class="font-semibold text-gray-900 mb-4">30 天优化路线图</h3>
+                            <div id="roadmapContent" class="space-y-4">
+                                <!-- 第一周 -->
+                                <div class="p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-indigo-900">第 1 周：技术基础</h4>
+                                        <span class="px-2 py-1 bg-indigo-200 text-indigo-800 rounded text-xs">进行中</span>
+                                    </div>
+                                    <ul class="text-sm text-indigo-800 space-y-1">
+                                        <li>• 配置 robots.txt 允许 AI 爬虫</li>
+                                        <li>• 生成并部署 llms.txt</li>
+                                        <li>• 添加 JSON-LD Schema 标记</li>
+                                    </ul>
+                                </div>
+                                <!-- 第二周 -->
+                                <div class="p-4 border-l-4 border-purple-500 bg-purple-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-purple-900">第 2-3 周：平台布局</h4>
+                                        <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs">待开始</span>
+                                    </div>
+                                    <ul class="text-sm text-purple-800 space-y-1">
+                                        <li>• Reddit 社区参与（r/technology, r/startups）</li>
+                                        <li>• LinkedIn 专业内容发布</li>
+                                        <li>• Medium 深度文章创作</li>
+                                    </ul>
+                                </div>
+                                <!-- 第三周 -->
+                                <div class="p-4 border-l-4 border-emerald-500 bg-emerald-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-emerald-900">第 4 周：内容优化</h4>
+                                        <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs">待开始</span>
+                                    </div>
+                                    <ul class="text-sm text-emerald-800 space-y-1">
+                                        <li>• 优化现有内容结构（Listicle 格式）</li>
+                                        <li>• 添加答案胶囊（40-60 词）</li>
+                                        <li>• 增加实体密度（15+/100词）</li>
+                                    </ul>
+                                </div>
+                                <!-- 持续监测 -->
+                                <div class="p-4 border-l-4 border-amber-500 bg-amber-50 rounded-r-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-amber-900">持续：效果监测</h4>
+                                        <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs">循环</span>
+                                    </div>
+                                    <ul class="text-sm text-amber-800 space-y-1">
+                                        <li>• 每周引用追踪扫描</li>
+                                        <li>• 引用漂移监控告警</li>
+                                        <li>• 竞品引用对比分析</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下一步引导 -->
+            <div id="nextStepGuide"></div>
+        </div>
+    </main>
+
+    <script>
+        // 引擎配置
+        const engines = [
+            { id: 'chatgpt', name: 'ChatGPT', icon: 'fa-robot', color: 'green' },
+            { id: 'claude', name: 'Claude', icon: 'fa-brain', color: 'orange' },
+            { id: 'gemini', name: 'Gemini', icon: 'fa-gem', color: 'blue' },
+            { id: 'perplexity', name: 'Perplexity', icon: 'fa-search', color: 'cyan' },
+            { id: 'grok', name: 'Grok', icon: 'fa-bolt', color: 'gray' },
+            { id: 'copilot', name: 'Copilot', icon: 'fa-microsoft', color: 'blue' }
+        ];
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOverviewStats();
+            renderEngineCards();
+            initCharts();
+            loadSourceTable();
+        });
+
+        // 加载概览统计
+        function loadOverviewStats() {
+            document.getElementById('totalCitations').textContent = '24';
+            document.getElementById('avgRank').textContent = '#2.3';
+            document.getElementById('citationRate').textContent = '38%';
+            document.getElementById('platformCount').textContent = '5/6';
+            document.getElementById('sourceDiversity').textContent = '0.72';
+        }
+
+        // 渲染引擎卡片
+        function renderEngineCards() {
+            const container = document.getElementById('engineResults');
+            container.innerHTML = engines.map(e => `
+                <div class="engine-badge p-4 bg-${e.color}-50 rounded-lg border border-${e.color}-200 cursor-pointer" onclick="viewEngineDetail('${e.id}')">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-${e.color}-100 rounded-lg flex items-center justify-center">
+                            <i class="fas ${e.icon} text-${e.color}-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">${e.name}</p>
+                            <p class="text-xs text-gray-500">点击查看详情</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">引用状态</span>
+                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">已引用</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 来源图表实例
+        let sourceChart = null;
+        let currentSourceView = 'type';
+
+        // 初始化图表
+        function initCharts() {
+            // 初始化合并后的来源图表（默认按类型显示）
+            renderSourceChart('type');
+        }
+
+        // 渲染来源图表（合并版）
+        function renderSourceChart(view) {
+            const ctx = document.getElementById('sourceChart');
+            if (!ctx) return;
+
+            // 销毁旧图表
+            if (sourceChart) {
+                sourceChart.destroy();
+            }
+
+            if (view === 'type') {
+                sourceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['官方网站', 'Reddit', 'LinkedIn', 'Medium', '新闻媒体', '其他'],
+                        datasets: [{
+                            data: [25, 35, 15, 10, 10, 5],
+                            backgroundColor: ['#6366f1', '#f97316', '#0ea5e9', '#10b981', '#8b5cf6', '#9ca3af']
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                    }
+                });
+            } else {
+                sourceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['reddit.com', 'linkedin.com', 'medium.com', 'wikipedia.org', 'github.com'],
+                        datasets: [{
+                            label: '引用次数',
+                            data: [12, 8, 5, 4, 3],
+                            backgroundColor: '#6366f1'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        // 切换来源视图
+        function switchSourceView(view) {
+            currentSourceView = view;
+            renderSourceChart(view);
+            
+            // 更新按钮样式
+            document.getElementById('btn-source-type').className = view === 'type' 
+                ? 'px-3 py-1 bg-indigo-600 text-white rounded text-sm' 
+                : 'px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300';
+            document.getElementById('btn-source-domain').className = view === 'domain' 
+                ? 'px-3 py-1 bg-indigo-600 text-white rounded text-sm' 
+                : 'px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300';
+        }
+
+        // 加载来源表格
+        function loadSourceTable() {
+            const sources = [
+                { domain: 'reddit.com', type: '社交媒体', count: 12, percent: '35%', actionable: '高' },
+                { domain: 'linkedin.com', type: '社交媒体', count: 8, percent: '24%', actionable: '高' },
+                { domain: 'medium.com', type: '博客平台', count: 5, percent: '15%', actionable: '高' },
+                { domain: 'wikipedia.org', type: '百科', count: 4, percent: '12%', actionable: '低' },
+                { domain: 'github.com', type: '开发平台', count: 3, percent: '9%', actionable: '中' }
+            ];
+
+            document.getElementById('sourceTable').innerHTML = sources.map(s => `
+                <tr>
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">${s.domain}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${s.type}</td>
+                    <td class="px-4 py-3 text-sm text-center">${s.count}</td>
+                    <td class="px-4 py-3 text-sm text-center">${s.percent}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 rounded text-xs ${s.actionable === '高' ? 'bg-green-100 text-green-700' : s.actionable === '中' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${s.actionable}</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 切换标签页
+        function switchTab(tab) {
+            ['tracker', 'benchmark', 'sources', 'strategy'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+                document.getElementById(`tab-${t}`).classList.toggle('text-gray-600', t !== tab);
+                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
+            });
+        }
+
+        // 添加查询
+        function addQuery() {
+            const container = document.getElementById('testQueries');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-2';
+            input.placeholder = '输入测试问题...';
+            container.appendChild(input);
+        }
+
+        // 开始检测
+        function startDetection() {
+            const btn = document.getElementById('detectBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>检测中...';
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i>开始检测';
+                
+                // 更新漂移数据
+                document.getElementById('newCitations').textContent = '2';
+                document.getElementById('lostCitations').textContent = '1';
+                document.getElementById('rankChanges').textContent = '3';
+
+                document.getElementById('driftDetails').innerHTML = `
+                    <div class="p-3 bg-green-50 rounded-lg flex items-center justify-between">
+                        <span class="text-sm text-green-700"><i class="fas fa-plus-circle mr-2"></i>Perplexity 新增引用，排名 #1</span>
+                        <button class="text-xs text-green-600 hover:underline">查看</button>
+                    </div>
+                    <div class="p-3 bg-red-50 rounded-lg flex items-center justify-between">
+                        <span class="text-sm text-red-700"><i class="fas fa-minus-circle mr-2"></i>Grok 引用丢失</span>
+                        <button class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">恢复引用</button>
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        // 查看引擎详情
+        function viewEngineDetail(engineId) {
+            window.location.href = `visibility-analysis.html?engine=${engineId}`;
+        }
+
+        // 分析基准
+        function analyzeBenchmark() {
+            alert('内容结构分析完成！建议优化段落长度至 120-180 词。');
+        }
+
+        // 生成策略
+        function generateStrategy() {
+            const brand = document.getElementById('strategyBrand').value;
+            if (!brand) {
+                alert('请输入品牌名称');
+                return;
+            }
+            alert(`已为 "${brand}" 生成 30 天优化路线图！`);
+        }
+
+        // 全面扫描
+        function startFullScan() {
+            alert('开始全面扫描所有平台引用状态...');
+        }
+
+        // 导出报告
+        function exportReport() {
+            alert('引用分析报告已生成，正在下载...');
+        }
+    </script>
+</body>
+</html>

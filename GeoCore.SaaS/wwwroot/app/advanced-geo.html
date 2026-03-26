@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级 GEO 分析 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-rocket text-purple-600 mr-2"></i>高级 GEO 分析
+        </h1>
+        <p class="text-gray-600 mb-6">Query Fan-out、Answer Capsules、平台独立性、多语言支持</p>
+
+        <!-- 功能标签页 -->
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="flex space-x-4" id="tabs">
+                <button onclick="showTab('fanout')" class="tab-btn active px-4 py-2 text-purple-600 border-b-2 border-purple-600 font-medium">
+                    <i class="fas fa-sitemap mr-1"></i>Query Fan-out
+                </button>
+                <button onclick="showTab('capsules')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-capsules mr-1"></i>Answer Capsules
+                </button>
+                <button onclick="showTab('correlation')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-chart-line mr-1"></i>排名相关性
+                </button>
+                <button onclick="showTab('independence')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-shield-alt mr-1"></i>平台独立性
+                </button>
+                <button onclick="showTab('multilang')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-globe mr-1"></i>多语言
+                </button>
+                <button onclick="showTab('dependency')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-balance-scale mr-1"></i>依赖度监测
+                </button>
+                <button onclick="showTab('schedule')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-calendar-alt mr-1"></i>跨平台调度
+                </button>
+                <button onclick="showTab('report')" class="tab-btn px-4 py-2 text-gray-500 hover:text-purple-600">
+                    <i class="fas fa-file-alt mr-1"></i>报告
+                </button>
+            </nav>
+        </div>
+
+        <!-- 7.9 Query Fan-out -->
+        <div id="tab-fanout" class="tab-content">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-sitemap text-purple-500 mr-2"></i>Query Fan-out 分析器
+                    <span class="text-sm font-normal text-green-600 ml-2">+161% 引用率</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <input type="text" id="fanout-query" placeholder="输入主查询，如：AI 可见度优化" class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500">
+                    <input type="text" id="fanout-industry" placeholder="行业（可选）" class="border rounded-lg px-4 py-2">
+                    <button onclick="analyzeFanout()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                        <i class="fas fa-search mr-2"></i>分析子查询
+                    </button>
+                </div>
+                <div id="fanout-result" class="hidden">
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="bg-purple-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-purple-600" id="fanout-total">0</div>
+                            <div class="text-gray-600">子查询总数</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-green-600" id="fanout-coverage">0%</div>
+                            <div class="text-gray-600">覆盖率</div>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-blue-600" id="fanout-boost">+0%</div>
+                            <div class="text-gray-600">潜在引用提升</div>
+                        </div>
+                    </div>
+                    <div id="fanout-clusters" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7.10 Answer Capsules -->
+        <div id="tab-capsules" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-capsules text-blue-500 mr-2"></i>Answer Capsules 检测器
+                    <span class="text-sm font-normal text-green-600 ml-2">72.4% 被引用</span>
+                </h2>
+                <textarea id="capsules-content" rows="6" placeholder="粘贴要分析的内容..." class="w-full border rounded-lg px-4 py-2 mb-4"></textarea>
+                <button onclick="detectCapsules()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-search mr-2"></i>检测答案胶囊
+                </button>
+                <div id="capsules-result" class="hidden mt-6">
+                    <div class="grid grid-cols-4 gap-4 mb-4">
+                        <div class="bg-blue-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="capsules-score">0</div>
+                            <div class="text-gray-600">总分</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-green-600" id="capsules-optimal">0</div>
+                            <div class="text-gray-600">最优胶囊</div>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-purple-600" id="capsules-total">0</div>
+                            <div class="text-gray-600">总胶囊数</div>
+                        </div>
+                        <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-yellow-600" id="capsules-potential">0%</div>
+                            <div class="text-gray-600">引用潜力</div>
+                        </div>
+                    </div>
+                    <div id="capsules-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7.11 排名相关性 -->
+        <div id="tab-correlation" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-chart-line text-green-500 mr-2"></i>Google 排名-AI 引用相关性
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <input type="text" id="corr-domain" placeholder="域名" class="border rounded-lg px-4 py-2">
+                    <input type="text" id="corr-keywords" placeholder="关键词（逗号分隔）" class="border rounded-lg px-4 py-2">
+                    <button onclick="analyzeCorrelation()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                        <i class="fas fa-chart-bar mr-2"></i>分析相关性
+                    </button>
+                </div>
+                <div id="correlation-result" class="hidden">
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="bg-green-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-green-600" id="corr-coef">0</div>
+                            <div class="text-gray-600">相关系数</div>
+                        </div>
+                        <div class="bg-red-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-red-600" id="corr-traffic">0%</div>
+                            <div class="text-gray-600">流量变化</div>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-blue-600" id="corr-citation">0%</div>
+                            <div class="text-gray-600">引用变化</div>
+                        </div>
+                    </div>
+                    <div id="correlation-insights" class="bg-gray-50 rounded-lg p-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7.12 平台独立性 -->
+        <div id="tab-independence" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-shield-alt text-indigo-500 mr-2"></i>平台独立性评估
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input type="text" id="indep-domain" placeholder="域名" class="border rounded-lg px-4 py-2">
+                    <button onclick="evaluateIndependence()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-shield-alt mr-2"></i>评估独立性
+                    </button>
+                </div>
+                <div id="independence-result" class="hidden">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-indigo-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-indigo-600" id="indep-score">0</div>
+                            <div class="text-gray-600">独立性评分</div>
+                        </div>
+                        <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                            <div class="text-xl font-bold text-yellow-600" id="indep-risk">-</div>
+                            <div class="text-gray-600">风险等级</div>
+                        </div>
+                    </div>
+                    <div id="independence-platforms" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7.13 多语言 -->
+        <div id="tab-multilang" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-globe text-cyan-500 mr-2"></i>多语言 AI 可见度（12 种语言）
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input type="text" id="multilang-brand" placeholder="品牌名称" class="border rounded-lg px-4 py-2">
+                    <button onclick="analyzeMultiLanguage()" class="bg-cyan-600 text-white px-6 py-2 rounded-lg hover:bg-cyan-700">
+                        <i class="fas fa-globe mr-2"></i>分析多语言可见度
+                    </button>
+                </div>
+                <div id="multilang-result" class="hidden">
+                    <div id="multilang-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4.39-4.41 依赖度监测 -->
+        <div id="tab-dependency" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-balance-scale text-orange-500 mr-2"></i>平台依赖度监测
+                    <span class="text-sm font-normal text-red-600 ml-2">>50% 警告</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input type="text" id="dep-brand" placeholder="品牌名称" class="border rounded-lg px-4 py-2">
+                    <button onclick="monitorDependency()" class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700">
+                        <i class="fas fa-chart-pie mr-2"></i>监测依赖度
+                    </button>
+                </div>
+                <div id="dependency-result" class="hidden">
+                    <div id="dep-warning" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-orange-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-orange-600" id="dep-score">0</div>
+                            <div class="text-gray-600">分散化评分</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-600 mb-2">平台分布</div>
+                            <div id="dep-chart" class="space-y-2"></div>
+                        </div>
+                    </div>
+                    <div id="dep-strategy" class="bg-blue-50 rounded-lg p-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5.21 跨平台调度 -->
+        <div id="tab-schedule" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-calendar-alt text-teal-500 mr-2"></i>跨平台发布调度
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input type="text" id="schedule-title" placeholder="内容标题" class="border rounded-lg px-4 py-2">
+                    <select id="schedule-platforms" multiple class="border rounded-lg px-4 py-2 h-24">
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="twitter">X/Twitter</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="reddit">Reddit</option>
+                        <option value="medium">Medium</option>
+                    </select>
+                </div>
+                <button onclick="generateSchedule()" class="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700">
+                    <i class="fas fa-calendar-plus mr-2"></i>生成发布计划
+                </button>
+                <div id="schedule-result" class="hidden mt-6">
+                    <div id="schedule-timeline" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5.29-5.30 报告 -->
+        <div id="tab-report" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-file-alt text-pink-500 mr-2"></i>最佳实践 & 自动化报告
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <input type="text" id="report-brand" placeholder="品牌名称" class="border rounded-lg px-4 py-2">
+                    <select id="report-type" class="border rounded-lg px-4 py-2">
+                        <option value="weekly">周报</option>
+                        <option value="monthly">月报</option>
+                    </select>
+                    <div class="flex gap-2">
+                        <button onclick="extractBestPractices()" class="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 flex-1">
+                            <i class="fas fa-lightbulb mr-1"></i>最佳实践
+                        </button>
+                        <button onclick="generateReport()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex-1">
+                            <i class="fas fa-file-alt mr-1"></i>生成报告
+                        </button>
+                    </div>
+                </div>
+                <div id="report-result" class="hidden">
+                    <div id="report-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active', 'text-purple-600', 'border-b-2', 'border-purple-600');
+                el.classList.add('text-gray-500');
+            });
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            event.target.closest('.tab-btn').classList.add('active', 'text-purple-600', 'border-b-2', 'border-purple-600');
+            event.target.closest('.tab-btn').classList.remove('text-gray-500');
+        }
+
+        async function analyzeFanout() {
+            const query = document.getElementById('fanout-query').value;
+            const industry = document.getElementById('fanout-industry').value;
+            if (!query) return alert('请输入主查询');
+
+            const res = await fetch('/api/advanced-geo/query-fanout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mainQuery: query, industry: industry, language: 'zh' })
+            });
+            const data = await res.json();
+
+            document.getElementById('fanout-total').textContent = data.totalSubQueries;
+            document.getElementById('fanout-coverage').textContent = data.coverageScore + '%';
+            document.getElementById('fanout-boost').textContent = '+' + data.potentialCitationBoost + '%';
+
+            let html = '';
+            data.clusters.forEach(c => {
+                html += `<div class="border rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">${c.clusterName}</span>
+                        <span class="text-sm px-2 py-1 rounded ${c.intent === 'informational' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${c.intent}</span>
+                    </div>
+                    <div class="space-y-1">
+                        ${c.queries.map(q => `<div class="flex justify-between text-sm">
+                            <span>${q.query}</span>
+                            <span class="text-gray-500">${q.suggestedContentType}</span>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+            });
+            document.getElementById('fanout-clusters').innerHTML = html;
+            document.getElementById('fanout-result').classList.remove('hidden');
+        }
+
+        async function detectCapsules() {
+            const content = document.getElementById('capsules-content').value;
+            if (!content) return alert('请输入内容');
+
+            const res = await fetch('/api/advanced-geo/answer-capsules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content, language: 'zh' })
+            });
+            const data = await res.json();
+
+            document.getElementById('capsules-score').textContent = data.overallScore;
+            document.getElementById('capsules-optimal').textContent = data.optimalCapsules;
+            document.getElementById('capsules-total').textContent = data.totalCapsules;
+            document.getElementById('capsules-potential').textContent = data.citationPotential + '%';
+
+            let html = '';
+            data.capsules.slice(0, 5).forEach(c => {
+                const color = c.isOptimalLength ? 'green' : c.characterCount > 150 ? 'yellow' : 'red';
+                html += `<div class="border-l-4 border-${color}-500 pl-4 py-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">${c.characterCount} 字符 | ${c.position}</span>
+                        <span class="text-sm font-medium">${c.score} 分</span>
+                    </div>
+                    <p class="text-sm mt-1">${c.text}</p>
+                </div>`;
+            });
+            document.getElementById('capsules-list').innerHTML = html;
+            document.getElementById('capsules-result').classList.remove('hidden');
+        }
+
+        async function analyzeCorrelation() {
+            const domain = document.getElementById('corr-domain').value;
+            const keywords = document.getElementById('corr-keywords').value.split(',').map(k => k.trim());
+            if (!domain) return alert('请输入域名');
+
+            const res = await fetch('/api/advanced-geo/ranking-correlation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ domain, keywords, period: '30d' })
+            });
+            const data = await res.json();
+
+            document.getElementById('corr-coef').textContent = data.correlationCoefficient;
+            document.getElementById('corr-traffic').textContent = data.trendAnalysis.overallTrafficChange + '%';
+            document.getElementById('corr-citation').textContent = data.trendAnalysis.overallCitationChange + '%';
+
+            let html = '<h4 class="font-medium mb-2">关键洞察</h4><ul class="list-disc pl-5 space-y-1">';
+            data.insights.forEach(i => html += `<li>${i}</li>`);
+            html += '</ul>';
+            document.getElementById('correlation-insights').innerHTML = html;
+            document.getElementById('correlation-result').classList.remove('hidden');
+        }
+
+        async function evaluateIndependence() {
+            const domain = document.getElementById('indep-domain').value;
+            if (!domain) return alert('请输入域名');
+
+            const res = await fetch('/api/advanced-geo/platform-independence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ domain, targetPlatforms: [] })
+            });
+            const data = await res.json();
+
+            document.getElementById('indep-score').textContent = data.overallIndependenceScore;
+            document.getElementById('indep-risk').textContent = data.riskLevel === 'high' ? '高风险' : data.riskLevel === 'medium' ? '中风险' : '低风险';
+
+            let html = '';
+            data.platformAnalysis.forEach(p => {
+                const color = p.dependencyLevel === 'high' ? 'red' : p.dependencyLevel === 'medium' ? 'yellow' : 'green';
+                html += `<div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>${p.displayName}</span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-32 bg-gray-200 rounded-full h-2">
+                            <div class="bg-${color}-500 h-2 rounded-full" style="width: ${p.googleDependency}%"></div>
+                        </div>
+                        <span class="text-sm">${p.googleDependency}%</span>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('independence-platforms').innerHTML = html;
+            document.getElementById('independence-result').classList.remove('hidden');
+        }
+
+        async function analyzeMultiLanguage() {
+            const brand = document.getElementById('multilang-brand').value;
+
+            const res = await fetch('/api/advanced-geo/multi-language', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brand, targetLanguages: [], content: '' })
+            });
+            const data = await res.json();
+
+            let html = '';
+            data.languageResults.forEach(l => {
+                const status = l.contentStatus === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                html += `<div class="border rounded-lg p-3 text-center">
+                    <div class="text-2xl mb-1">${l.languageName}</div>
+                    <div class="text-sm text-gray-500">${l.languageCode}</div>
+                    <div class="text-lg font-bold text-cyan-600">${l.visibilityScore.toFixed(0)}%</div>
+                    <span class="text-xs px-2 py-1 rounded ${status}">${l.contentStatus === 'available' ? '已覆盖' : '未覆盖'}</span>
+                </div>`;
+            });
+            document.getElementById('multilang-grid').innerHTML = html;
+            document.getElementById('multilang-result').classList.remove('hidden');
+        }
+
+        async function monitorDependency() {
+            const brand = document.getElementById('dep-brand').value;
+            if (!brand) return alert('请输入品牌');
+
+            const res = await fetch('/api/advanced-geo/dependency-monitor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brand, days: 30 })
+            });
+            const data = await res.json();
+
+            document.getElementById('dep-score').textContent = data.diversificationScore;
+
+            if (data.hasWarning) {
+                document.getElementById('dep-warning').textContent = data.warningMessage;
+                document.getElementById('dep-warning').classList.remove('hidden');
+            } else {
+                document.getElementById('dep-warning').classList.add('hidden');
+            }
+
+            let chartHtml = '';
+            data.exposures.forEach(e => {
+                const color = e.isOverExposed ? 'red' : 'blue';
+                chartHtml += `<div class="flex items-center gap-2">
+                    <span class="w-24 text-sm">${e.displayName}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                        <div class="bg-${color}-500 h-3 rounded-full" style="width: ${e.exposurePercent}%"></div>
+                    </div>
+                    <span class="text-sm w-12">${e.exposurePercent}%</span>
+                </div>`;
+            });
+            document.getElementById('dep-chart').innerHTML = chartHtml;
+
+            let strategyHtml = `<h4 class="font-medium mb-2">分散策略</h4>
+                <p class="text-sm mb-2">当前状态: ${data.strategy.currentStatus}</p>
+                <ul class="list-disc pl-5 text-sm space-y-1">
+                    ${data.strategy.immediateActions.map(a => `<li>${a}</li>`).join('')}
+                </ul>`;
+            document.getElementById('dep-strategy').innerHTML = strategyHtml;
+            document.getElementById('dependency-result').classList.remove('hidden');
+        }
+
+        async function generateSchedule() {
+            const title = document.getElementById('schedule-title').value;
+            const select = document.getElementById('schedule-platforms');
+            const platforms = Array.from(select.selectedOptions).map(o => o.value);
+            if (!title || platforms.length === 0) return alert('请输入标题并选择平台');
+
+            const res = await fetch('/api/advanced-geo/cross-platform-schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contentTitle: title, targetPlatforms: platforms, contentType: 'article' })
+            });
+            const data = await res.json();
+
+            let html = `<div class="mb-4 text-sm text-gray-600">最优发布顺序: ${data.optimalSequence}</div>`;
+            data.schedule.forEach(s => {
+                html += `<div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-24 font-medium">${s.displayName}</div>
+                    <div class="flex-1">
+                        <div class="text-sm">${new Date(s.scheduledTime).toLocaleString('zh-CN')}</div>
+                        <div class="text-xs text-gray-500">${s.contentVariant}</div>
+                    </div>
+                    <div class="text-sm text-green-600">${s.expectedEngagement}% 预期互动</div>
+                </div>`;
+            });
+            document.getElementById('schedule-timeline').innerHTML = html;
+            document.getElementById('schedule-result').classList.remove('hidden');
+        }
+
+        async function extractBestPractices() {
+            const brand = document.getElementById('report-brand').value;
+            if (!brand) return alert('请输入品牌');
+
+            const res = await fetch('/api/advanced-geo/best-practices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brand, topN: 10, period: '30d' })
+            });
+            const data = await res.json();
+
+            let html = `<h3 class="text-lg font-semibold mb-4">最佳实践提取</h3>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    ${data.patterns.map(p => `<div class="border rounded-lg p-3">
+                        <div class="font-medium">${p.patternName}</div>
+                        <div class="text-sm text-gray-600">${p.description}</div>
+                        <div class="text-sm text-green-600 mt-1">影响力: ${p.impactScore}</div>
+                    </div>`).join('')}
+                </div>
+                <h4 class="font-medium mb-2">关键洞察</h4>
+                <ul class="list-disc pl-5 space-y-1">
+                    ${data.keyInsights.map(i => `<li>${i}</li>`).join('')}
+                </ul>`;
+            document.getElementById('report-content').innerHTML = html;
+            document.getElementById('report-result').classList.remove('hidden');
+        }
+
+        async function generateReport() {
+            const brand = document.getElementById('report-brand').value;
+            const reportType = document.getElementById('report-type').value;
+            if (!brand) return alert('请输入品牌');
+
+            const res = await fetch('/api/advanced-geo/automated-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brand, reportType })
+            });
+            const data = await res.json();
+
+            let html = `<h3 class="text-lg font-semibold mb-4">${reportType === 'weekly' ? '周报' : '月报'} - ${data.period}</h3>
+                <div class="bg-purple-50 rounded-lg p-4 mb-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-3xl font-bold text-purple-600">${data.summary.overallScore}</div>
+                            <div class="text-sm text-gray-600">综合评分 (${data.summary.scoreChange})</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-medium">${data.summary.highlight}</div>
+                            <div class="text-sm text-gray-500">趋势: ${data.summary.trend}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-gray-50 rounded">
+                        <div class="text-2xl font-bold">${data.metrics.totalViews.toLocaleString()}</div>
+                        <div class="text-sm text-gray-600">总浏览</div>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded">
+                        <div class="text-2xl font-bold">${data.metrics.totalEngagements.toLocaleString()}</div>
+                        <div class="text-sm text-gray-600">总互动</div>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded">
+                        <div class="text-2xl font-bold">${data.metrics.totalCitations}</div>
+                        <div class="text-sm text-gray-600">AI 引用</div>
+                    </div>
+                </div>
+                <h4 class="font-medium mb-2">关键成就</h4>
+                <ul class="list-disc pl-5 mb-4 space-y-1 text-green-700">
+                    ${data.keyWins.map(w => `<li>${w}</li>`).join('')}
+                </ul>
+                <h4 class="font-medium mb-2">改进方向</h4>
+                <ul class="list-disc pl-5 space-y-1 text-orange-700">
+                    ${data.areasForImprovement.map(a => `<li>${a}</li>`).join('')}
+                </ul>`;
+            document.getElementById('report-content').innerHTML = html;
+            document.getElementById('report-result').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

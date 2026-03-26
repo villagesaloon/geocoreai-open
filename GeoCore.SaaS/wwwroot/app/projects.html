@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目管理 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .status-badge { padding: 4px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+        .status-draft { background: #f3f4f6; color: #4b5563; }
+        .status-pending { background: #fef3c7; color: #b45309; }
+        .status-detecting { background: #dbeafe; color: #1d4ed8; }
+        .status-completed { background: #d1fae5; color: #047857; }
+        .status-error { background: #fee2e2; color: #dc2626; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 主内容区 -->
+    <main class="ml-60 min-h-screen">
+        <!-- 顶部标题栏 -->
+        <header class="bg-white border-b border-gray-200 px-8 py-5 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">项目管理</h1>
+                    <p class="text-gray-500 text-sm mt-1">管理您的 GEO 监控项目和问题集</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="搜索项目..." 
+                               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-64">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">全部状态</option>
+                        <option value="draft">草稿</option>
+                        <option value="pending">待检测</option>
+                        <option value="detecting">检测中</option>
+                        <option value="completed">已完成</option>
+                    </select>
+                    <a href="setup-wizard.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>新建项目
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">总项目数</p>
+                            <p id="totalCount" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-folder text-indigo-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">待检测</p>
+                            <p id="pendingCount" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-amber-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">检测中</p>
+                            <p id="detectingCount" class="text-2xl font-bold text-blue-600 mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-spinner text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">已完成</p>
+                            <p id="completedCount" class="text-2xl font-bold text-green-600 mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 项目列表 -->
+            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-semibold text-gray-900">项目列表</h2>
+                        <button onclick="refreshProjects()" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition text-sm">
+                            <i class="fas fa-sync-alt mr-1"></i>刷新
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 空状态 -->
+                <div id="emptyState" class="hidden py-16 text-center">
+                    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-folder-open text-gray-400 text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">暂无项目</h3>
+                    <p class="text-gray-500 mb-6">创建您的第一个 GEO 监控项目</p>
+                    <a href="setup-wizard.html" class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>新建项目
+                    </a>
+                </div>
+
+                <!-- 项目表格 -->
+                <div id="projectTable" class="hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">项目名称</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">行业</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">模型</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">快速引用路径</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">问题数</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectList" class="divide-y divide-gray-200">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 状态映射
+        const statusMap = {
+            'draft': { label: '草稿', class: 'status-draft', icon: 'fa-file-alt' },
+            'pending': { label: '待检测', class: 'status-pending', icon: 'fa-clock' },
+            'detecting': { label: '检测中', class: 'status-detecting', icon: 'fa-spinner fa-spin' },
+            'completed': { label: '已完成', class: 'status-completed', icon: 'fa-check-circle' },
+            'error': { label: '错误', class: 'status-error', icon: 'fa-exclamation-circle' }
+        };
+
+        // 模型颜色映射
+        const modelColors = {
+            'gpt4o': 'bg-green-100 text-green-700',
+            'claude': 'bg-orange-100 text-orange-700',
+            'deepseek': 'bg-blue-100 text-blue-700',
+            'gemini': 'bg-purple-100 text-purple-700',
+            'perplexity': 'bg-cyan-100 text-cyan-700',
+            'copilot': 'bg-rose-100 text-rose-700'
+        };
+
+        // 各模型快速引用路径配置（基于大模型验证结果 - 量化版）
+        const modelCitationPaths = {
+            'gpt4o': {
+                name: 'ChatGPT/GPT-4',
+                fastestTime: '5-7天',
+                searchEngine: 'Bing',
+                difficulty: '中等',
+                topStrategy: 'Bing IndexNow + 高权重外链',
+                keyAction: '配置 Bing Webmaster Tools，使用 IndexNow 协议',
+                icon: 'fa-robot',
+                color: 'green',
+                // 量化数据
+                quantified: {
+                    totalContent: 8,
+                    totalPlatforms: 4,
+                    totalHours: 14,
+                    firstCitationDay: 5,
+                    stableCitationDay: 21,
+                    weeklyTasks: [
+                        { week: 1, tasks: '配置Bing Webmaster(30分钟) + 2篇定义型长文(各2小时) + IndexNow推送(10分钟)' },
+                        { week: 2, tasks: '3个Quora回答(各30分钟) + 1篇LinkedIn文章(1.5小时) + FAQ Schema(1小时)' },
+                        { week: 3, tasks: '1篇数据文章(2小时) + 1篇Medium同步(30分钟)' },
+                        { week: 4, tasks: '更新2篇旧文(各45分钟) + 5条社交分享(1小时)' }
+                    ]
+                }
+            },
+            'gemini': {
+                name: 'Google Gemini',
+                fastestTime: '10天',
+                searchEngine: 'Google',
+                difficulty: '中等',
+                topStrategy: 'YouTube 视频 + Google News',
+                keyAction: '发布带详细字幕的 YouTube 视频',
+                icon: 'fa-gem',
+                color: 'purple',
+                quantified: {
+                    totalContent: 6,
+                    totalPlatforms: 3,
+                    totalHours: 15,
+                    firstCitationDay: 10,
+                    stableCitationDay: 25,
+                    weeklyTasks: [
+                        { week: 1, tasks: '配置GSC(45分钟) + 1篇深度指南(3小时) + 1个YouTube视频(2小时)' },
+                        { week: 2, tasks: '博客嵌入视频(15分钟) + 3个Reddit帖子(各30分钟)' },
+                        { week: 3, tasks: '更新关于我们页面(1小时) + 1篇趋势分析(2小时)' },
+                        { week: 4, tasks: '内部链接优化(1小时) + Google Business更新(30分钟)' }
+                    ]
+                }
+            },
+            'perplexity': {
+                name: 'Perplexity AI',
+                fastestTime: '3天',
+                searchEngine: 'Hybrid',
+                difficulty: '极低',
+                topStrategy: 'Q&A格式 + Twitter/X + Substack',
+                keyAction: '发布问答格式文章，首段50字精准摘要',
+                icon: 'fa-search',
+                color: 'cyan',
+                quantified: {
+                    totalContent: 7,
+                    totalPlatforms: 3,
+                    totalHours: 12,
+                    firstCitationDay: 3,
+                    stableCitationDay: 14,
+                    weeklyTasks: [
+                        { week: 1, tasks: '3篇Q&A格式文章(各1.5小时) + 首段50字摘要' },
+                        { week: 2, tasks: '2条Twitter长推文(各45分钟) + 1篇Substack简报(1.5小时)' },
+                        { week: 3, tasks: '引用权威数据源(30分钟) + 提交Google News(1小时)' },
+                        { week: 4, tasks: '2篇Follow-up问题优化(各1小时)' }
+                    ]
+                }
+            },
+            'claude': {
+                name: 'Claude',
+                fastestTime: '3-6个月',
+                searchEngine: 'N/A',
+                difficulty: '高',
+                topStrategy: '白皮书PDF + Medium/维基百科',
+                keyAction: '制作高密度信息白皮书，在维基百科添加引用',
+                icon: 'fa-brain',
+                color: 'orange',
+                quantified: {
+                    totalContent: 2,
+                    totalPlatforms: 3,
+                    totalHours: 10,
+                    firstCitationDay: 90,
+                    stableCitationDay: 180,
+                    weeklyTasks: [
+                        { week: 1, tasks: '制作高密度白皮书PDF(4小时) + 官网下载入口(30分钟)' },
+                        { week: 2, tasks: '1篇Medium深度长文(2小时) + 文本排版优化(1小时)' },
+                        { week: 3, tasks: '维基百科/维基数据添加条目(1小时) + GitHub分发(45分钟)' },
+                        { week: 4, tasks: '制作Markdown归档页面(30分钟)' }
+                    ]
+                }
+            },
+            'copilot': {
+                name: 'Microsoft Copilot',
+                fastestTime: '7天',
+                searchEngine: 'Bing',
+                difficulty: '低',
+                topStrategy: 'LinkedIn Newsletter + PDF文档',
+                keyAction: '发布LinkedIn Newsletter，优化PDF元数据',
+                icon: 'fa-windows',
+                color: 'rose',
+                quantified: {
+                    totalContent: 3,
+                    totalPlatforms: 3,
+                    totalHours: 10,
+                    firstCitationDay: 7,
+                    stableCitationDay: 20,
+                    weeklyTasks: [
+                        { week: 1, tasks: '1篇LinkedIn Newsletter(1.5小时) + 优化3个PDF元数据(30分钟)' },
+                        { week: 2, tasks: '上传PPT至SlideShare(1小时) + 更新Bing Places(30分钟)' },
+                        { week: 3, tasks: '1篇对比类文章(2小时) + 移动端速度优化(1小时)' },
+                        { week: 4, tasks: 'Microsoft社区活跃3次(45分钟)' }
+                    ]
+                }
+            },
+            'deepseek': {
+                name: 'DeepSeek',
+                fastestTime: '3-5天',
+                searchEngine: 'Hybrid',
+                difficulty: '中等',
+                topStrategy: '知乎回答 + GitHub + CSDN',
+                keyAction: '知乎发布专业回答，GitHub优化README',
+                icon: 'fa-code',
+                color: 'blue',
+                quantified: {
+                    totalContent: 6,
+                    totalPlatforms: 4,
+                    totalHours: 12,
+                    firstCitationDay: 4,
+                    stableCitationDay: 15,
+                    weeklyTasks: [
+                        { week: 1, tasks: '2个知乎专业回答(各1小时) + 1篇技术推导文章(2小时)' },
+                        { week: 2, tasks: 'GitHub README优化(1小时) + 1篇CSDN/掘金同步(30分钟)' },
+                        { week: 3, tasks: '1篇代码/公式内容(1.5小时) + 1篇微信公众号(1小时)' },
+                        { week: 4, tasks: '整理Awesome List资源列表(1.5小时)' }
+                    ]
+                }
+            }
+        };
+
+        // 全局项目缓存
+        let allProjects = [];
+
+        // 显示当前项目上下文（如果页面有相关元素）
+        function showProjectContext() {
+            const currentProject = JSON.parse(localStorage.getItem('geo_current_project') || 'null');
+            const contextEl = document.getElementById('projectContext');
+            
+            // 如果页面没有 projectContext 元素，直接返回
+            if (!contextEl) {
+                return;
+            }
+            
+            const nameEl = document.getElementById('currentProjectName');
+            const linkEl = document.getElementById('currentProjectLink');
+            
+            if (currentProject && (currentProject.brandName || currentProject.project?.name)) {
+                const name = currentProject.brandName || currentProject.project?.name;
+                const id = currentProject.projectId || currentProject.id;
+                if (nameEl) nameEl.textContent = name;
+                if (linkEl) linkEl.href = `project-detail.html?id=${id}`;
+                contextEl.classList.remove('hidden');
+            } else {
+                contextEl.classList.add('hidden');
+            }
+        }
+
+        // 从后端 API 加载项目列表 (Phase 1.6)
+        async function loadProjects() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            console.log('🔄 [loadProjects] 开始加载项目列表...');
+            console.log('🔄 [loadProjects] allProjects.length =', allProjects.length, ', searchTerm =', searchTerm, ', statusFilter =', statusFilter);
+
+            // 首次加载或刷新时从 API 获取
+            if (allProjects.length === 0 || !searchTerm && !statusFilter) {
+                try {
+                    // 获取用户 ID（从 Firebase 认证）
+                    const user = JSON.parse(localStorage.getItem('user') || 'null');
+                    const userId = user?.dbId;
+                    console.log('🔄 [loadProjects] 使用 userId =', userId, ', user =', user);
+                    
+                    if (!userId) {
+                        console.error('❌ 用户未登录，无法加载项目');
+                        // 重定向到登录页面
+                        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+                        return;
+                    }
+                    
+                    const response = await fetch('/api/project', {
+                        headers: {
+                            'X-User-Id': userId
+                        }
+                    });
+                    
+                    console.log('🔄 [loadProjects] API 响应状态:', response.status, response.statusText);
+                    
+                    const data = await response.json();
+                    console.log('🔄 [loadProjects] API 返回数据:', JSON.stringify(data).substring(0, 500));
+                    
+                    if (data.success && data.data) {
+                        allProjects = data.data;
+                        console.log('✅ 从数据库加载项目:', allProjects.length, '个');
+                    } else {
+                        console.error('❌ 加载项目失败:', data.message, data);
+                        allProjects = [];
+                    }
+                } catch (error) {
+                    console.error('❌ API 调用失败:', error);
+                    allProjects = [];
+                }
+            } else {
+                console.log('🔄 [loadProjects] 使用缓存数据，跳过 API 调用');
+            }
+
+            // 过滤
+            let filtered = allProjects.filter(p => {
+                const matchSearch = !searchTerm || 
+                    p.brandName?.toLowerCase().includes(searchTerm) ||
+                    p.industry?.toLowerCase().includes(searchTerm);
+                const matchStatus = !statusFilter || p.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+
+            // 更新统计
+            document.getElementById('totalCount').textContent = allProjects.length;
+            document.getElementById('pendingCount').textContent = allProjects.filter(p => p.status === 'pending').length;
+            document.getElementById('detectingCount').textContent = allProjects.filter(p => p.status === 'detecting').length;
+            document.getElementById('completedCount').textContent = allProjects.filter(p => p.status === 'completed' || p.status === 'active').length;
+
+            // 渲染列表
+            const emptyState = document.getElementById('emptyState');
+            const projectTable = document.getElementById('projectTable');
+            const projectList = document.getElementById('projectList');
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                projectTable.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                projectTable.classList.remove('hidden');
+                projectList.innerHTML = filtered.map(renderProjectRow).join('');
+            }
+        }
+
+        // 渲染项目行（适配后端 API 数据结构）
+        function renderProjectRow(project) {
+            const status = statusMap[project.status] || statusMap.pending;
+            // 从 config 中获取 models，兼容旧数据结构
+            const models = project.config?.models || project.project?.models || [];
+            const questionCount = project.questionCount || project.questions?.length || 0;
+            const createdAt = project.createdAt ? new Date(project.createdAt).toLocaleDateString('zh-CN') : '-';
+            const projectId = project.id;
+            const projectName = project.brandName || project.project?.name || '未命名项目';
+            const monitorUrl = project.monitorUrl || project.project?.monitorUrl || '-';
+            const industry = project.industry || project.project?.industry || '-';
+
+            return `
+                <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="viewProject('${projectId}')">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-project-diagram text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">${projectName}</p>
+                                <p class="text-sm text-gray-500">${monitorUrl}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${industry}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex flex-wrap gap-1">
+                            ${models.slice(0, 3).map(m => `<span class="px-2 py-0.5 ${modelColors[m] || 'bg-gray-100 text-gray-600'} rounded text-xs">${m}</span>`).join('')}
+                            ${models.length > 3 ? `<span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+${models.length - 3}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="space-y-1 max-w-md">
+                            ${models.slice(0, 2).map(m => {
+                                const path = modelCitationPaths[m];
+                                if (!path) return '';
+                                const q = path.quantified || {};
+                                return `<div class="flex items-center gap-2 text-xs">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 bg-${path.color}-50 text-${path.color}-700 rounded" title="首次引用时间">
+                                        <i class="fas ${path.icon} mr-1"></i>${path.fastestTime}
+                                    </span>
+                                    <span class="text-gray-400">|</span>
+                                    <span class="text-blue-600" title="内容数量">${q.totalContent || '-'}篇</span>
+                                    <span class="text-purple-600" title="时间投入">${q.totalHours || '-'}h</span>
+                                    <span class="text-gray-500 truncate" title="${path.keyAction}">${path.topStrategy}</span>
+                                </div>`;
+                            }).join('')}
+                            ${models.length > 0 ? `<button onclick="event.stopPropagation(); showCitationPaths('${projectId}')" class="text-xs text-indigo-600 hover:underline">查看${models.length > 2 ? '全部' : ''} ${models.length} 个模型量化计划 →</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${questionCount} 个</td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge ${status.class}">
+                            <i class="fas ${status.icon} mr-1"></i>${status.label}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${createdAt}</td>
+                    <td class="px-6 py-4 text-right" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="viewProject('${projectId}')" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="查看详情">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="runDetection('${projectId}')" class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="开始检测">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button onclick="deleteProject('${projectId}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // 查看项目详情
+        function viewProject(projectId) {
+            window.location.href = `project-detail.html?id=${projectId}`;
+        }
+
+        // 开始检测
+        function runDetection(projectId) {
+            window.location.href = `project-detail.html?id=${projectId}&action=detect`;
+        }
+
+        // 删除项目（调用后端 API）
+        async function deleteProject(projectId) {
+            if (!confirm('确定要删除此项目吗？此操作不可恢复。')) return;
+
+            try {
+                const response = await fetch(`/api/project/${projectId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    console.log('✅ 项目已删除:', projectId);
+                    allProjects = []; // 清空缓存，强制重新加载
+                    await loadProjects();
+                } else {
+                    alert('删除失败: ' + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('❌ 删除项目失败:', error);
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        // 刷新项目列表
+        async function refreshProjects() {
+            allProjects = []; // 清空缓存
+            await loadProjects();
+        }
+
+        // 显示模型引用路径弹窗（量化版）
+        function showCitationPaths(projectId) {
+            const project = allProjects.find(p => p.id == projectId);
+            if (!project) return;
+
+            const models = project.config?.models || project.project?.models || [];
+            const projectName = project.brandName || project.project?.name || '项目';
+            
+            const modalHtml = `
+                <div id="citationPathsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-indigo-500 to-purple-600">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">${projectName} - 量化引用路径</h3>
+                                <p class="text-indigo-100 text-sm">基于 Gemini 和 ChatGPT 验证的各模型量化执行方案</p>
+                            </div>
+                            <button onclick="document.getElementById('citationPathsModal').remove()" class="text-white/80 hover:text-white">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div class="p-6 overflow-y-auto max-h-[70vh]">
+                            <div class="grid gap-4">
+                                ${models.map(m => {
+                                    const path = modelCitationPaths[m];
+                                    if (!path) return '';
+                                    const q = path.quantified || {};
+                                    const difficultyColors = {
+                                        '极低': 'bg-green-100 text-green-700',
+                                        '低': 'bg-green-100 text-green-700',
+                                        '中等': 'bg-yellow-100 text-yellow-700',
+                                        '高': 'bg-red-100 text-red-700'
+                                    };
+                                    return `
+                                        <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
+                                            <div class="flex items-start justify-between mb-3">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-10 h-10 bg-${path.color}-100 rounded-lg flex items-center justify-center">
+                                                        <i class="fas ${path.icon} text-${path.color}-600"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h4 class="font-semibold text-gray-900">${path.name}</h4>
+                                                        <p class="text-sm text-gray-500">搜索引擎: ${path.searchEngine}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2 py-1 bg-${path.color}-100 text-${path.color}-700 rounded-full text-xs font-medium">
+                                                        <i class="fas fa-clock mr-1"></i>首次引用: ${path.fastestTime}
+                                                    </span>
+                                                    <span class="px-2 py-1 ${difficultyColors[path.difficulty] || 'bg-gray-100 text-gray-600'} rounded-full text-xs">
+                                                        难度: ${path.difficulty}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 量化统计 -->
+                                            <div class="grid grid-cols-4 gap-2 mb-3">
+                                                <div class="bg-blue-50 rounded-lg p-2 text-center">
+                                                    <p class="text-lg font-bold text-blue-700">${q.totalContent || '-'}</p>
+                                                    <p class="text-xs text-blue-600">内容数量</p>
+                                                </div>
+                                                <div class="bg-green-50 rounded-lg p-2 text-center">
+                                                    <p class="text-lg font-bold text-green-700">${q.totalPlatforms || '-'}</p>
+                                                    <p class="text-xs text-green-600">平台数量</p>
+                                                </div>
+                                                <div class="bg-purple-50 rounded-lg p-2 text-center">
+                                                    <p class="text-lg font-bold text-purple-700">${q.totalHours || '-'}h</p>
+                                                    <p class="text-xs text-purple-600">总时间投入</p>
+                                                </div>
+                                                <div class="bg-orange-50 rounded-lg p-2 text-center">
+                                                    <p class="text-lg font-bold text-orange-700">第${q.stableCitationDay || '-'}天</p>
+                                                    <p class="text-xs text-orange-600">稳定引用</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 周计划 -->
+                                            <div class="bg-gray-50 rounded-lg p-3">
+                                                <p class="text-sm font-medium text-gray-900 mb-2"><i class="fas fa-calendar-alt mr-1"></i>4周执行计划</p>
+                                                <div class="space-y-2">
+                                                    ${(q.weeklyTasks || []).map(wt => `
+                                                        <div class="flex items-start gap-2 text-xs">
+                                                            <span class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded font-medium whitespace-nowrap">W${wt.week}</span>
+                                                            <span class="text-gray-600">${wt.tasks}</span>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 关键策略 -->
+                                            <div class="mt-3 flex items-center gap-2 text-sm">
+                                                <i class="fas fa-lightbulb text-yellow-500"></i>
+                                                <span class="text-gray-700"><strong>关键操作:</strong> ${path.keyAction}</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            
+                            <!-- 总投入汇总 -->
+                            <div class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+                                <h4 class="font-semibold text-indigo-900 mb-3"><i class="fas fa-chart-pie mr-2"></i>总投入汇总（${models.length}个模型）</h4>
+                                <div class="grid grid-cols-4 gap-4">
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-indigo-700">${models.reduce((sum, m) => sum + (modelCitationPaths[m]?.quantified?.totalContent || 0), 0)}</p>
+                                        <p class="text-sm text-indigo-600">总内容数</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-green-700">${[...new Set(models.flatMap(m => {
+                                            const p = modelCitationPaths[m];
+                                            return p ? ['官网', p.searchEngine === 'Bing' ? 'Bing' : 'Google'] : [];
+                                        }))].length + models.length}</p>
+                                        <p class="text-sm text-green-600">总平台数</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-purple-700">${models.reduce((sum, m) => sum + (modelCitationPaths[m]?.quantified?.totalHours || 0), 0)}h</p>
+                                        <p class="text-sm text-purple-600">总时间投入</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-orange-700">${Math.min(...models.map(m => modelCitationPaths[m]?.quantified?.firstCitationDay || 999).filter(d => d < 999)) || '-'}天</p>
+                                        <p class="text-sm text-orange-600">最快首次引用</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+                            <button onclick="document.getElementById('citationPathsModal').remove()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                                关闭
+                            </button>
+                            <a href="strategy-center.html?project=${projectId}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                                <i class="fas fa-bullseye mr-2"></i>进入策略中心
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // 搜索和过滤（使用防抖避免频繁请求）
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(loadProjects, 300);
+        });
+        document.getElementById('statusFilter').addEventListener('change', loadProjects);
+
+        // 初始化
+        showProjectContext();
+        loadProjects();
+    </script>
+</body>
+</html>
+

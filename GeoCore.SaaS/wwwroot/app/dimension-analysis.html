@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三维分析 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .heatmap-cell { transition: all 0.2s; cursor: pointer; }
+        .heatmap-cell:hover { transform: scale(1.1); z-index: 10; }
+        .dimension-tab { transition: all 0.2s; }
+        .dimension-tab.active { background: #6366f1; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">三维分析</h2>
+                    <p class="text-sm text-gray-500">地域 × 语言 × 行业 多维度可见度分析</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select class="px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                        <option>最近 7 天</option>
+                        <option>最近 30 天</option>
+                        <option>最近 90 天</option>
+                    </select>
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-download mr-2"></i>导出报告
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- 维度选择器 -->
+            <div class="bg-white rounded-xl p-4 mb-6 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-medium text-gray-700">分析维度:</span>
+                    <div class="flex gap-2">
+                        <button class="dimension-tab active px-4 py-2 rounded-lg text-sm font-medium">地域 × 语言</button>
+                        <button class="dimension-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600">地域 × 行业</button>
+                        <button class="dimension-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600">语言 × 行业</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 核心指标 -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">覆盖地域</p>
+                    <p class="text-2xl font-bold text-gray-900">12 <span class="text-sm font-normal text-gray-400">个国家/地区</span></p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">支持语言</p>
+                    <p class="text-2xl font-bold text-gray-900">8 <span class="text-sm font-normal text-gray-400">种语言</span></p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">涉及行业</p>
+                    <p class="text-2xl font-bold text-gray-900">5 <span class="text-sm font-normal text-gray-400">个细分行业</span></p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500 mb-1">高机会区域</p>
+                    <p class="text-2xl font-bold text-emerald-600">3 <span class="text-sm font-normal text-gray-400">个待优化</span></p>
+                </div>
+            </div>
+
+            <!-- 热力图 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">可见度热力图</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr>
+                                <th class="p-2 text-left text-sm font-medium text-gray-500"></th>
+                                <th class="p-2 text-center text-sm font-medium text-gray-700">中文</th>
+                                <th class="p-2 text-center text-sm font-medium text-gray-700">英语</th>
+                                <th class="p-2 text-center text-sm font-medium text-gray-700">日语</th>
+                                <th class="p-2 text-center text-sm font-medium text-gray-700">韩语</th>
+                                <th class="p-2 text-center text-sm font-medium text-gray-700">德语</th>
+                                <th class="p-2 text-center text-sm font-medium text-gray-700">法语</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="p-2 text-sm font-medium text-gray-700">中国大陆</td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-emerald-500">92%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-amber-500">65%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 text-sm font-medium text-gray-700">美国</td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-amber-500">58%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-emerald-500">85%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 text-sm font-medium text-gray-700">日本</td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-red-500">32%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-amber-500">55%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-red-500">28%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 text-sm font-medium text-gray-700">德国</td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-emerald-400">72%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-amber-500">62%</div></td>
+                                <td class="p-2"><div class="heatmap-cell w-full h-10 rounded flex items-center justify-center text-white font-bold bg-gray-300">-</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex items-center justify-center gap-6 mt-4">
+                    <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-emerald-500"></div><span class="text-xs text-gray-500">优秀 (>80%)</span></div>
+                    <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-amber-500"></div><span class="text-xs text-gray-500">中等 (50-80%)</span></div>
+                    <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-red-500"></div><span class="text-xs text-gray-500">待优化 (<50%)</span></div>
+                    <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-gray-300"></div><span class="text-xs text-gray-500">无数据</span></div>
+                </div>
+            </div>
+
+            <!-- 机会发现 -->
+            <div class="grid grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">高潜力机会</h3>
+                    <div class="space-y-3">
+                        <div class="p-4 bg-emerald-50 rounded-lg border-l-4 border-emerald-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium text-gray-900">日本 × 日语</span>
+                                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">高机会</span>
+                            </div>
+                            <p class="text-sm text-gray-600">当前可见度仅 28%，但市场潜力大，建议优先本地化</p>
+                        </div>
+                        <div class="p-4 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium text-gray-900">德国 × 德语</span>
+                                <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">中等机会</span>
+                            </div>
+                            <p class="text-sm text-gray-600">可见度 62%，通过优化可提升至 80%+</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">优化建议</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-language text-indigo-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">增加日语内容</p>
+                                <p class="text-sm text-gray-500">预计可见度提升 +45%</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-globe text-purple-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">德语本地化优化</p>
+                                <p class="text-sm text-gray-500">预计可见度提升 +18%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+
+

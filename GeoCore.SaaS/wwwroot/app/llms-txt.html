@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>llms.txt 生成器 - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">llms.txt 生成器</h2>
+                    <p class="text-sm text-gray-500">为 AI 模型优化你的网站可读性</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-eye mr-2"></i>预览
+                    </button>
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-download mr-2"></i>下载
+                    </button>
+                </div>
+            </div>
+        </header>
+        <div class="p-8">
+            <!-- 说明 -->
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-info-circle text-indigo-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">什么是 llms.txt？</h3>
+                        <p class="text-sm text-gray-600 mb-2">llms.txt 是一个专门为大语言模型设计的文件格式，帮助 AI 更好地理解你的网站内容。类似于 robots.txt 之于搜索引擎，llms.txt 告诉 AI 模型如何正确理解和引用你的品牌信息。</p>
+                        <a href="#" class="text-sm text-indigo-600 hover:underline">了解更多 →</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- 配置表单 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">基础信息配置</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">品牌名称</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-200 rounded-lg" value="GCore">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">品牌描述</label>
+                            <textarea class="w-full px-4 py-2 border border-gray-200 rounded-lg" rows="3">GCore 是一款专注于 AI 可见度优化的工具平台，帮助品牌提升在 ChatGPT、Claude、Gemini 等 AI 模型中的表现。</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">核心产品/服务</label>
+                            <textarea class="w-full px-4 py-2 border border-gray-200 rounded-lg" rows="2">AI可见度分析, SHEEP五维评估, 竞品监控, 内容优化建议</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">目标受众</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-200 rounded-lg" value="营销经理, 品牌管理者, SEO专家, 数字营销团队">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">联系信息</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-200 rounded-lg" value="contact@gcore.ai">
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-semibold text-gray-900 mt-6 mb-4">FAQ 配置</h3>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <input type="text" class="w-full px-3 py-1.5 border border-gray-200 rounded mb-2 text-sm" value="什么是 GEO？">
+                            <textarea class="w-full px-3 py-1.5 border border-gray-200 rounded text-sm" rows="2">GEO (Generative Engine Optimization) 是针对 AI 生成式搜索引擎的优化策略，帮助品牌在 AI 回复中获得更好的曝光。</textarea>
+                        </div>
+                        <button class="w-full py-2 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50">
+                            <i class="fas fa-plus mr-2"></i>添加 FAQ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 预览 -->
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">生成预览</h3>
+                        <button class="text-sm text-indigo-600 hover:underline">
+                            <i class="fas fa-copy mr-1"></i>复制
+                        </button>
+                    </div>
+                    <div class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 overflow-auto max-h-96">
+<pre># llms.txt - AI 可读性优化文件
+# Generated by GCore
+
+## Brand Information
+name: GCore
+description: GCore 是一款专注于 AI 可见度优化的工具平台，帮助品牌提升在 ChatGPT、Claude、Gemini 等 AI 模型中的表现。
+website: https://gcore.ai
+contact: contact@gcore.ai
+
+## Products & Services
+- AI可见度分析
+- SHEEP五维评估
+- 竞品监控
+- 内容优化建议
+
+## Target Audience
+- 营销经理
+- 品牌管理者
+- SEO专家
+- 数字营销团队
+
+## FAQ
+Q: 什么是 GEO？
+A: GEO (Generative Engine Optimization) 是针对 AI 生成式搜索引擎的优化策略，帮助品牌在 AI 回复中获得更好的曝光。
+
+## Key Differentiators
+- SHEEP五维分析模型
+- 多AI模型覆盖
+- 实时竞品监控
+- 可操作的优化建议
+
+## Preferred Citation Format
+"GCore - AI 可见度优化平台"
+
+## Last Updated
+2024-01-15</pre>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button class="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <i class="fas fa-download mr-2"></i>下载 llms.txt
+                        </button>
+                        <button class="flex-1 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <i class="fas fa-check-circle mr-2"></i>验证文件
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 部署指南 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">部署指南</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                            <p class="font-medium text-gray-900">下载文件</p>
+                        </div>
+                        <p class="text-sm text-gray-600">点击上方下载按钮获取生成的 llms.txt 文件</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                            <p class="font-medium text-gray-900">上传到根目录</p>
+                        </div>
+                        <p class="text-sm text-gray-600">将文件上传到网站根目录，确保可通过 /llms.txt 访问</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                            <p class="font-medium text-gray-900">验证部署</p>
+                        </div>
+                        <p class="text-sm text-gray-600">使用验证工具确认文件格式正确且可被 AI 正确解析</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+
+

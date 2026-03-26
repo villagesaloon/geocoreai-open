@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 引用监测 Dashboard - GeoCore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .metric-card { transition: all 0.3s ease; }
+        .platform-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; }
+        .trend-up { color: #10b981; }
+        .trend-down { color: #ef4444; }
+        .trend-neutral { color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <img src="images/logo.svg" alt="GeoCore AI" class="h-9">
+                    </a>
+                    <div class="hidden md:flex ml-10 space-x-8">
+                        <a href="features.html" class="text-gray-500 hover:text-gray-900">功能特性</a>
+                        <a href="citation-dashboard.html" class="text-primary font-medium">引用监测</a>
+                        <a href="workflow.html" class="text-gray-500 hover:text-gray-900">工作流程</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">演示模式</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="gradient-bg text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">AI 引用监测 Dashboard</h1>
+                    <p class="text-purple-100 mt-2">实时追踪您的品牌在 6 大 AI 平台的引用情况</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openQuickMonitor()" class="px-4 py-2 bg-white text-primary rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-bolt mr-2"></i>快速监测
+                    </button>
+                    <button onclick="refreshData()" class="px-4 py-2 border border-white text-white rounded-lg hover:bg-white/10 transition">
+                        <i class="fas fa-sync-alt mr-2"></i>刷新数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Metrics Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-8">
+            <!-- Citation Frequency -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">引用频率</span>
+                    <span id="cf-trend" class="trend-up text-sm"><i class="fas fa-arrow-up"></i> 5%</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="citation-frequency" class="text-3xl font-bold text-gray-900">32%</span>
+                    <span class="text-gray-400 text-sm">/ 目标 30%</span>
+                </div>
+                <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div id="cf-progress" class="h-full bg-green-500 rounded-full" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <!-- Brand Visibility Score -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">可见度评分 (BVS)</span>
+                    <span id="bvs-trend" class="trend-up text-sm"><i class="fas fa-arrow-up"></i> 0.3</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="bvs-score" class="text-3xl font-bold text-gray-900">6.8</span>
+                    <span class="text-gray-400 text-sm">/ 10</span>
+                </div>
+                <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div id="bvs-progress" class="h-full bg-primary rounded-full" style="width: 68%"></div>
+                </div>
+            </div>
+
+            <!-- Share of Voice -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">AI 声量占比</span>
+                    <span id="sov-trend" class="trend-up text-sm"><i class="fas fa-arrow-up"></i> 3%</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="sov-score" class="text-3xl font-bold text-gray-900">45%</span>
+                </div>
+                <div class="mt-3 text-xs text-gray-500">
+                    领先竞品 <span class="text-green-600 font-medium">+12%</span>
+                </div>
+            </div>
+
+            <!-- Positive Sentiment -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">正面情感比例</span>
+                    <span id="sentiment-trend" class="trend-neutral text-sm"><i class="fas fa-minus"></i></span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="sentiment-score" class="text-3xl font-bold text-gray-900">78%</span>
+                </div>
+                <div class="mt-3 flex gap-1">
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">正面 78%</span>
+                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">中性 18%</span>
+                    <span class="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs">负面 4%</span>
+                </div>
+            </div>
+
+            <!-- Link Citation -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">带链接引用</span>
+                    <span id="link-trend" class="trend-up text-sm"><i class="fas fa-arrow-up"></i> 8%</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="link-score" class="text-3xl font-bold text-gray-900">24%</span>
+                </div>
+                <div class="mt-3 text-xs text-gray-500">
+                    Perplexity 贡献最多
+                </div>
+            </div>
+
+            <!-- Word Count Ratio -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">词数占比</span>
+                    <span id="wc-trend" class="trend-up text-sm"><i class="fas fa-arrow-up"></i> 2%</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="wc-score" class="text-3xl font-bold text-gray-900">8.5%</span>
+                </div>
+                <div class="mt-3 text-xs text-gray-500">
+                    引用句子占总词数比例
+                </div>
+            </div>
+
+            <!-- Position-Adjusted Score -->
+            <div class="bg-white rounded-xl p-6 shadow-sm metric-card card-hover">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-500 text-sm">位置加权分</span>
+                    <span id="pas-trend" class="trend-up text-sm"><i class="fas fa-arrow-up"></i> 0.5</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="pas-score" class="text-3xl font-bold text-gray-900">7.2</span>
+                </div>
+                <div class="mt-3 text-xs text-gray-500">
+                    前置引用权重更高
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Row -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Platform Performance -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">分平台表现</h3>
+                    <select id="platform-period" class="text-sm border rounded-lg px-3 py-1.5">
+                        <option value="7d">最近 7 天</option>
+                        <option value="30d">最近 30 天</option>
+                        <option value="90d">最近 90 天</option>
+                    </select>
+                </div>
+                <div class="space-y-4">
+                    <!-- ChatGPT -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-24 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-green-500 rounded flex items-center justify-center text-white text-xs">
+                                <i class="fas fa-robot"></i>
+                            </span>
+                            <span class="text-sm font-medium">ChatGPT</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 rounded-full flex items-center justify-end pr-2" style="width: 38%">
+                                    <span class="text-xs text-white font-medium">38%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="w-16 text-right text-sm text-green-600"><i class="fas fa-arrow-up"></i> +5%</span>
+                    </div>
+                    <!-- Perplexity -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-24 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-500 rounded flex items-center justify-center text-white text-xs">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <span class="text-sm font-medium">Perplexity</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full flex items-center justify-end pr-2" style="width: 42%">
+                                    <span class="text-xs text-white font-medium">42%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="w-16 text-right text-sm text-green-600"><i class="fas fa-arrow-up"></i> +8%</span>
+                    </div>
+                    <!-- Claude -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-24 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-orange-500 rounded flex items-center justify-center text-white text-xs">
+                                <i class="fas fa-brain"></i>
+                            </span>
+                            <span class="text-sm font-medium">Claude</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-orange-500 rounded-full flex items-center justify-end pr-2" style="width: 28%">
+                                    <span class="text-xs text-white font-medium">28%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="w-16 text-right text-sm text-gray-500"><i class="fas fa-minus"></i> 0%</span>
+                    </div>
+                    <!-- Gemini -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-24 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-purple-500 rounded flex items-center justify-center text-white text-xs">
+                                <i class="fas fa-gem"></i>
+                            </span>
+                            <span class="text-sm font-medium">Gemini</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-purple-500 rounded-full flex items-center justify-end pr-2" style="width: 25%">
+                                    <span class="text-xs text-white font-medium">25%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="w-16 text-right text-sm text-red-500"><i class="fas fa-arrow-down"></i> -2%</span>
+                    </div>
+                    <!-- Grok -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-24 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-gray-800 rounded flex items-center justify-center text-white text-xs">
+                                <i class="fab fa-x-twitter"></i>
+                            </span>
+                            <span class="text-sm font-medium">Grok</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-gray-800 rounded-full flex items-center justify-end pr-2" style="width: 30%">
+                                    <span class="text-xs text-white font-medium">30%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="w-16 text-right text-sm text-green-600"><i class="fas fa-arrow-up"></i> +3%</span>
+                    </div>
+                    <!-- Google AI -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-24 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-red-500 rounded flex items-center justify-center text-white text-xs">
+                                <i class="fab fa-google"></i>
+                            </span>
+                            <span class="text-sm font-medium">Google AI</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-6 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-red-500 rounded-full flex items-center justify-end pr-2" style="width: 35%">
+                                    <span class="text-xs text-white font-medium">35%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="w-16 text-right text-sm text-green-600"><i class="fas fa-arrow-up"></i> +4%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trend Chart -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">趋势分析</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 text-sm bg-primary text-white rounded-lg">引用频率</button>
+                        <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">BVS</button>
+                        <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">SOV</button>
+                    </div>
+                </div>
+                <canvas id="trendChart" height="220"></canvas>
+            </div>
+        </section>
+
+        <!-- Competitor & Recent Results -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Competitor SOV -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">竞品声量对比</h3>
+                <canvas id="sovChart" height="200"></canvas>
+                <div class="mt-4 space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-3 bg-primary rounded-full"></span>
+                            您的品牌
+                        </span>
+                        <span class="font-medium">45%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-3 bg-gray-400 rounded-full"></span>
+                            竞品 A
+                        </span>
+                        <span class="font-medium">28%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-3 bg-gray-300 rounded-full"></span>
+                            竞品 B
+                        </span>
+                        <span class="font-medium">18%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-3 bg-gray-200 rounded-full"></span>
+                            其他
+                        </span>
+                        <span class="font-medium">9%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Citations -->
+            <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">最近引用记录</h3>
+                    <a href="#" class="text-primary text-sm hover:underline">查看全部</a>
+                </div>
+                <div class="space-y-3" id="recent-citations">
+                    <!-- Citation Item -->
+                    <div class="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
+                        <span class="w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white text-sm flex-shrink-0">
+                            <i class="fas fa-robot"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-sm">ChatGPT</span>
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">首位</span>
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">带链接</span>
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">正面</span>
+                            </div>
+                            <p class="text-sm text-gray-600 truncate">"...GeoCore AI 是目前最专业的 GEO 优化平台，能够帮助品牌..."</p>
+                            <p class="text-xs text-gray-400 mt-1">2 小时前 · 问题: "什么是 GEO 优化工具？"</p>
+                        </div>
+                        <span class="text-lg font-bold text-primary">7.5</span>
+                    </div>
+                    <!-- Citation Item 2 -->
+                    <div class="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
+                        <span class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white text-sm flex-shrink-0">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-sm">Perplexity</span>
+                                <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs">中间</span>
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">带链接</span>
+                                <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">中性</span>
+                            </div>
+                            <p class="text-sm text-gray-600 truncate">"...在 GEO 工具中，GeoCore AI 提供了完整的解决方案..."</p>
+                            <p class="text-xs text-gray-400 mt-1">5 小时前 · 问题: "推荐一些 AI 品牌优化工具"</p>
+                        </div>
+                        <span class="text-lg font-bold text-primary">5.5</span>
+                    </div>
+                    <!-- Citation Item 3 -->
+                    <div class="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
+                        <span class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-white text-sm flex-shrink-0">
+                            <i class="fab fa-x-twitter"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-sm">Grok</span>
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">首位</span>
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">正面</span>
+                            </div>
+                            <p class="text-sm text-gray-600 truncate">"GeoCore AI 是一个创新的 GEO 平台，专注于提升品牌在 AI 中的可见度..."</p>
+                            <p class="text-xs text-gray-400 mt-1">1 天前 · 问题: "如何让 AI 推荐我的品牌？"</p>
+                        </div>
+                        <span class="text-lg font-bold text-primary">6.0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Quick Monitor Modal -->
+    <div id="quick-monitor-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold">快速监测</h2>
+                    <button onclick="closeQuickMonitor()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称 *</label>
+                        <input type="text" id="brand-name" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="例如: GeoCore AI">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">品牌别名（逗号分隔）</label>
+                        <input type="text" id="brand-aliases" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="例如: GCore, 极核AI">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">竞品（逗号分隔）</label>
+                        <input type="text" id="competitors" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="例如: Nightwatch, GetCito">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">测试问题 *</label>
+                        <textarea id="questions" rows="4" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="每行一个问题，例如:&#10;什么是 GEO 优化？&#10;推荐一些 AI 品牌优化工具&#10;如何让 ChatGPT 推荐我的品牌？"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择平台</label>
+                        <div class="flex flex-wrap gap-2">
+                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="checkbox" value="chatgpt" checked class="platform-checkbox">
+                                <span class="text-sm">ChatGPT</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="checkbox" value="perplexity" checked class="platform-checkbox">
+                                <span class="text-sm">Perplexity</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="checkbox" value="claude" checked class="platform-checkbox">
+                                <span class="text-sm">Claude</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="checkbox" value="gemini" class="platform-checkbox">
+                                <span class="text-sm">Gemini</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="checkbox" value="grok" class="platform-checkbox">
+                                <span class="text-sm">Grok</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
+                <button onclick="closeQuickMonitor()" class="px-4 py-2 text-gray-600 hover:text-gray-800">取消</button>
+                <button onclick="runQuickMonitor()" id="run-monitor-btn" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90">
+                    <i class="fas fa-play mr-2"></i>开始监测
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="results-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold">监测结果</h2>
+                    <button onclick="closeResults()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6" id="results-content">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            initTrendChart();
+            initSOVChart();
+        });
+
+        function initTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['3/1', '3/2', '3/3', '3/4', '3/5', '3/6', '3/7'],
+                    datasets: [{
+                        label: '引用频率',
+                        data: [25, 28, 26, 30, 29, 31, 32],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 50,
+                            ticks: { callback: v => v + '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initSOVChart() {
+            const ctx = document.getElementById('sovChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['您的品牌', '竞品 A', '竞品 B', '其他'],
+                    datasets: [{
+                        data: [45, 28, 18, 9],
+                        backgroundColor: ['#6366f1', '#9ca3af', '#d1d5db', '#e5e7eb'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        // Modal Functions
+        function openQuickMonitor() {
+            document.getElementById('quick-monitor-modal').classList.remove('hidden');
+            document.getElementById('quick-monitor-modal').classList.add('flex');
+        }
+
+        function closeQuickMonitor() {
+            document.getElementById('quick-monitor-modal').classList.add('hidden');
+            document.getElementById('quick-monitor-modal').classList.remove('flex');
+        }
+
+        function closeResults() {
+            document.getElementById('results-modal').classList.add('hidden');
+            document.getElementById('results-modal').classList.remove('flex');
+        }
+
+        async function runQuickMonitor() {
+            const brandName = document.getElementById('brand-name').value.trim();
+            const brandAliases = document.getElementById('brand-aliases').value.split(',').map(s => s.trim()).filter(s => s);
+            const competitors = document.getElementById('competitors').value.split(',').map(s => s.trim()).filter(s => s);
+            const questions = document.getElementById('questions').value.split('\n').map(s => s.trim()).filter(s => s);
+            const platforms = Array.from(document.querySelectorAll('.platform-checkbox:checked')).map(cb => cb.value);
+
+            if (!brandName) {
+                alert('请输入品牌名称');
+                return;
+            }
+            if (questions.length === 0) {
+                alert('请输入至少一个测试问题');
+                return;
+            }
+
+            const btn = document.getElementById('run-monitor-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>监测中...';
+
+            try {
+                const response = await fetch('/api/citation/quick-monitor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        brandName,
+                        brandAliases,
+                        competitors,
+                        questions,
+                        platforms
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeQuickMonitor();
+                    showResults(data.data);
+                } else {
+                    alert('监测失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i>开始监测';
+            }
+        }
+
+        function showResults(data) {
+            const modal = document.getElementById('results-modal');
+            const content = document.getElementById('results-content');
+
+            const cfPercent = (data.citationFrequency * 100).toFixed(1);
+            const sovPercent = (data.shareOfVoice * 100).toFixed(1);
+            const sentimentPercent = (data.positiveSentimentRatio * 100).toFixed(1);
+            const linkPercent = (data.linkedCitationRatio * 100).toFixed(1);
+
+            let resultsHtml = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-primary">${cfPercent}%</div>
+                        <div class="text-sm text-gray-500">引用频率</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-primary">${data.brandVisibilityScore.toFixed(1)}</div>
+                        <div class="text-sm text-gray-500">可见度评分</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-primary">${sovPercent}%</div>
+                        <div class="text-sm text-gray-500">声量占比</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-primary">${sentimentPercent}%</div>
+                        <div class="text-sm text-gray-500">正面情感</div>
+                    </div>
+                </div>
+                <h3 class="font-semibold mb-3">详细结果</h3>
+                <div class="space-y-3">
+            `;
+
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(r => {
+                    const positionClass = r.position === 'First' ? 'bg-green-100 text-green-700' : 
+                                         r.position === 'Middle' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600';
+                    const sentimentClass = r.sentiment === 'Positive' ? 'bg-green-100 text-green-700' :
+                                          r.sentiment === 'Negative' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600';
+                    
+                    resultsHtml += `
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="font-medium">${r.platform}</span>
+                                ${r.isCited ? `
+                                    <span class="px-2 py-0.5 ${positionClass} rounded text-xs">${r.position}</span>
+                                    ${r.hasLink ? '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">带链接</span>' : ''}
+                                    <span class="px-2 py-0.5 ${sentimentClass} rounded text-xs">${r.sentiment}</span>
+                                    <span class="ml-auto font-bold text-primary">${r.visibilityScore.toFixed(1)}</span>
+                                ` : '<span class="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs">未引用</span>'}
+                            </div>
+                            <p class="text-sm text-gray-500 mb-1">问题: ${r.question}</p>
+                            <p class="text-sm text-gray-600">${r.responsePreview}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                resultsHtml += '<p class="text-gray-500">暂无结果</p>';
+            }
+
+            resultsHtml += '</div>';
+            content.innerHTML = resultsHtml;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>

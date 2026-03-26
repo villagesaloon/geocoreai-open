@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Trends API 测试</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #3367d6; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .heat-bar {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .heat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            transition: width 0.3s;
+        }
+        .tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Google Trends API 测试</h1>
+    
+    <div class="card">
+        <h3>单个关键词查询</h3>
+        <div class="input-group">
+            <input type="text" id="keyword" placeholder="输入关键词，如: yoga pants, ChatGPT" value="ChatGPT">
+            <button onclick="searchSingle()" id="searchBtn">查询热度</button>
+        </div>
+        <div id="singleResult"></div>
+    </div>
+
+    <div class="card">
+        <h3>批量关键词对比</h3>
+        <div class="input-group">
+            <input type="text" id="keywords" placeholder="多个关键词用逗号分隔，如: ChatGPT, Claude, Gemini" value="ChatGPT, Claude, Gemini">
+            <button onclick="searchBatch()" id="batchBtn">批量查询</button>
+        </div>
+        <div id="batchResult"></div>
+    </div>
+
+    <div class="card">
+        <h3>API 说明</h3>
+        <p><strong>接口地址：</strong> <code>GET /api/trends/heat?keyword=xxx</code></p>
+        <p><strong>返回数据：</strong></p>
+        <pre>{
+  "keyword": "ChatGPT",
+  "avgHeat": 79,      // 过去12个月平均热度 (0-100)
+  "recentHeat": 67,   // 最近一周热度 (0-100)
+  "relatedQueries": ["chatgpt ai", "free chatgpt", ...],
+  "success": true
+}</pre>
+        <p><strong>限流：</strong> 每个用户每分钟最多 10 次请求</p>
+    </div>
+
+    <script>
+        const API_BASE = '/api/trends';
+
+        async function searchSingle() {
+            const keyword = document.getElementById('keyword').value.trim();
+            if (!keyword) {
+                alert('请输入关键词');
+                return;
+            }
+
+            const btn = document.getElementById('searchBtn');
+            const resultDiv = document.getElementById('singleResult');
+            
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading">⏳ 正在查询...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/heat?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h4>📊 ${data.keyword}</h4>
+                            <p><strong>平均热度：</strong> ${data.avgHeat}/100</p>
+                            <div class="heat-bar">
+                                <div class="heat-fill" style="width: ${data.avgHeat}%"></div>
+                            </div>
+                            <p><strong>最近热度：</strong> ${data.recentHeat}/100</p>
+                            <div class="heat-bar">
+                                <div class="heat-fill" style="width: ${data.recentHeat}%"></div>
+                            </div>
+                            <p><strong>相关查询：</strong></p>
+                            <div>${data.relatedQueries.map(q => `<span class="tag">${q}</span>`).join('')}</div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">❌ 查询失败: ${data.error || '未知错误'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ 请求失败: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function searchBatch() {
+            const input = document.getElementById('keywords').value.trim();
+            if (!input) {
+                alert('请输入关键词');
+                return;
+            }
+
+            const keywords = input.split(',').map(k => k.trim()).filter(k => k);
+            if (keywords.length === 0) {
+                alert('请输入有效的关键词');
+                return;
+            }
+
+            const btn = document.getElementById('batchBtn');
+            const resultDiv = document.getElementById('batchResult');
+            
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading">⏳ 正在批量查询...</div>';
+
+            const results = [];
+            for (const keyword of keywords) {
+                try {
+                    const response = await fetch(`${API_BASE}/heat?keyword=${encodeURIComponent(keyword)}`);
+                    const data = await response.json();
+                    results.push(data);
+                    
+                    // 显示进度
+                    resultDiv.innerHTML = `<div class="loading">⏳ 已完成 ${results.length}/${keywords.length}...</div>`;
+                    
+                    // 延迟避免限流
+                    if (results.length < keywords.length) {
+                        await new Promise(r => setTimeout(r, 1200));
+                    }
+                } catch (error) {
+                    results.push({ keyword, success: false, error: error.message });
+                }
+            }
+
+            // 按热度排序
+            results.sort((a, b) => (b.recentHeat || 0) - (a.recentHeat || 0));
+
+            let html = '<table><tr><th>关键词</th><th>平均热度</th><th>最近热度</th><th>状态</th></tr>';
+            for (const r of results) {
+                const status = r.success ? '<span class="success">✅</span>' : '<span class="error">❌</span>';
+                html += `<tr>
+                    <td>${r.keyword}</td>
+                    <td>${r.avgHeat || 0}</td>
+                    <td>${r.recentHeat || 0}</td>
+                    <td>${status}</td>
+                </tr>`;
+            }
+            html += '</table>';
+
+            resultDiv.innerHTML = `<div class="result">${html}</div>`;
+            btn.disabled = false;
+        }
+    </script>
+</body>
+</html>

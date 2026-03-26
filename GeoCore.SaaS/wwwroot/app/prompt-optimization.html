@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt 优化 - GEO Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-gray-900 text-white flex-shrink-0"></div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Prompt 优化</h1>
+                        <p class="text-sm text-gray-500 mt-1">Context Engineering 和模型特定策略</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="bg-white border-b border-gray-200 px-6">
+                <nav class="flex space-x-8">
+                    <button onclick="switchTab('analyze')" id="tab-analyze" 
+                            class="tab-btn py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        <i class="fas fa-microscope mr-2"></i>Prompt 分析
+                    </button>
+                    <button onclick="switchTab('optimize')" id="tab-optimize"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-magic mr-2"></i>优化建议
+                    </button>
+                    <button onclick="switchTab('models')" id="tab-models"
+                            class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-robot mr-2"></i>模型策略
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <main class="p-6">
+                <!-- Tab: Prompt 分析 -->
+                <div id="content-analyze" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">输入 Prompt</h3>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Prompt 内容</label>
+                                <textarea id="promptContent" rows="12" placeholder="粘贴你的 Prompt..."
+                                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">目标模型</label>
+                                <select id="targetModel" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                    <option value="gpt-4">GPT-4 / GPT-4o</option>
+                                    <option value="claude">Claude 3.5</option>
+                                    <option value="gemini">Gemini Pro</option>
+                                    <option value="general">通用</option>
+                                </select>
+                            </div>
+                            <button onclick="analyzePrompt()" 
+                                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-search mr-2"></i>分析 Prompt
+                            </button>
+                        </div>
+
+                        <div id="analyzeResult" class="space-y-4">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-500">
+                                <i class="fas fa-microscope text-6xl text-gray-300 mb-4"></i>
+                                <p>输入 Prompt 并点击分析</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: 优化建议 -->
+                <div id="content-optimize" class="tab-content hidden">
+                    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-6 text-white mb-6">
+                        <h2 class="text-xl font-semibold mb-2">
+                            <i class="fas fa-lightbulb mr-2"></i>Context Engineering 最佳实践
+                        </h2>
+                        <p class="text-purple-100">150-300 词最佳，3000 token 后性能下降</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Best Practice Cards -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="fas fa-ruler text-green-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">最佳长度</h3>
+                            <p class="text-sm text-gray-600 mb-3">150-300 词的 Prompt 效果最佳</p>
+                            <div class="bg-green-50 rounded-lg p-3 text-sm text-green-800">
+                                <p>• 太短：缺乏上下文</p>
+                                <p>• 太长：注意力分散</p>
+                                <p>• 最佳：精准且完整</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="fas fa-layer-group text-blue-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">结构化格式</h3>
+                            <p class="text-sm text-gray-600 mb-3">使用清晰的结构提升理解</p>
+                            <div class="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">
+                                <p>• 使用标题和分节</p>
+                                <p>• 列表和编号</p>
+                                <p>• 明确的分隔符</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="fas fa-bullseye text-purple-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">明确目标</h3>
+                            <p class="text-sm text-gray-600 mb-3">清晰定义期望输出</p>
+                            <div class="bg-purple-50 rounded-lg p-3 text-sm text-purple-800">
+                                <p>• 具体的任务描述</p>
+                                <p>• 期望的格式</p>
+                                <p>• 成功标准</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="fas fa-book text-yellow-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">示例驱动</h3>
+                            <p class="text-sm text-gray-600 mb-3">Few-shot 学习提升准确性</p>
+                            <div class="bg-yellow-50 rounded-lg p-3 text-sm text-yellow-800">
+                                <p>• 提供 2-3 个示例</p>
+                                <p>• 展示输入输出对</p>
+                                <p>• 覆盖边界情况</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">避免陷阱</h3>
+                            <p class="text-sm text-gray-600 mb-3">常见错误和解决方案</p>
+                            <div class="bg-red-50 rounded-lg p-3 text-sm text-red-800">
+                                <p>• 避免模糊指令</p>
+                                <p>• 不要过度约束</p>
+                                <p>• 减少冗余信息</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="fas fa-sync text-indigo-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">迭代优化</h3>
+                            <p class="text-sm text-gray-600 mb-3">持续测试和改进</p>
+                            <div class="bg-indigo-50 rounded-lg p-3 text-sm text-indigo-800">
+                                <p>• A/B 测试变体</p>
+                                <p>• 收集反馈</p>
+                                <p>• 版本控制</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: 模型策略 -->
+                <div id="content-models" class="tab-content hidden">
+                    <div class="space-y-6">
+                        <!-- GPT-4 -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="bg-green-50 px-6 py-4 border-b border-green-100">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-900">GPT-4 / GPT-4o</h3>
+                                        <p class="text-sm text-gray-500">OpenAI</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">推荐策略</h4>
+                                        <ul class="text-sm text-gray-600 space-y-1">
+                                            <li>• GPT-5 可跳过 Chain-of-Thought</li>
+                                            <li>• 使用 System Message 设定角色</li>
+                                            <li>• JSON Mode 获取结构化输出</li>
+                                            <li>• 使用 Function Calling</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">示例模板</h4>
+                                        <pre class="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto">You are an expert in [domain].
+
+Task: [specific task]
+
+Requirements:
+- [requirement 1]
+- [requirement 2]
+
+Output format: JSON</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Claude -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="bg-orange-50 px-6 py-4 border-b border-orange-100">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-900">Claude 3.5</h3>
+                                        <p class="text-sm text-gray-500">Anthropic</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">推荐策略</h4>
+                                        <ul class="text-sm text-gray-600 space-y-1">
+                                            <li>• <strong>使用 XML 标签</strong>结构化输入</li>
+                                            <li>• 提供详细的推理步骤</li>
+                                            <li>• 使用 &lt;thinking&gt; 标签引导思考</li>
+                                            <li>• 长文本处理能力强</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">示例模板</h4>
+                                        <pre class="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto">&lt;context&gt;
+[background information]
+&lt;/context&gt;
+
+&lt;task&gt;
+[specific task description]
+&lt;/task&gt;
+
+&lt;requirements&gt;
+- [requirement 1]
+- [requirement 2]
+&lt;/requirements&gt;</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gemini -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="bg-blue-50 px-6 py-4 border-b border-blue-100">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                        <i class="fas fa-gem"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-900">Gemini Pro</h3>
+                                        <p class="text-sm text-gray-500">Google</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">推荐策略</h4>
+                                        <ul class="text-sm text-gray-600 space-y-1">
+                                            <li>• <strong>简短精炼</strong>的指令</li>
+                                            <li>• 多模态输入支持</li>
+                                            <li>• 使用 Markdown 格式</li>
+                                            <li>• 避免过长的上下文</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">示例模板</h4>
+                                        <pre class="bg-gray-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto"># Task
+[brief task description]
+
+# Input
+[input data]
+
+# Expected Output
+[format description]</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comparison Table -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">模型对比</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b">
+                                            <th class="text-left py-3 px-4">特性</th>
+                                            <th class="text-center py-3 px-4">GPT-4</th>
+                                            <th class="text-center py-3 px-4">Claude</th>
+                                            <th class="text-center py-3 px-4">Gemini</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b">
+                                            <td class="py-3 px-4">最佳格式</td>
+                                            <td class="text-center py-3 px-4">Markdown/JSON</td>
+                                            <td class="text-center py-3 px-4 font-medium text-orange-600">XML</td>
+                                            <td class="text-center py-3 px-4">Markdown</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="py-3 px-4">上下文长度</td>
+                                            <td class="text-center py-3 px-4">128K</td>
+                                            <td class="text-center py-3 px-4 font-medium text-orange-600">200K</td>
+                                            <td class="text-center py-3 px-4">1M</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="py-3 px-4">CoT 需求</td>
+                                            <td class="text-center py-3 px-4">可选</td>
+                                            <td class="text-center py-3 px-4">推荐</td>
+                                            <td class="text-center py-3 px-4">简短</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-3 px-4">最佳用途</td>
+                                            <td class="text-center py-3 px-4">代码/推理</td>
+                                            <td class="text-center py-3 px-4">分析/写作</td>
+                                            <td class="text-center py-3 px-4">多模态</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script>
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            const tabBtn = document.getElementById(`tab-${tab}`);
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+            tabBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // 5.31 Prompt 分析
+        async function analyzePrompt() {
+            const prompt = document.getElementById('promptContent').value;
+            const targetModel = document.getElementById('targetModel').value;
+
+            if (!prompt) {
+                alert('请输入 Prompt 内容');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/prompt-optimization/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, targetModel })
+                });
+                const data = await response.json();
+                renderAnalyzeResult(data);
+            } catch (error) {
+                alert('分析失败: ' + error.message);
+            }
+        }
+
+        function renderAnalyzeResult(data) {
+            const resultHtml = `
+                <!-- Score Card -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-1">Prompt 质量评分</h3>
+                            <p class="text-blue-100 text-sm">${data.summary || '基于 Context Engineering 原则评估'}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-4xl font-bold">${Math.round(data.overallScore || 0)}</div>
+                            <div class="text-blue-200 text-sm">/ 100</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h4 class="font-semibold text-gray-900 mb-4">详细指标</h4>
+                    <div class="space-y-4">
+                        ${renderMetric('长度', data.lengthScore, data.wordCount + ' 词', data.lengthFeedback)}
+                        ${renderMetric('清晰度', data.clarityScore, '', data.clarityFeedback)}
+                        ${renderMetric('结构', data.structureScore, '', data.structureFeedback)}
+                        ${renderMetric('具体性', data.specificityScore, '', data.specificityFeedback)}
+                    </div>
+                </div>
+
+                <!-- Suggestions -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h4 class="font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>优化建议
+                    </h4>
+                    <div class="space-y-3">
+                        ${data.suggestions ? data.suggestions.map(s => `
+                            <div class="flex items-start p-3 rounded-lg ${
+                                s.priority === 'high' ? 'bg-red-50' : s.priority === 'medium' ? 'bg-yellow-50' : 'bg-gray-50'
+                            }">
+                                <i class="fas fa-${s.priority === 'high' ? 'exclamation-circle text-red-500' : 'info-circle text-yellow-500'} mt-1 mr-3"></i>
+                                <div>
+                                    <p class="font-medium text-gray-900">${s.message}</p>
+                                    ${s.example ? `<p class="text-sm text-gray-600 mt-1">示例: ${s.example}</p>` : ''}
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-gray-500">暂无建议</p>'}
+                    </div>
+                </div>
+
+                <!-- Model-Specific Tips -->
+                ${data.modelTips ? `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h4 class="font-semibold text-gray-900 mb-4">
+                            <i class="fas fa-robot text-blue-500 mr-2"></i>${data.targetModel} 特定建议
+                        </h4>
+                        <div class="space-y-2">
+                            ${data.modelTips.map(t => `
+                                <div class="flex items-center text-gray-700">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>${t}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById('analyzeResult').innerHTML = resultHtml;
+        }
+
+        function renderMetric(name, score, value, feedback) {
+            const color = score >= 80 ? 'green' : score >= 60 ? 'yellow' : 'red';
+            return `
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-700">${name}</span>
+                        <span class="text-sm text-gray-500">${value ? value + ' | ' : ''}${Math.round(score || 0)}/100</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                        <div class="bg-${color}-500 h-2 rounded-full transition-all" style="width: ${score || 0}%"></div>
+                    </div>
+                    ${feedback ? `<p class="text-xs text-gray-500">${feedback}</p>` : ''}
+                </div>
+            `;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initSidebar === 'function') initSidebar();
+        });
+    </script>
+</body>
+</html>

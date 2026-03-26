@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容适配器 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .channel-tab { transition: all 0.2s; }
+        .channel-tab.active { background: #6366f1; color: white; }
+        .channel-tab:not(.active):hover { background: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <!-- 侧边栏 - 使用统一导航组件 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 主内容 -->
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">内容适配器</h2>
+                    <p class="text-sm text-gray-500">将内容自动适配为不同渠道的最佳格式</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <div class="grid grid-cols-2 gap-6">
+                <!-- 左侧：原始内容输入 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="fas fa-edit text-indigo-600 mr-2"></i>原始内容
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">内容标题</label>
+                            <input type="text" id="contentTitle" placeholder="输入文章标题..."
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                                   value="2024年最值得购买的智能家居产品推荐">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">核心内容</label>
+                            <textarea id="contentBody" rows="12" placeholder="输入文章内容..."
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm resize-none">随着智能家居技术的快速发展，越来越多的消费者开始关注如何打造智能化的生活空间。本文将为大家推荐几款2024年最值得购买的智能家居产品。
+
+1. 智能音箱：小米小爱音箱Pro
+小爱音箱Pro 支持全屋智能控制，语音识别准确率高达98%，支持连续对话和多轮交互。价格仅299元，性价比极高。
+
+2. 智能门锁：德施曼Q5M Pro
+采用3D人脸识别技术，支持指纹、密码、NFC等多种开锁方式。安全等级达到金融级别，适合注重安全的家庭。
+
+3. 扫地机器人：石头G20
+搭载RR Mason 10.0算法，支持自动集尘、自动洗拖布。清洁效率提升50%，是目前市场上最智能的扫地机器人之一。
+
+总结：选择智能家居产品时，建议优先考虑生态兼容性和售后服务。小米生态链产品互联互通性最好，适合打造全屋智能。</textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">关键词标签</label>
+                            <input type="text" id="contentTags" placeholder="用逗号分隔..."
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                                   value="智能家居, 小米, 扫地机器人, 智能门锁, 2024推荐">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">品牌/产品链接（可选）</label>
+                            <input type="url" id="brandLink" placeholder="https://www.example.com/product"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <button onclick="generateAdaptedContent()" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                            <i class="fas fa-magic mr-2"></i>生成适配内容
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：适配结果 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="fas fa-file-export text-green-600 mr-2"></i>适配结果
+                        </h3>
+                    </div>
+                    
+                    <!-- 渠道选择标签 -->
+                    <div class="px-6 py-3 border-b border-gray-200 bg-gray-50">
+                        <div class="flex gap-2 overflow-x-auto" id="channelTabs">
+                            <button class="channel-tab active px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-channel="zhihu">
+                                <i class="fab fa-z mr-1"></i>知乎
+                            </button>
+                            <button class="channel-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-channel="xiaohongshu">
+                                <i class="fas fa-book-open mr-1"></i>小红书
+                            </button>
+                            <button class="channel-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-channel="wechat">
+                                <i class="fab fa-weixin mr-1"></i>公众号
+                            </button>
+                            <button class="channel-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-channel="toutiao">
+                                <i class="fas fa-newspaper mr-1"></i>头条
+                            </button>
+                            <button class="channel-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-channel="weibo">
+                                <i class="fab fa-weibo mr-1"></i>微博
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 适配内容展示 -->
+                    <div class="p-6">
+                        <div id="adaptedContent" class="min-h-[400px]">
+                            <!-- 动态生成 -->
+                        </div>
+                        
+                        <!-- 操作按钮 -->
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="copyContent()" class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                                <i class="fas fa-copy mr-2"></i>复制内容
+                            </button>
+                            <button onclick="downloadContent()" class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                                <i class="fas fa-download mr-2"></i>下载
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 渠道特性说明 -->
+            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="font-semibold text-gray-900">
+                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>渠道适配策略
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-5 gap-4">
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fab fa-z text-blue-600"></i>
+                                <span class="font-medium text-gray-900">知乎</span>
+                            </div>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• 专业深度分析</li>
+                                <li>• 数据引用支撑</li>
+                                <li>• 问答式开头</li>
+                                <li>• 2000-5000字</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-red-50 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fas fa-book-open text-red-600"></i>
+                                <span class="font-medium text-gray-900">小红书</span>
+                            </div>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• 生活化口吻</li>
+                                <li>• 表情符号丰富</li>
+                                <li>• 图文结合提示</li>
+                                <li>• 500-1000字</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fab fa-weixin text-green-600"></i>
+                                <span class="font-medium text-gray-900">公众号</span>
+                            </div>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• 标题党吸引</li>
+                                <li>• 段落短小精悍</li>
+                                <li>• 引导关注转发</li>
+                                <li>• 1500-3000字</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-orange-50 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fas fa-newspaper text-orange-600"></i>
+                                <span class="font-medium text-gray-900">头条</span>
+                            </div>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• 新闻式写法</li>
+                                <li>• 信息密度高</li>
+                                <li>• SEO 关键词</li>
+                                <li>• 800-2000字</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-yellow-50 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fab fa-weibo text-yellow-600"></i>
+                                <span class="font-medium text-gray-900">微博</span>
+                            </div>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• 简短有力</li>
+                                <li>• 话题标签</li>
+                                <li>• 互动引导</li>
+                                <li>• 140-500字</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentChannel = 'zhihu';
+        let adaptedContents = {};
+
+        // 渠道适配模板
+        const channelTemplates = {
+            zhihu: {
+                name: '知乎',
+                format: (title, body, tags, link) => {
+                    const tagStr = tags.split(',').map(t => `#${t.trim()}#`).join(' ');
+                    return `## ${title}
+
+作为一个长期关注智能家居领域的从业者，我来分享一下我的看法。
+
+${body}
+
+---
+
+**参考资料：**
+${link ? `- 产品详情：${link}` : ''}
+- 各品牌官网产品参数
+- 第三方评测数据
+
+**相关话题：** ${tagStr}
+
+---
+
+*以上内容基于个人使用体验和行业观察，仅供参考。如有不同意见，欢迎在评论区讨论。*`;
+                }
+            },
+            xiaohongshu: {
+                name: '小红书',
+                format: (title, body, tags, link) => {
+                    const tagStr = tags.split(',').map(t => `#${t.trim()}`).join(' ');
+                    // 简化内容，添加表情
+                    const shortBody = body.split('\n').slice(0, 8).join('\n');
+                    return `🏠 ${title} ✨
+
+姐妹们！今天来给大家种草几款超好用的智能家居好物！💕
+
+${shortBody.replace(/1\./g, '1️⃣').replace(/2\./g, '2️⃣').replace(/3\./g, '3️⃣')}
+
+💡 小tips：
+- 买之前一定要看好是否支持你家的智能生态哦
+- 建议先从智能音箱入手，慢慢扩展全屋智能
+
+📍 有问题可以评论区问我～
+
+${tagStr} #好物推荐 #家居好物`;
+                }
+            },
+            wechat: {
+                name: '公众号',
+                format: (title, body, tags, link) => {
+                    return `# ${title}
+
+> 智能家居正在改变我们的生活方式，你准备好了吗？
+
+${body}
+
+---
+
+**写在最后**
+
+智能家居不是一蹴而就的，建议大家根据自己的需求和预算，循序渐进地打造属于自己的智能生活空间。
+
+${link ? `\n🔗 **了解更多：** ${link}\n` : ''}
+
+---
+
+**觉得有用？点个「在看」支持一下 👇**
+
+*长按识别二维码，关注我们获取更多智能家居资讯*`;
+                }
+            },
+            toutiao: {
+                name: '今日头条',
+                format: (title, body, tags, link) => {
+                    const keywords = tags.split(',').slice(0, 3).join('、');
+                    return `【${title}】
+
+【导读】${keywords}等智能家居产品正在快速普及，本文为您详细解读2024年最值得入手的几款产品。
+
+${body}
+
+【编辑点评】
+智能家居市场竞争激烈，消费者在选购时应重点关注产品的生态兼容性、售后服务以及性价比。建议优先选择大品牌产品，确保使用体验和售后保障。
+
+${link ? `【相关链接】${link}` : ''}
+
+#智能家居# #科技生活# #消费指南#`;
+                }
+            },
+            weibo: {
+                name: '微博',
+                format: (title, body, tags, link) => {
+                    const tagStr = tags.split(',').map(t => `#${t.trim()}#`).join(' ');
+                    // 提取核心内容
+                    const summary = body.split('\n').filter(l => l.trim()).slice(0, 3).join(' ');
+                    return `【${title}】
+
+${summary.substring(0, 200)}...
+
+🔥 推荐清单：
+1⃣ 小米小爱音箱Pro - 299元
+2⃣ 德施曼Q5M Pro - 智能门锁
+3⃣ 石头G20 - 扫地机器人
+
+${link ? `👉 详情：${link}` : ''}
+
+${tagStr} 转发抽1位送小爱音箱！`;
+                }
+            }
+        };
+
+        // 渠道标签切换
+        document.getElementById('channelTabs').addEventListener('click', function(e) {
+            const tab = e.target.closest('.channel-tab');
+            if (!tab) return;
+            
+            document.querySelectorAll('.channel-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            currentChannel = tab.dataset.channel;
+            renderAdaptedContent();
+        });
+
+        // 生成适配内容
+        function generateAdaptedContent() {
+            const title = document.getElementById('contentTitle').value;
+            const body = document.getElementById('contentBody').value;
+            const tags = document.getElementById('contentTags').value;
+            const link = document.getElementById('brandLink').value;
+            
+            if (!title || !body) {
+                alert('请输入标题和内容');
+                return;
+            }
+            
+            // 为每个渠道生成适配内容
+            Object.keys(channelTemplates).forEach(channel => {
+                adaptedContents[channel] = channelTemplates[channel].format(title, body, tags, link);
+            });
+            
+            renderAdaptedContent();
+        }
+
+        // 渲染适配内容
+        function renderAdaptedContent() {
+            const container = document.getElementById('adaptedContent');
+            const content = adaptedContents[currentChannel];
+            
+            if (!content) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                        <i class="fas fa-file-alt text-4xl mb-3"></i>
+                        <p>点击"生成适配内容"开始</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const template = channelTemplates[currentChannel];
+            container.innerHTML = `
+                <div class="mb-4 flex items-center justify-between">
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                        ${template.name} 版本
+                    </span>
+                    <span class="text-sm text-gray-500">${content.length} 字</span>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-[350px] overflow-y-auto">
+                    <pre class="whitespace-pre-wrap text-sm text-gray-700 font-sans">${escapeHtml(content)}</pre>
+                </div>
+            `;
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 复制内容
+        function copyContent() {
+            const content = adaptedContents[currentChannel];
+            if (!content) {
+                alert('请先生成内容');
+                return;
+            }
+            
+            navigator.clipboard.writeText(content).then(() => {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                toast.innerHTML = '<i class="fas fa-check mr-2"></i>内容已复制到剪贴板';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            });
+        }
+
+        // 下载内容
+        function downloadContent() {
+            const content = adaptedContents[currentChannel];
+            if (!content) {
+                alert('请先生成内容');
+                return;
+            }
+            
+            const title = document.getElementById('contentTitle').value || 'content';
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title}_${currentChannel}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            generateAdaptedContent();
+        });
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>效果监控 - GCore AI 可见度平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link { transition: all 0.2s; }
+        .sidebar-link:hover { background: #f3f4f6; }
+        .sidebar-link.active { background: #eef2ff; color: #6366f1; border-right: 3px solid #6366f1; }
+        .tab-btn { transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom-color: #6366f1; color: #6366f1; }
+        .source-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 侧边栏 -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 z-50"></aside>
+    <script src="js/navigation.js"></script>
+
+    <!-- 无项目提示模态框 -->
+    <div id="noProjectModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">未选择项目</h3>
+                <p class="text-gray-600 mb-6">请先选择一个项目或创建新项目，然后再进行效果监控。</p>
+                <div class="flex gap-3 justify-center">
+                    <a href="projects.html" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-folder mr-2"></i>选择项目
+                    </a>
+                    <a href="setup-wizard.html" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>新建项目
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="ml-60">
+        <header class="sticky top-0 bg-white border-b border-gray-200 px-8 py-4 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">效果监控</h2>
+                    <p class="text-sm text-gray-500">AI 流量追踪 | 转化归因 | 趋势分析 | 异常预警</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="timeRange" class="px-4 py-2 border border-gray-200 rounded-lg text-sm">
+                        <option value="7">最近 7 天</option>
+                        <option value="30">最近 30 天</option>
+                        <option value="90">最近 90 天</option>
+                    </select>
+                    <button onclick="connectGA()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <i class="fab fa-google mr-2"></i>连接 GA4
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- GA 连接状态 -->
+            <div id="gaStatus" class="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <i class="fab fa-google text-amber-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Google Analytics 未连接</p>
+                            <p class="text-sm text-gray-600">连接 GA4 以追踪 AI 来源的真实流量和转化</p>
+                        </div>
+                    </div>
+                    <button onclick="connectGA()" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600">
+                        <i class="fas fa-link mr-2"></i>立即连接
+                    </button>
+                </div>
+            </div>
+
+            <!-- 核心指标 -->
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-gray-500">AI 可见度</p>
+                        <span class="text-xs text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">↑ 12%</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">68.5</p>
+                    <p class="text-xs text-gray-400 mt-1">vs 上周 61.2</p>
+                </div>
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-sm text-white">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm opacity-80">AI 来源流量</p>
+                        <span class="text-xs bg-white/20 px-2 py-0.5 rounded">↑ 34%</span>
+                    </div>
+                    <p class="text-3xl font-bold mt-1">2,847</p>
+                    <p class="text-xs opacity-70 mt-1">本周访问量</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-gray-500">AI 转化率</p>
+                        <span class="text-xs text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">↑ 8%</span>
+                    </div>
+                    <p class="text-3xl font-bold text-emerald-600 mt-1">4.2%</p>
+                    <p class="text-xs text-gray-400 mt-1">vs 传统搜索 2.1%</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-gray-500">品牌提及</p>
+                        <span class="text-xs text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">↑ 8%</span>
+                    </div>
+                    <p class="text-3xl font-bold text-indigo-600 mt-1">1,248</p>
+                    <p class="text-xs text-gray-400 mt-1">vs 上周 1,156</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-gray-500">情感评分</p>
+                        <span class="text-xs text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">↑ 5%</span>
+                    </div>
+                    <p class="text-3xl font-bold text-purple-600 mt-1">82</p>
+                    <p class="text-xs text-gray-400 mt-1">vs 上周 78</p>
+                </div>
+            </div>
+
+            <!-- 分析标签页 -->
+            <div class="bg-white rounded-xl shadow-sm mb-6">
+                <div class="flex gap-6 px-6 border-b border-gray-200">
+                    <button id="tab-traffic" class="tab-btn active pb-4 pt-4 font-medium" onclick="switchTab('traffic')">
+                        <i class="fas fa-chart-line mr-2"></i>AI 流量追踪
+                    </button>
+                    <button id="tab-keywords" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('keywords')">
+                        <i class="fas fa-key mr-2"></i>关键词归因
+                    </button>
+                    <button id="tab-conversion" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('conversion')">
+                        <i class="fas fa-funnel-dollar mr-2"></i>转化分析
+                    </button>
+                    <button id="tab-alerts" class="tab-btn pb-4 pt-4 font-medium text-gray-500" onclick="switchTab('alerts')">
+                        <i class="fas fa-bell mr-2"></i>异常预警
+                    </button>
+                </div>
+
+                <!-- AI 流量追踪 -->
+                <div id="content-traffic" class="p-6">
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <!-- 流量来源分布 -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-4">AI 流量来源分布</h4>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="source-card p-4 bg-emerald-50 rounded-lg border border-emerald-200 cursor-pointer transition-all">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-robot text-emerald-600"></i>
+                                        <span class="font-medium text-gray-900">ChatGPT</span>
+                                    </div>
+                                    <p class="text-2xl font-bold text-emerald-600">1,245</p>
+                                    <p class="text-xs text-gray-500">43.7% 占比 | ↑18%</p>
+                                </div>
+                                <div class="source-card p-4 bg-orange-50 rounded-lg border border-orange-200 cursor-pointer transition-all">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-brain text-orange-600"></i>
+                                        <span class="font-medium text-gray-900">Claude</span>
+                                    </div>
+                                    <p class="text-2xl font-bold text-orange-600">687</p>
+                                    <p class="text-xs text-gray-500">24.1% 占比 | ↑12%</p>
+                                </div>
+                                <div class="source-card p-4 bg-purple-50 rounded-lg border border-purple-200 cursor-pointer transition-all">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-search text-purple-600"></i>
+                                        <span class="font-medium text-gray-900">Perplexity</span>
+                                    </div>
+                                    <p class="text-2xl font-bold text-purple-600">523</p>
+                                    <p class="text-xs text-gray-500">18.4% 占比 | ↑45%</p>
+                                </div>
+                                <div class="source-card p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer transition-all">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-gem text-blue-600"></i>
+                                        <span class="font-medium text-gray-900">Gemini</span>
+                                    </div>
+                                    <p class="text-2xl font-bold text-blue-600">392</p>
+                                    <p class="text-xs text-gray-500">13.8% 占比 | ↑8%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 流量趋势 -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-4">AI 流量趋势</h4>
+                            <canvas id="trafficTrend" height="180"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 追踪代码说明 -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-gray-900 mb-3"><i class="fas fa-code text-indigo-500 mr-2"></i>AI 流量追踪原理</h4>
+                        <div class="grid grid-cols-3 gap-4 text-sm">
+                            <div class="p-3 bg-white rounded-lg">
+                                <p class="font-medium text-gray-900 mb-1">1. Referrer 识别</p>
+                                <p class="text-gray-600">通过 HTTP Referrer 识别来自 chat.openai.com、claude.ai 等 AI 平台的流量</p>
+                            </div>
+                            <div class="p-3 bg-white rounded-lg">
+                                <p class="font-medium text-gray-900 mb-1">2. UTM 参数</p>
+                                <p class="text-gray-600">AI 引用链接自动添加 utm_source=ai&utm_medium=chatgpt 等参数</p>
+                            </div>
+                            <div class="p-3 bg-white rounded-lg">
+                                <p class="font-medium text-gray-900 mb-1">3. GA4 自定义维度</p>
+                                <p class="text-gray-600">在 GA4 中创建 "AI Source" 自定义维度追踪详细来源</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关键词归因 -->
+                <div id="content-keywords" class="p-6 hidden">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900">AI 流量关键词归因</h4>
+                        <p class="text-sm text-gray-500">追踪用户通过哪些问题/关键词从 AI 来到您的网站</p>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200 bg-gray-50">
+                                    <th class="text-left py-3 px-4 font-medium text-gray-500">问题/关键词</th>
+                                    <th class="text-center py-3 px-4 font-medium text-gray-500">AI 来源</th>
+                                    <th class="text-center py-3 px-4 font-medium text-gray-500">访问量</th>
+                                    <th class="text-center py-3 px-4 font-medium text-gray-500">转化</th>
+                                    <th class="text-center py-3 px-4 font-medium text-gray-500">转化率</th>
+                                    <th class="text-center py-3 px-4 font-medium text-gray-500">趋势</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                    <td class="py-3 px-4">
+                                        <p class="font-medium text-gray-900">最好的 AI 品牌优化工具是什么？</p>
+                                        <p class="text-xs text-gray-500">匹配问题集 #Q-0023</p>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs">ChatGPT</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-center font-medium">342</td>
+                                    <td class="py-3 px-4 text-center font-medium text-emerald-600">28</td>
+                                    <td class="py-3 px-4 text-center"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs">8.2%</span></td>
+                                    <td class="py-3 px-4 text-center text-emerald-500">↑ 23%</td>
+                                </tr>
+                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                    <td class="py-3 px-4">
+                                        <p class="font-medium text-gray-900">GEO 和 SEO 有什么区别？</p>
+                                        <p class="text-xs text-gray-500">匹配问题集 #Q-0045</p>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">Perplexity</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-center font-medium">256</td>
+                                    <td class="py-3 px-4 text-center font-medium text-emerald-600">18</td>
+                                    <td class="py-3 px-4 text-center"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs">7.0%</span></td>
+                                    <td class="py-3 px-4 text-center text-emerald-500">↑ 45%</td>
+                                </tr>
+                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                    <td class="py-3 px-4">
+                                        <p class="font-medium text-gray-900">如何提高品牌在 ChatGPT 中的可见度？</p>
+                                        <p class="text-xs text-gray-500">匹配问题集 #Q-0012</p>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">Claude</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-center font-medium">198</td>
+                                    <td class="py-3 px-4 text-center font-medium text-emerald-600">12</td>
+                                    <td class="py-3 px-4 text-center"><span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">6.1%</span></td>
+                                    <td class="py-3 px-4 text-center text-emerald-500">↑ 12%</td>
+                                </tr>
+                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                    <td class="py-3 px-4">
+                                        <p class="font-medium text-gray-900">SHEEP 评分框架是什么？</p>
+                                        <p class="text-xs text-gray-500">匹配问题集 #Q-0067</p>
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Gemini</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-center font-medium">145</td>
+                                    <td class="py-3 px-4 text-center font-medium text-emerald-600">8</td>
+                                    <td class="py-3 px-4 text-center"><span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">5.5%</span></td>
+                                    <td class="py-3 px-4 text-center text-gray-500">→ 0%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4 p-4 bg-indigo-50 rounded-lg">
+                        <p class="text-sm text-indigo-800"><i class="fas fa-lightbulb text-indigo-500 mr-2"></i><strong>洞察：</strong>来自 Perplexity 的流量转化率最高，建议优化 Perplexity 引用内容以获得更多高质量流量。</p>
+                    </div>
+                </div>
+
+                <!-- 转化分析 -->
+                <div id="content-conversion" class="p-6 hidden">
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <!-- 转化漏斗 -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-4">AI 流量转化漏斗</h4>
+                            <div class="space-y-3">
+                                <div class="relative">
+                                    <div class="h-12 bg-indigo-500 rounded-lg flex items-center justify-between px-4 text-white">
+                                        <span>AI 引流访问</span>
+                                        <span class="font-bold">2,847</span>
+                                    </div>
+                                </div>
+                                <div class="relative ml-4">
+                                    <div class="h-12 bg-indigo-400 rounded-lg flex items-center justify-between px-4 text-white" style="width:75%">
+                                        <span>页面浏览 (>30s)</span>
+                                        <span class="font-bold">2,135</span>
+                                    </div>
+                                    <span class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-500">75%</span>
+                                </div>
+                                <div class="relative ml-8">
+                                    <div class="h-12 bg-indigo-300 rounded-lg flex items-center justify-between px-4 text-white" style="width:55%">
+                                        <span>深度互动</span>
+                                        <span class="font-bold">1,566</span>
+                                    </div>
+                                    <span class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-500">55%</span>
+                                </div>
+                                <div class="relative ml-12">
+                                    <div class="h-12 bg-emerald-500 rounded-lg flex items-center justify-between px-4 text-white" style="width:35%">
+                                        <span>注册/转化</span>
+                                        <span class="font-bold">120</span>
+                                    </div>
+                                    <span class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-500">4.2%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 转化对比 -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-4">流量来源转化对比</h4>
+                            <canvas id="conversionCompare" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 转化价值 -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="p-4 bg-emerald-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">AI 流量转化价值</p>
+                            <p class="text-2xl font-bold text-emerald-600">¥48,560</p>
+                            <p class="text-xs text-gray-500 mt-1">本周 | 平均客单价 ¥405</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">vs 传统搜索</p>
+                            <p class="text-2xl font-bold text-blue-600">+98%</p>
+                            <p class="text-xs text-gray-500 mt-1">AI 流量转化率是传统搜索的 2 倍</p>
+                        </div>
+                        <div class="p-4 bg-purple-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">ROI 提升</p>
+                            <p class="text-2xl font-bold text-purple-600">3.2x</p>
+                            <p class="text-xs text-gray-500 mt-1">GEO 优化投入回报率</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 异常预警 -->
+                <div id="content-alerts" class="p-6 hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 预警列表 -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-4">实时预警</h4>
+                            <div class="space-y-3">
+                                <div class="p-4 bg-red-50 rounded-lg border-l-4 border-red-500">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-medium text-gray-900">Perplexity 可见度骤降</span>
+                                        <span class="text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded">严重</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">可见度从 72 降至 55，下降 23%</p>
+                                    <div class="flex items-center justify-between mt-3">
+                                        <p class="text-xs text-gray-400">2小时前 | 可能原因：竞品内容更新</p>
+                                        <button onclick="handleAlert('perplexity-drop')" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">立即处理</button>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-medium text-gray-900">竞品A 提及率上升</span>
+                                        <span class="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">警告</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">竞品A 在"AI优化工具"话题提及率上升 15%</p>
+                                    <p class="text-xs text-gray-400">5小时前 | 建议：检查竞品内容策略</p>
+                                </div>
+                                <div class="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-medium text-gray-900">新关键词被 AI 收录</span>
+                                        <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">信息</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">"GEO优化" 关键词首次出现在 ChatGPT 回复中</p>
+                                    <p class="text-xs text-gray-400">1天前 | 建议：加强该关键词内容布局</p>
+                                </div>
+                                <div class="p-4 bg-emerald-50 rounded-lg border-l-4 border-emerald-500">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-medium text-gray-900">Claude 排名提升</span>
+                                        <span class="text-xs text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded">正面</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">在"品牌可见度工具"话题中排名从 #5 升至 #2</p>
+                                    <p class="text-xs text-gray-400">3天前 | 优化策略生效</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 预警设置 -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-4">预警规则设置</h4>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-white rounded-lg border border-gray-200">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="font-medium text-gray-900">可见度下降预警</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" checked class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+                                    <p class="text-sm text-gray-600">当任一模型可见度下降超过 <input type="number" value="15" class="w-12 px-2 py-1 border rounded text-center">% 时触发</p>
+                                </div>
+                                <div class="p-4 bg-white rounded-lg border border-gray-200">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="font-medium text-gray-900">竞品动态预警</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" checked class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+                                    <p class="text-sm text-gray-600">当竞品提及率变化超过 <input type="number" value="10" class="w-12 px-2 py-1 border rounded text-center">% 时触发</p>
+                                </div>
+                                <div class="p-4 bg-white rounded-lg border border-gray-200">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="font-medium text-gray-900">流量异常预警</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" checked class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+                                    <p class="text-sm text-gray-600">当 AI 来源流量日环比变化超过 <input type="number" value="30" class="w-12 px-2 py-1 border rounded text-center">% 时触发</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="p-4 bg-white rounded-xl shadow-sm">
+                    <h4 class="font-medium text-gray-900 mb-3">竞品动态</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-bold text-sm">A</div>
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-700">竞品A</p>
+                                <p class="text-xs text-gray-400">可见度 72.3 ↑</p>
+                            </div>
+                            <span class="text-xs text-red-500">领先</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">B</div>
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-700">竞品B</p>
+                                <p class="text-xs text-gray-400">可见度 65.1 ↓</p>
+                            </div>
+                            <span class="text-xs text-emerald-500">落后</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-white rounded-xl shadow-sm">
+                    <h4 class="font-medium text-gray-900 mb-3">各模型表现</h4>
+                    <canvas id="modelPerformance" height="100"></canvas>
+                </div>
+                <div class="p-4 bg-white rounded-xl shadow-sm">
+                    <h4 class="font-medium text-gray-900 mb-3">下一步行动</h4>
+                    <div class="space-y-2">
+                        <a href="strategy-center.html" class="flex items-center gap-2 p-2 bg-indigo-50 rounded-lg text-sm text-indigo-700 hover:bg-indigo-100">
+                            <i class="fas fa-bullseye"></i>
+                            <span>查看优化策略</span>
+                        </a>
+                        <a href="content-analysis.html" class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-file-alt"></i>
+                            <span>优化内容</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 项目上下文检查
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentProject = localStorage.getItem('geo_current_project');
+            const noProjectModal = document.getElementById('noProjectModal');
+            
+            if (!currentProject) {
+                noProjectModal.classList.remove('hidden');
+                noProjectModal.classList.add('flex');
+            } else {
+                initCharts();
+            }
+        });
+
+        // Tab 切换
+        function switchTab(tabName) {
+            document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('text-gray-500');
+            });
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            const activeTab = document.getElementById('tab-' + tabName);
+            activeTab.classList.add('active');
+            activeTab.classList.remove('text-gray-500');
+        }
+
+        // 连接 GA
+        function connectGA() {
+            alert('即将跳转到 Google Analytics 授权页面...\n\n实际实现需要：\n1. 配置 GA4 API 凭据\n2. OAuth 2.0 授权流程\n3. 获取 GA4 属性数据');
+        }
+
+        // 处理告警 - 跳转到优化向导
+        function handleAlert(alertId) {
+            localStorage.setItem('alert_context', JSON.stringify({
+                alertId: alertId,
+                source: 'monitoring',
+                timestamp: Date.now()
+            }));
+            window.location.href = 'optimization-wizard.html?alert=' + alertId;
+        }
+
+        // 跳转到可见度分析
+        function goToVisibility(model) {
+            window.location.href = 'visibility-analysis.html?model=' + model;
+        }
+
+        // 跳转到竞品分析
+        function goToCompetitor(competitor) {
+            window.location.href = 'competitors.html?focus=' + competitor;
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 流量趋势
+            new Chart(document.getElementById('trafficTrend'), {
+                type: 'line',
+                data: {
+                    labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    datasets: [
+                        { label: 'ChatGPT', data: [150, 180, 165, 190, 210, 175, 175], borderColor: '#10b981', tension: 0.4 },
+                        { label: 'Claude', data: [80, 95, 88, 102, 98, 112, 112], borderColor: '#f97316', tension: 0.4 },
+                        { label: 'Perplexity', data: [45, 52, 68, 75, 82, 95, 106], borderColor: '#8b5cf6', tension: 0.4 },
+                        { label: 'Gemini', data: [40, 45, 50, 55, 58, 62, 82], borderColor: '#3b82f6', tension: 0.4 }
+                    ]
+                },
+                options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // 转化对比
+            new Chart(document.getElementById('conversionCompare'), {
+                type: 'bar',
+                data: {
+                    labels: ['AI 流量', '自然搜索', '社交媒体', '直接访问'],
+                    datasets: [{ 
+                        label: '转化率 %', 
+                        data: [4.2, 2.1, 1.8, 3.5], 
+                        backgroundColor: ['#6366f1', '#9ca3af', '#9ca3af', '#9ca3af'] 
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, max: 6 } }, plugins: { legend: { display: false } } }
+            });
+
+            // 模型表现
+            new Chart(document.getElementById('modelPerformance'), {
+                type: 'bar',
+                data: {
+                    labels: ['GPT', 'Claude', 'Gemini', 'Perp'],
+                    datasets: [
+                        { label: '本周', data: [72, 68, 65, 58], backgroundColor: '#6366f1' },
+                        { label: '上周', data: [68, 65, 65, 75], backgroundColor: '#e5e7eb' }
+                    ]
+                },
+                options: { 
+                    indexAxis: 'y',
+                    scales: { x: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
