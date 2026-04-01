@@ -1231,12 +1231,30 @@
                     
                     // 从项目配置中获取数据
                     const config = currentProject.config || {};
-                    const sellingPoints = (currentProject.sellingPoints || []).map(sp => 
+                    // v6.0: 保留完整的卖点对象（包含 country/language）
+                    const sellingPointsRaw = currentProject.sellingPoints || [];
+                    const sellingPoints = sellingPointsRaw.map(sp => 
                         typeof sp === 'string' ? sp : (sp.point || sp.content || '')
                     ).filter(s => s);
-                    const personas = (currentProject.personas || []).map(p => 
+                    // v6.0: 构建带绑定信息的卖点
+                    const sellingPointsWithBinding = sellingPointsRaw.map(sp => ({
+                        point: typeof sp === 'string' ? sp : (sp.point || sp.content || ''),
+                        country: sp.country || 'CN',
+                        language: sp.language || 'zh-CN',
+                        weight: sp.weight || 5,
+                        usage: sp.usage || sp.usageDesc || ''
+                    })).filter(sp => sp.point);
+                    // v6.1: 保留完整的受众对象（包含 country/language）
+                    const personasRaw = currentProject.personas || [];
+                    const personas = personasRaw.map(p => 
                         typeof p === 'string' ? p : (p.name || '')
                     ).filter(s => s);
+                    // v6.1: 构建带绑定信息的受众
+                    const personasWithBinding = personasRaw.map(p => ({
+                        name: typeof p === 'string' ? p : (p.name || ''),
+                        country: p.country || 'CN',
+                        language: p.language || 'zh-CN'
+                    })).filter(p => p.name);
                     const stages = (currentProject.stages || []).map(s => 
                         typeof s === 'string' ? s : (s.name || '')
                     ).filter(s => s);
@@ -1247,7 +1265,7 @@
                     const markets = config.markets || ['CN'];
                     const languages = config.languages || ['zh-CN'];
                     
-                    console.log('📋 项目配置:', { sellingPoints, personas, stages, competitors, models, markets, languages });
+                    console.log('📋 项目配置:', { sellingPoints, sellingPointsWithBinding, personas, personasWithBinding, stages, competitors, models, markets, languages });
                     
                     const createResponse = await fetch('/api/distillation/questions', {
                         method: 'POST',
@@ -1259,8 +1277,12 @@
                             brandName: brandName,
                             productName: currentProject.productName || currentProject.description || '',
                             industry: currentProject.industry || '',
-                            sellingPoints: sellingPoints,
-                            personas: personas,
+                            // v6.0: 传递带绑定信息的卖点
+                            sellingPointsWithBinding: sellingPointsWithBinding,
+                            sellingPoints: sellingPoints,  // 保留旧字段，向后兼容
+                            // v6.1: 传递带绑定信息的受众
+                            personasWithBinding: personasWithBinding,
+                            personas: personas,  // 保留旧字段，向后兼容
                             stages: stages,
                             models: models,
                             competitors: competitors,

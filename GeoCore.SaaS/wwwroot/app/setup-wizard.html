@@ -1743,85 +1743,99 @@
             
             btn.disabled = true;
             
-            // 带重试的 API 调用
-            const maxRetries = 3;
-            let lastError = null;
+            // 获取产品名称和竞品信息
+            const productName = document.getElementById('productName')?.value || '';
+            const competitorObjs = getCompetitors();
+            const competitors = competitorObjs.map(c => typeof c === 'string' ? c : c.name);
             
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> AI 蒸馏中${attempt > 1 ? ` (重试 ${attempt}/${maxRetries})` : ''}...`;
+            // 构建请求数据
+            const requestData = { 
+                brandName, 
+                productName,
+                industry, 
+                description, 
+                countries, 
+                languages,
+                competitors,
+                brandCheckResult: brandCheckResult,
+                competitorFocusPoints: competitorFocusPoints
+            };
+            
+            console.log('调用流式卖点蒸馏 API...', requestData);
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 蒸馏中...';
+            
+            // 使用流式 API（SSE）避免 Nginx 超时
+            try {
+                const response = await fetch('/api/distillation/selling-points/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
                 
-                try {
-                    // 获取产品名称和竞品信息
-                    const productName = document.getElementById('productName')?.value || '';
-                    const competitorObjs = getCompetitors();
-                    // 蒸馏 API 期望字符串数组，提取竞品名称
-                    const competitors = competitorObjs.map(c => typeof c === 'string' ? c : c.name);
-                    
-                    // 构建请求数据，包含品牌检查结果和竞品用户关注点
-                    const requestData = { 
-                        brandName, 
-                        productName,
-                        industry, 
-                        description, 
-                        countries, 
-                        languages,
-                        competitors,
-                        brandCheckResult: brandCheckResult,
-                        competitorFocusPoints: competitorFocusPoints
-                    };
-                    
-                    console.log(`调用卖点蒸馏 API (尝试 ${attempt}/${maxRetries})...`, requestData);
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 180000);
-                    
-                    const response = await fetch('/api/distillation/selling-points', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestData),
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    console.log('API 返回:', data);
-                    
-                    if (data.success && data.data && data.data.length > 0) {
-                        console.log('使用 API 返回的卖点:', data.data);
-                        console.log('卖点详情（检查 country 字段）:', data.data.map(p => ({ point: p.point?.substring(0, 20), country: p.country, language: p.language })));
-                        placeholder.classList.add('hidden');
-                        result.classList.remove('hidden');
-                        renderSellingPoints(data.data);
-                        btn.innerHTML = '<i class="fas fa-sync"></i> 重新蒸馏';
-                        btn.disabled = false;
-                        return; // 成功，退出函数
-                    } else {
-                        lastError = new Error(data.message || 'API 返回为空');
-                        console.warn(`尝试 ${attempt} 失败:`, lastError.message);
-                    }
-                } catch (error) {
-                    lastError = error;
-                    console.error(`尝试 ${attempt} 失败:`, error.name, error.message);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
                 }
                 
-                // 如果不是最后一次尝试，等待后重试
-                if (attempt < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let allSellingPoints = [];
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            const eventType = line.substring(7);
+                            continue;
+                        }
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.substring(6));
+                                console.log('SSE 事件:', data);
+                                
+                                // 更新进度显示
+                                if (data.message) {
+                                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${data.message}`;
+                                }
+                                
+                                // 处理完成事件
+                                if (data.success !== undefined && data.data) {
+                                    allSellingPoints = data.data;
+                                }
+                            } catch (e) {
+                                console.warn('解析 SSE 数据失败:', e);
+                            }
+                        }
+                    }
                 }
+                
+                // 处理结果
+                if (allSellingPoints.length > 0) {
+                    console.log('使用 API 返回的卖点:', allSellingPoints);
+                    console.log('卖点详情:', allSellingPoints.map(p => ({ point: p.point?.substring(0, 20), country: p.country, language: p.language })));
+                    placeholder.classList.add('hidden');
+                    result.classList.remove('hidden');
+                    renderSellingPoints(allSellingPoints);
+                    btn.innerHTML = '<i class="fas fa-sync"></i> 重新蒸馏';
+                    btn.disabled = false;
+                    return;
+                } else {
+                    throw new Error('AI 服务暂时不可用');
+                }
+            } catch (error) {
+                console.error('卖点蒸馏失败:', error);
+                alert(`AI 蒸馏失败: ${error.message || '未知错误'}，请稍后重试`);
+                placeholder.classList.remove('hidden');
+                result.classList.add('hidden');
+                btn.innerHTML = '<i class="fas fa-sync"></i> 重新蒸馏';
+                btn.disabled = false;
             }
-            
-            // 所有重试都失败
-            console.error('卖点蒸馏失败，已重试', maxRetries, '次');
-            alert(`AI 蒸馏失败: ${lastError?.message || '未知错误'}，请稍后重试`);
-            placeholder.classList.remove('hidden');
-            result.classList.add('hidden');
-            btn.innerHTML = '<i class="fas fa-sync"></i> 重新蒸馏';
-            btn.disabled = false;
         }
         
         // 生成回退卖点（当 API 不可用时）
@@ -2269,20 +2283,37 @@
                 if (need) needs.push(need);
             });
             
-            // 用户类型标签映射
-            const userTypeLabels = {
-                'b2b': '企业用户',
-                'b2c': '个人用户',
-                'dev': '开发者'
+            // 多语言用户类型标签映射
+            const userTypeLabelsByLang = {
+                'zh-CN': { 'b2b': '企业用户', 'b2c': '个人用户', 'dev': '开发者' },
+                'en': { 'b2b': 'Enterprise', 'b2c': 'Consumer', 'dev': 'Developer' },
+                'ja': { 'b2b': '法人顧客', 'b2c': '個人消費者', 'dev': '開発者' },
+                'ko': { 'b2b': '기업 고객', 'b2c': '개인 소비자', 'dev': '개발자' },
+                'de': { 'b2b': 'Unternehmen', 'b2c': 'Verbraucher', 'dev': 'Entwickler' },
+                'fr': { 'b2b': 'Entreprise', 'b2c': 'Consommateur', 'dev': 'Développeur' },
+                'es': { 'b2b': 'Empresa', 'b2c': 'Consumidor', 'dev': 'Desarrollador' }
             };
             
-            // 决策角色标签映射
-            const roleLabels = {
-                'tech': '技术决策者',
-                'biz': '业务决策者',
-                'procurement': '采购/财务',
-                'enduser': '终端使用者'
+            // 多语言决策角色标签映射
+            const roleLabelsByLang = {
+                'zh-CN': { 'tech': '技术决策者', 'biz': '业务决策者', 'procurement': '采购/财务', 'enduser': '终端使用者' },
+                'en': { 'tech': 'Tech Decision Maker', 'biz': 'Business Decision Maker', 'procurement': 'Procurement', 'enduser': 'End User' },
+                'ja': { 'tech': '技術決定者', 'biz': 'ビジネス決定者', 'procurement': '調達担当', 'enduser': 'エンドユーザー' },
+                'ko': { 'tech': '기술 의사결정자', 'biz': '비즈니스 의사결정자', 'procurement': '구매 담당자', 'enduser': '최종 사용자' },
+                'de': { 'tech': 'Tech-Entscheider', 'biz': 'Business-Entscheider', 'procurement': 'Einkauf', 'enduser': 'Endnutzer' },
+                'fr': { 'tech': 'Décideur Tech', 'biz': 'Décideur Business', 'procurement': 'Acheteur', 'enduser': 'Utilisateur Final' },
+                'es': { 'tech': 'Decisor Técnico', 'biz': 'Decisor de Negocio', 'procurement': 'Compras', 'enduser': 'Usuario Final' }
             };
+            
+            // 获取指定语言的标签（回退到英文或中文）
+            function getUserTypeLabel(type, lang) {
+                const labels = userTypeLabelsByLang[lang] || userTypeLabelsByLang['en'] || userTypeLabelsByLang['zh-CN'];
+                return labels[type] || type;
+            }
+            function getRoleLabel(role, lang) {
+                const labels = roleLabelsByLang[lang] || roleLabelsByLang['en'] || roleLabelsByLang['zh-CN'];
+                return labels[role] || role;
+            }
             
             // 获取选中的国家/语言
             const selectedCountries = getSelectedCountries();
@@ -2290,13 +2321,14 @@
             // 生成 personas：用户类型 + 决策角色组合，每个国家/语言一份
             const personas = [];
             
-            // 为每个国家/语言生成 personas
+            // 为每个国家/语言生成 personas（使用对应语言的标签）
             selectedCountries.forEach(({ code: country, lang: language }) => {
                 // 添加用户类型作为 personas
                 userTypes.forEach(t => {
+                    const label = getUserTypeLabel(t, language);
                     personas.push({
-                        name: userTypeLabels[t] || t,
-                        description: `用户类型: ${userTypeLabels[t] || t}`,
+                        name: label,
+                        description: `用户类型: ${label}`,
                         country,
                         language
                     });
@@ -2304,29 +2336,32 @@
                 
                 // 添加决策角色作为 personas
                 roles.forEach(r => {
+                    const label = getRoleLabel(r, language);
                     personas.push({
-                        name: roleLabels[r] || r,
-                        description: `决策角色: ${roleLabels[r] || r}`,
+                        name: label,
+                        description: `决策角色: ${label}`,
                         country,
                         language
                     });
                 });
             });
             
-            // 如果没有选中国家，使用默认值
+            // 如果没有选中国家，使用默认值（中文）
             if (personas.length === 0) {
+                const defaultLabels = userTypeLabelsByLang['zh-CN'];
+                const defaultRoleLabels = roleLabelsByLang['zh-CN'];
                 userTypes.forEach(t => {
                     personas.push({
-                        name: userTypeLabels[t] || t,
-                        description: `用户类型: ${userTypeLabels[t] || t}`,
+                        name: defaultLabels[t] || t,
+                        description: `用户类型: ${defaultLabels[t] || t}`,
                         country: 'CN',
                         language: 'zh-CN'
                     });
                 });
                 roles.forEach(r => {
                     personas.push({
-                        name: roleLabels[r] || r,
-                        description: `决策角色: ${roleLabels[r] || r}`,
+                        name: defaultRoleLabels[r] || r,
+                        description: `决策角色: ${defaultRoleLabels[r] || r}`,
                         country: 'CN',
                         language: 'zh-CN'
                     });
@@ -2567,23 +2602,56 @@
             return models.length > 0 ? models : [{ id: 'gpt', name: 'GPT', color: 'green' }];
         }
 
-        // 五层蒸馏：获取用户画像
+        // 五层蒸馏：获取用户画像（支持多语言）
         function getPersonas(constraints) {
+            // 多语言标签映射
+            const labelsByLang = {
+                'zh-CN': { 'b2b': '企业用户', 'b2c': '个人用户', 'dev': '开发者', 'tech': '技术决策者', 'biz': '业务决策者', 'enduser': '终端使用者' },
+                'en': { 'b2b': 'Enterprise', 'b2c': 'Consumer', 'dev': 'Developer', 'tech': 'Tech Decision Maker', 'biz': 'Business Decision Maker', 'enduser': 'End User' },
+                'ja': { 'b2b': '法人顧客', 'b2c': '個人消費者', 'dev': '開発者', 'tech': '技術決定者', 'biz': 'ビジネス決定者', 'enduser': 'エンドユーザー' },
+                'ko': { 'b2b': '기업 고객', 'b2c': '개인 소비자', 'dev': '개발자', 'tech': '기술 의사결정자', 'biz': '비즈니스 의사결정자', 'enduser': '최종 사용자' },
+                'de': { 'b2b': 'Unternehmen', 'b2c': 'Verbraucher', 'dev': 'Entwickler', 'tech': 'Tech-Entscheider', 'biz': 'Business-Entscheider', 'enduser': 'Endnutzer' },
+                'fr': { 'b2b': 'Entreprise', 'b2c': 'Consommateur', 'dev': 'Développeur', 'tech': 'Décideur Tech', 'biz': 'Décideur Business', 'enduser': 'Utilisateur Final' },
+                'es': { 'b2b': 'Empresa', 'b2c': 'Consumidor', 'dev': 'Desarrollador', 'tech': 'Decisor Técnico', 'biz': 'Decisor de Negocio', 'enduser': 'Usuario Final' }
+            };
+            const emojis = { 'b2b': '🏢', 'b2c': '👤', 'dev': '💻', 'tech': '🔧', 'biz': '📊', 'enduser': '🙋' };
+            
+            function getLabel(id, lang) {
+                const labels = labelsByLang[lang] || labelsByLang['en'] || labelsByLang['zh-CN'];
+                return labels[id] || id;
+            }
+            
+            const selectedCountries = getSelectedCountries();
             const personas = [];
-            if (constraints.audience.b2b) personas.push({ id: 'b2b', name: '企业用户', emoji: '🏢' });
-            if (constraints.audience.b2c) personas.push({ id: 'b2c', name: '个人用户', emoji: '👤' });
-            if (constraints.audience.dev) personas.push({ id: 'dev', name: '开发者', emoji: '💻' });
-            if (constraints.roles.tech) personas.push({ id: 'tech', name: '技术决策者', emoji: '🔧' });
-            if (constraints.roles.biz) personas.push({ id: 'biz', name: '业务决策者', emoji: '📊' });
-            if (constraints.roles.enduser) personas.push({ id: 'enduser', name: '终端使用者', emoji: '🙋' });
-            // 去重
-            const seen = new Set();
-            const unique = personas.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
-            // 如果没有选择任何画像，返回默认画像
-            return unique.length > 0 ? unique : [
-                { id: 'b2c', name: '个人用户', emoji: '👤' },
-                { id: 'biz', name: '业务决策者', emoji: '📊' }
-            ];
+            
+            // 为每个国家/语言生成对应语言的 personas
+            selectedCountries.forEach(({ code: country, lang: language }) => {
+                if (constraints.audience.b2b) personas.push({ id: 'b2b', name: getLabel('b2b', language), emoji: emojis['b2b'], country, language });
+                if (constraints.audience.b2c) personas.push({ id: 'b2c', name: getLabel('b2c', language), emoji: emojis['b2c'], country, language });
+                if (constraints.audience.dev) personas.push({ id: 'dev', name: getLabel('dev', language), emoji: emojis['dev'], country, language });
+                if (constraints.roles.tech) personas.push({ id: 'tech', name: getLabel('tech', language), emoji: emojis['tech'], country, language });
+                if (constraints.roles.biz) personas.push({ id: 'biz', name: getLabel('biz', language), emoji: emojis['biz'], country, language });
+                if (constraints.roles.enduser) personas.push({ id: 'enduser', name: getLabel('enduser', language), emoji: emojis['enduser'], country, language });
+            });
+            
+            // 如果没有选择国家，使用默认中文
+            if (personas.length === 0) {
+                if (constraints.audience.b2b) personas.push({ id: 'b2b', name: '企业用户', emoji: '🏢', country: 'CN', language: 'zh-CN' });
+                if (constraints.audience.b2c) personas.push({ id: 'b2c', name: '个人用户', emoji: '👤', country: 'CN', language: 'zh-CN' });
+                if (constraints.audience.dev) personas.push({ id: 'dev', name: '开发者', emoji: '💻', country: 'CN', language: 'zh-CN' });
+                if (constraints.roles.tech) personas.push({ id: 'tech', name: '技术决策者', emoji: '🔧', country: 'CN', language: 'zh-CN' });
+                if (constraints.roles.biz) personas.push({ id: 'biz', name: '业务决策者', emoji: '📊', country: 'CN', language: 'zh-CN' });
+                if (constraints.roles.enduser) personas.push({ id: 'enduser', name: '终端使用者', emoji: '🙋', country: 'CN', language: 'zh-CN' });
+            }
+            
+            // 如果仍然为空，返回默认画像
+            if (personas.length === 0) {
+                return [
+                    { id: 'b2c', name: '个人用户', emoji: '👤', country: 'CN', language: 'zh-CN' },
+                    { id: 'biz', name: '业务决策者', emoji: '📊', country: 'CN', language: 'zh-CN' }
+                ];
+            }
+            return personas;
         }
 
         // v4.0: 存储真实问题搜索结果
@@ -2780,8 +2848,23 @@
                         brandName,
                         productName,
                         industry,
-                        sellingPoints: keywords,
-                        personas: personas.map(p => p.name),
+                        // v6.0: 传递带绑定信息的卖点（优先使用）
+                        sellingPointsWithBinding: keywords.map(k => ({
+                            point: typeof k === 'string' ? k : k.point,
+                            country: k.country || 'CN',
+                            language: k.language || 'zh-CN',
+                            weight: k.weight || 5,
+                            usage: k.usage || ''
+                        })),
+                        // 保留旧字段，向后兼容
+                        sellingPoints: keywords.map(k => typeof k === 'string' ? k : k.point),
+                        // v6.1: 传递带绑定信息的受众（优先使用）
+                        personasWithBinding: personas.map(p => ({
+                            name: p.name,
+                            country: p.country || 'CN',
+                            language: p.language || 'zh-CN'
+                        })),
+                        personas: personas.map(p => p.name),  // 保留旧字段，向后兼容
                         stages: stages.map(s => s.name),
                         models: models.map(m => m.id),
                         // v2.0: 竞品信息
@@ -3011,7 +3094,7 @@
             btn.disabled = false;
         }
 
-        // 更新受众预览
+        // 更新受众预览（按国家分组显示）
         function updateAudiencePreview() {
             const preview = document.getElementById('selectedAudiencePreview');
             if (!preview) return;
@@ -3022,9 +3105,31 @@
                 preview.innerHTML = '<span class="px-2 py-1 bg-amber-100 text-amber-600 rounded text-xs">未选择（将使用默认画像）</span>';
                 return;
             }
-            preview.innerHTML = personas.map(p => 
-                `<span class="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs">${p.emoji} ${p.name}</span>`
-            ).join('');
+            
+            // 按国家分组
+            const grouped = {};
+            personas.forEach(p => {
+                const key = p.country || 'CN';
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(p);
+            });
+            
+            // 渲染分组结果
+            let html = '';
+            for (const [country, items] of Object.entries(grouped)) {
+                const countryName = getCountryDisplayName(country);
+                html += `<div class="mb-2"><span class="text-xs text-gray-500">${country} ${countryName}</span><div class="flex flex-wrap gap-1 mt-1">`;
+                // 去重（同一国家内相同 id 只显示一次）
+                const seen = new Set();
+                items.forEach(p => {
+                    if (!seen.has(p.id)) {
+                        seen.add(p.id);
+                        html += `<span class="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs">${p.emoji} ${p.name}</span>`;
+                    }
+                });
+                html += '</div></div>';
+            }
+            preview.innerHTML = html;
         }
 
         // 检查是否为有效 URL
