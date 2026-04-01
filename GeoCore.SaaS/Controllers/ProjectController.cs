@@ -518,15 +518,14 @@ public class ProjectController : ControllerBase
     }
 
     /// <summary>
-    /// 获取项目问题
+    /// 获取项目问题（支持分页）
     /// </summary>
     [HttpGet("{id}/questions")]
-    public async Task<IActionResult> GetQuestions(long id)
+    public async Task<IActionResult> GetQuestions(long id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         try
         {
             var userId = GetCurrentUserId();
-            _logger.LogWarning("[GetQuestions] ProjectId={ProjectId}, UserId={UserId}", id, userId);
             
             if (userId == 0)
             {
@@ -536,30 +535,32 @@ public class ProjectController : ControllerBase
             var project = await _projectRepo.GetProjectByIdAsync(id, userId);
             if (project == null)
             {
-                _logger.LogWarning("[GetQuestions] 项目不存在或无权限: ProjectId={ProjectId}, UserId={UserId}", id, userId);
                 return NotFound(new { success = false, message = "项目不存在" });
             }
 
-            var questions = await _questionRepo.GetQuestionsByProjectIdAsync(id, userId);
-            _logger.LogWarning("[GetQuestions] 查询到 {Count} 个问题", questions.Count);
+            // 限制 pageSize 范围
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            
+            // 获取总数
+            var totalCount = await _questionRepo.GetQuestionsCountByProjectIdAsync(id);
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            
+            // 分页获取问题（带回答和来源，批量加载）
+            var questions = await _questionRepo.GetQuestionsPagedAsync(id, userId, page, pageSize);
+            
+            _logger.LogInformation("[GetQuestions] ProjectId={ProjectId}, Page={Page}, PageSize={PageSize}, Total={Total}, Returned={Count}", 
+                id, page, pageSize, totalCount, questions.Count);
 
-            // 加载回答和来源
-            foreach (var q in questions)
-            {
-                q.Answers = await _questionRepo.GetAnswersByQuestionIdAsync(q.Id);
-                q.Sources = await _questionRepo.GetSourcesByQuestionIdAsync(q.Id);
-
-                // 加载每个回答的来源
-                if (q.Answers != null)
-                {
-                    foreach (var a in q.Answers)
-                    {
-                        a.Sources = await _questionRepo.GetSourcesByAnswerIdAsync(a.Id);
-                    }
+            return Ok(new { 
+                success = true, 
+                data = questions,
+                pagination = new {
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages
                 }
-            }
-
-            return Ok(new { success = true, data = questions });
+            });
         }
         catch (Exception ex)
         {

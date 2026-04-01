@@ -186,6 +186,140 @@ public class DistillationController : ControllerBase
     }
 
     /// <summary>
+    /// 卖点蒸馏 - 流式进度反馈版本（解决 Nginx 超时问题）
+    /// </summary>
+    [HttpPost("selling-points/stream")]
+    public async Task DistillSellingPointsStream([FromBody] SellingPointsRequest request)
+    {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("Connection", "keep-alive");
+        
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        };
+        
+        async Task SendEvent(string eventType, object data)
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(data, jsonOptions);
+            await Response.WriteAsync($"event: {eventType}\ndata: {json}\n\n");
+            await Response.Body.FlushAsync();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.BrandName))
+        {
+            await SendEvent("error", new { message = "品牌名称不能为空" });
+            return;
+        }
+
+        try
+        {
+            var languages = request.Languages ?? new List<string> { "zh-CN" };
+            if (languages.Count == 0) languages.Add("zh-CN");
+
+            var countries = request.Countries ?? new List<string> { "CN" };
+            if (countries.Count == 0) countries.Add("CN");
+
+            var countryLanguageMap = BuildCountryLanguageMap(countries, languages);
+            var totalTasks = countryLanguageMap.Count;
+            var completedTasks = 0;
+            var allSellingPoints = new List<SellingPointItem>();
+            var lockObj = new object();
+
+            // 发送开始事件
+            await SendEvent("start", new { total = totalTasks, message = $"开始为 {totalTasks} 个国家/语言生成卖点..." });
+
+            // 并行处理，每完成一个就发送进度
+            var tasks = countryLanguageMap.Select(async kv =>
+            {
+                var (country, language) = kv;
+                var displayLang = GetDisplayLanguage(language);
+                var displayMarket = GetDisplayMarket(country);
+
+                try
+                {
+                    _logger.LogInformation("生成卖点: 国家={Country}, 语言={Lang}", country, language);
+                    var prompt = BuildSellingPointsPrompt(request, displayLang, displayMarket);
+                    var result = await CallAIAsync(prompt);
+                    
+                    var points = new List<SellingPointItem>();
+                    if (result != null)
+                    {
+                        points = ParseSellingPointsResponse(result);
+                        foreach (var p in points)
+                        {
+                            p.Country = country;
+                            p.Language = language;
+                        }
+                    }
+
+                    lock (lockObj)
+                    {
+                        completedTasks++;
+                        allSellingPoints.AddRange(points);
+                    }
+
+                    // 发送进度事件
+                    await SendEvent("progress", new { 
+                        completed = completedTasks, 
+                        total = totalTasks, 
+                        country, 
+                        language,
+                        pointCount = points.Count,
+                        message = $"[{completedTasks}/{totalTasks}] {displayMarket} ({displayLang}) 完成，生成 {points.Count} 个卖点"
+                    });
+
+                    return (country, language, points);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "卖点生成失败: Country={Country}, Language={Language}", country, language);
+                    
+                    lock (lockObj)
+                    {
+                        completedTasks++;
+                    }
+
+                    await SendEvent("progress", new { 
+                        completed = completedTasks, 
+                        total = totalTasks, 
+                        country, 
+                        language,
+                        pointCount = 0,
+                        error = true,
+                        message = $"[{completedTasks}/{totalTasks}] {displayMarket} ({displayLang}) 失败"
+                    });
+
+                    return (country, language, new List<SellingPointItem>());
+                }
+            }).ToList();
+
+            // 等待所有任务完成
+            await Task.WhenAll(tasks);
+
+            // 合并后按权重降序排序
+            allSellingPoints = allSellingPoints
+                .OrderByDescending(p => p.Weight)
+                .ToList();
+
+            // 发送完成事件
+            await SendEvent("complete", new { 
+                success = allSellingPoints.Count > 0, 
+                data = allSellingPoints,
+                message = allSellingPoints.Count > 0 
+                    ? $"卖点蒸馏完成，共生成 {allSellingPoints.Count} 个卖点" 
+                    : "AI 服务暂时不可用"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "卖点蒸馏失败: {Brand}", request.BrandName);
+            await SendEvent("error", new { message = "蒸馏过程中发生错误" });
+        }
+    }
+
+    /// <summary>
     /// 目标受众推断
     /// </summary>
     [HttpPost("audience")]
@@ -773,10 +907,15 @@ Return a JSON object with this exact structure:
             var langTasks = languages.Select(langCode =>
             {
                 var langName = GetLanguageName(langCode);
-                // v5.0: 获取对应的国家代码
-                var countryCode = request.Countries?.FirstOrDefault() ?? "CN";
+                // v6.0: 从绑定信息获取正确的国家代码和卖点
+                var countryCode = request.GetCountryForLanguage(langCode);
+                var langSellingPoints = request.GetSellingPointsForLanguage(langCode);
                 
-                _logger.LogInformation("[{TaskId}] 开始处理: 国家={Country}, 语言={Language}", taskId, countryCode, langName);
+                _logger.LogInformation("[{TaskId}] 开始处理: 国家={Country}, 语言={Language}, 卖点数={SPCount}", 
+                    taskId, countryCode, langName, langSellingPoints.Count);
+                
+                // v6.1: 获取对应语言的受众
+                var langPersonas = request.GetPersonasForLanguage(langCode);
                 
                 // 创建当前语言的请求副本（完整复制所有字段）
                 var langRequest = new QuestionsRequest
@@ -784,14 +923,14 @@ Return a JSON object with this exact structure:
                     BrandName = request.BrandName,
                     ProductName = request.ProductName,
                     Industry = request.Industry,
-                    SellingPoints = request.SellingPoints,
-                    Personas = request.Personas,
+                    SellingPoints = langSellingPoints,  // v6.0: 使用筛选后的卖点
+                    Personas = langPersonas,  // v6.1: 使用筛选后的受众
                     Stages = request.Stages,
                     Models = request.Models,
                     Language = langCode,
                     Languages = new List<string> { langCode },
                     Markets = request.Markets,
-                    Countries = new List<string> { countryCode },
+                    Countries = new List<string> { countryCode },  // v6.0: 使用正确的国家
                     Region = request.Region,
                     Competitors = request.Competitors,
                     EnableGoogleTrends = request.EnableGoogleTrends,
@@ -799,9 +938,10 @@ Return a JSON object with this exact structure:
                     AnswerMode = request.AnswerMode
                 };
 
-                _logger.LogInformation("[{TaskId}][{Country}/{Lang}] 请求参数: Brand={Brand}, Industry={Industry}, SellingPoints={SP}, Personas={P}, EnableGoogleTrends={GT}, EnableRedditSearch={RS}",
+                _logger.LogInformation("[{TaskId}][{Country}/{Lang}] 请求参数: Brand={Brand}, Industry={Industry}, SellingPoints=[{SP}], Personas=[{P}], EnableGoogleTrends={GT}, EnableRedditSearch={RS}",
                     taskId, countryCode, langCode, request.BrandName, request.Industry, 
-                    request.SellingPoints?.Count ?? 0, request.Personas?.Count ?? 0,
+                    string.Join(", ", langSellingPoints.Take(3)) + (langSellingPoints.Count > 3 ? "..." : ""), 
+                    string.Join(", ", langPersonas.Take(3)) + (langPersonas.Count > 3 ? "..." : ""),
                     request.EnableGoogleTrends, request.EnableRedditSearch);
 
                 return ProcessLanguageModelsAsync(taskId, task, langRequest, langName, baseUrl, totalSteps, () => Interlocked.Increment(ref completedCount));
@@ -917,11 +1057,12 @@ Return a JSON object with this exact structure:
     }
 
     /// <summary>
-    /// 保存问题到项目数据库 (Phase 1.6)
+    /// 保存问题到项目数据库 (Phase 1.6) - 优化版：批量插入
     /// </summary>
     private async Task SaveQuestionsToProjectAsync(string taskId, long projectId, long userId, List<GeneratedQuestion> questions)
     {
-        _logger.LogInformation("[{TaskId}] ========== 开始保存问题到数据库 ==========", taskId);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        _logger.LogInformation("[{TaskId}] ========== 开始保存问题到数据库（批量模式）==========", taskId);
         _logger.LogInformation("[{TaskId}] 保存参数: ProjectId={ProjectId}, UserId={UserId}, 问题数={Count}", 
             taskId, projectId, userId, questions.Count);
         
@@ -936,37 +1077,44 @@ Return a JSON object with this exact structure:
         var questionRepo = new GeoQuestionRepository(dbContext);
         var platformRepo = new SysSourcePlatformRepository(dbContext);
 
-        var savedCount = 0;
-        var errorCount = 0;
-        foreach (var q in questions)
+        // 预加载所有平台域名映射（避免N+1查询）
+        var allPlatforms = await platformRepo.GetAllPlatformsAsync();
+        var domainToPlatform = allPlatforms
+            .Where(p => !string.IsNullOrEmpty(p.Domain))
+            .ToDictionary(p => p.Domain!.ToLower(), p => p);
+        _logger.LogInformation("[{TaskId}] 预加载平台映射: {Count} 个", taskId, domainToPlatform.Count);
+
+        // Step 1: 批量插入问题
+        var questionDtos = questions.Select(q => new GeoQuestionDto
         {
-            // 创建问题
-            var questionDto = new GeoQuestionDto
-            {
-                UserId = userId,
-                ProjectId = projectId,
-                TaskId = taskId,
-                Question = q.Question,
-                Country = q.Country ?? "CN",
-                Language = q.Language ?? "zh-CN",
-                Pattern = q.Pattern,
-                Intent = q.Intent,
-                Stage = q.Stage,
-                Persona = q.Persona,
-                SellingPoint = q.SellingPoint,
-                QuestionSource = q.Source ?? "ai",
-                SourceDetail = q.SourceDetail,
-                SourceUrl = q.SourceUrl,
-                GoogleTrendsHeat = q.GoogleTrendsHeat
-            };
+            UserId = userId,
+            ProjectId = projectId,
+            TaskId = taskId,
+            Question = q.Question,
+            Country = q.Country ?? "CN",
+            Language = q.Language ?? "zh-CN",
+            Pattern = q.Pattern,
+            Intent = q.Intent,
+            Stage = q.Stage,
+            Persona = q.Persona,
+            SellingPoint = q.SellingPoint,
+            QuestionSource = q.Source ?? "ai",
+            SourceDetail = q.SourceDetail,
+            SourceUrl = q.SourceUrl,
+            GoogleTrendsHeat = q.GoogleTrendsHeat
+        }).ToList();
 
-            var questionId = await questionRepo.CreateQuestionAsync(questionDto);
-            _logger.LogDebug("[{TaskId}] 保存问题: QID={QuestionId}, Country={Country}, Lang={Lang}, Q={Question}", 
-                taskId, questionId, q.Country ?? "CN", q.Language ?? "zh-CN", 
-                q.Question.Length > 40 ? q.Question[..40] + "..." : q.Question);
+        var questionIds = await questionRepo.CreateQuestionsAsync(questionDtos);
+        _logger.LogInformation("[{TaskId}] Step1 批量插入问题完成: {Count} 条, 耗时 {Ms}ms", 
+            taskId, questionIds.Count, sw.ElapsedMilliseconds);
 
-            // 创建回答（每个问题对应一个模型的回答）
-            var answerDto = new GeoQuestionAnswerDto
+        // Step 2: 批量插入答案
+        var answerDtos = new List<GeoQuestionAnswerDto>();
+        for (int i = 0; i < questions.Count; i++)
+        {
+            var q = questions[i];
+            var questionId = questionIds[i];
+            answerDtos.Add(new GeoQuestionAnswerDto
             {
                 UserId = userId,
                 QuestionId = questionId,
@@ -978,53 +1126,58 @@ Return a JSON object with this exact structure:
                 BrandAnalysis = q.BrandAnalysis != null ? JsonSerializer.Serialize(q.BrandAnalysis) : null,
                 CitationDifficulty = q.CitationDifficulty != null ? JsonSerializer.Serialize(q.CitationDifficulty) : null,
                 AnswerMode = q.AnswerModeUsed ?? "simulation"
-            };
+            });
+        }
+        
+        var answerCount = await questionRepo.BulkInsertAnswersAsync(answerDtos);
+        _logger.LogInformation("[{TaskId}] Step2 批量插入答案完成: {Count} 条, 耗时 {Ms}ms", 
+            taskId, answerCount, sw.ElapsedMilliseconds);
 
-            var answerId = await questionRepo.CreateAnswerAsync(answerDto);
-            _logger.LogDebug("[{TaskId}] 保存答案: AID={AnswerId}, Model={Model}, Score={Score}, AnswerLen={Len}", 
-                taskId, answerId, q.Model, q.Score, q.Answer?.Length ?? 0);
-
-            // 保存来源
+        // Step 3: 批量插入来源
+        var sourceDtos = new List<GeoQuestionSourceDto>();
+        for (int i = 0; i < questions.Count; i++)
+        {
+            var q = questions[i];
+            var questionId = questionIds[i];
             if (q.Sources != null && q.Sources.Count > 0)
             {
-                for (int i = 0; i < q.Sources.Count; i++)
+                for (int j = 0; j < q.Sources.Count; j++)
                 {
-                    var sourceUrl = q.Sources[i];
+                    var sourceUrl = q.Sources[j];
                     var domain = ExtractDomain(sourceUrl);
-
+                    
                     var sourceDto = new GeoQuestionSourceDto
                     {
                         UserId = userId,
                         QuestionId = questionId,
-                        AnswerId = answerId,
+                        AnswerId = 0, // 批量模式不关联 AnswerId
                         Model = q.Model,
                         Url = sourceUrl,
                         Domain = domain,
                         AuthorityScore = 50,
-                        SortOrder = i
+                        SortOrder = j
                     };
 
-                    // 尝试匹配平台
-                    if (!string.IsNullOrEmpty(domain))
+                    // 从预加载的映射中查找平台
+                    if (!string.IsNullOrEmpty(domain) && domainToPlatform.TryGetValue(domain.ToLower(), out var platform))
                     {
-                        var platform = await platformRepo.GetPlatformByDomainAsync(domain);
-                        if (platform != null)
-                        {
-                            sourceDto.PlatformId = platform.Id;
-                            sourceDto.AuthorityScore = platform.AuthorityBaseScore;
-                        }
+                        sourceDto.PlatformId = platform.Id;
+                        sourceDto.AuthorityScore = platform.AuthorityBaseScore;
                     }
-
-                    await questionRepo.CreateSourceAsync(sourceDto);
+                    
+                    sourceDtos.Add(sourceDto);
                 }
-                _logger.LogDebug("[{TaskId}] 保存引用源: QID={QuestionId}, 数量={Count}", taskId, questionId, q.Sources.Count);
             }
-            savedCount++;
         }
-
-        _logger.LogInformation("[{TaskId}] ========== 保存完成: {Saved} 条记录 ==========", taskId, savedCount);
-        _logger.LogInformation("[{TaskId}] 保存结果: 成功={Saved}, 失败={Error}, 总计={Total}, ProjectId={ProjectId}", 
-            taskId, savedCount, errorCount, questions.Count, projectId);
+        
+        var sourceCount = await questionRepo.BulkInsertSourcesAsync(sourceDtos);
+        sw.Stop();
+        
+        _logger.LogInformation("[{TaskId}] Step3 批量插入来源完成: {Count} 条, 耗时 {Ms}ms", 
+            taskId, sourceCount, sw.ElapsedMilliseconds);
+        _logger.LogInformation("[{TaskId}] ========== 保存完成 ==========", taskId);
+        _logger.LogInformation("[{TaskId}] 保存结果: 成功={Saved}, 失败=0, 总计={Total}, ProjectId={ProjectId}, 总耗时={Ms}ms", 
+            taskId, questions.Count, questions.Count, projectId, sw.ElapsedMilliseconds);
     }
 
     /// <summary>
@@ -1244,8 +1397,16 @@ Return a JSON object with this exact structure:
         var language = request.Language ?? "zh-CN";
         
         _logger.LogInformation("[{TaskId}][{Model}] ========== 开始处理模型 ==========", taskId, modelId);
-        _logger.LogInformation("[{TaskId}][{Model}] 参数: Country={Country}, Language={Lang}, Brand={Brand}, Industry={Industry}", 
+        _logger.LogInformation("[{TaskId}][{Model}] 基础参数: Country={Country}, Language={Lang}, Brand={Brand}, Industry={Industry}", 
             taskId, modelId, country, language, request.BrandName, request.Industry);
+        
+        // 详细记录卖点和受众信息
+        var sellingPointsStr = request.SellingPoints != null && request.SellingPoints.Count > 0 
+            ? string.Join(", ", request.SellingPoints) : "(无)";
+        var personasStr = request.Personas != null && request.Personas.Count > 0 
+            ? string.Join(", ", request.Personas) : "(无)";
+        _logger.LogInformation("[{TaskId}][{Model}] 卖点(SellingPoints): {SellingPoints}", taskId, modelId, sellingPointsStr);
+        _logger.LogInformation("[{TaskId}][{Model}] 受众(Personas): {Personas}", taskId, modelId, personasStr);
         _logger.LogInformation("[{TaskId}][{Model}] 开关: EnableRedditSearch={RS}, EnableGoogleTrends={GT}, AnswerMode={AM}", 
             taskId, modelId, request.EnableRedditSearch, request.EnableGoogleTrends, request.AnswerMode);
         
@@ -1309,17 +1470,40 @@ Return a JSON object with this exact structure:
         
         // v5.2: 传入 country/language 确保问题与答案的国家一致（使用方法开头定义的 country/language）
         var rawQuestions = ParseQuestionsOnlyResponse(questionResult, modelId, country, language);
-        _logger.LogInformation("[{TaskId}][{Model}] Step1 完成: 生成 {Count} 个问题 (Country={Country})", taskId, modelId, rawQuestions.Count, country);
-        foreach (var rq in rawQuestions)
+        
+        // v5.3: 详细日志 - AI生成问题列表（按国家，含卖点受众）
+        _logger.LogInformation("[{TaskId}][{Model}] ========== AI生成问题汇总 (Country={Country}, Lang={Lang}) ==========", 
+            taskId, modelId, country, language);
+        _logger.LogInformation("[{TaskId}][{Model}] AI生成问题数量: {Count}", taskId, modelId, rawQuestions.Count);
+        for (int idx = 0; idx < rawQuestions.Count; idx++)
         {
-            _logger.LogInformation("[{TaskId}][{Model}] Step1 Q: {Question} | SI={SI} BFI={BFI} Score={Score}",
-                taskId, modelId, rq.Question.Length > 40 ? rq.Question[..40] + "..." : rq.Question,
-                rq.SearchIndex, rq.BrandFitIndex, rq.Score);
+            var rq = rawQuestions[idx];
+            _logger.LogInformation("[{TaskId}][{Model}] AI问题[{Index}]: {Question}", 
+                taskId, modelId, idx + 1, rq.Question);
+            _logger.LogInformation("[{TaskId}][{Model}]   -> SI={SI}, BFI={BFI}, Score={Score}, Pattern={Pattern}, Intent={Intent}, Stage={Stage}",
+                taskId, modelId, rq.SearchIndex, rq.BrandFitIndex, rq.Score, rq.Pattern, rq.Intent, rq.Stage);
+            _logger.LogInformation("[{TaskId}][{Model}]   -> 卖点={SellingPoint}, 受众={Persona}",
+                taskId, modelId, rq.SellingPoint ?? "(无)", rq.Persona ?? "(无)");
         }
+        _logger.LogInformation("[{TaskId}][{Model}] ========== AI生成问题汇总结束 ==========", taskId, modelId);
         
         // v4.2: 合并 Reddit/论坛真实问题（去重）
         if (realQuestions != null && realQuestions.Count > 0)
         {
+            // v5.3: 详细日志 - Reddit问题列表（按国家）
+            _logger.LogInformation("[{TaskId}][{Model}] ========== Reddit真实问题汇总 (Country={Country}, Lang={Lang}) ==========", 
+                taskId, modelId, country, language);
+            _logger.LogInformation("[{TaskId}][{Model}] Reddit问题数量: {Count}", taskId, modelId, realQuestions.Count);
+            for (int idx = 0; idx < realQuestions.Count; idx++)
+            {
+                var rq = realQuestions[idx];
+                _logger.LogInformation("[{TaskId}][{Model}] Reddit问题[{Index}]: {Question}", 
+                    taskId, modelId, idx + 1, rq.Question);
+                _logger.LogInformation("[{TaskId}][{Model}]   -> 来源: {Source}, URL: {Url}",
+                    taskId, modelId, rq.SourceDetail ?? "unknown", rq.SourceUrl ?? "N/A");
+            }
+            _logger.LogInformation("[{TaskId}][{Model}] ========== Reddit真实问题汇总结束 ==========", taskId, modelId);
+            
             var existingQuestions = new HashSet<string>(rawQuestions.Select(q => q.Question.ToLower().Trim()));
             var addedCount = 0;
             foreach (var rq in realQuestions)
@@ -1488,6 +1672,19 @@ Return a JSON object with this exact structure:
                 taskId, modelId, i + 1, questionsToProcess.Count, step2Answer.Length, step2Sources?.Count ?? 0);
         }
         
+        // v5.3: 详细日志 - Perplexity验证结果汇总
+        _logger.LogInformation("[{TaskId}][{Model}] ========== Perplexity验证结果汇总 (Country={Country}) ==========", 
+            taskId, modelId, country);
+        _logger.LogInformation("[{TaskId}][{Model}] Perplexity验证问题数: {Count}", taskId, modelId, questions.Count);
+        for (int idx = 0; idx < questions.Count; idx++)
+        {
+            var pq = questions[idx];
+            _logger.LogInformation("[{TaskId}][{Model}] Perplexity[{Index}]: Validated={V}, AnsLen={Len}, Sources={Src}, Q={Question}", 
+                taskId, modelId, idx + 1, pq.PerplexityValidated, pq.Answer?.Length ?? 0, pq.Sources?.Count ?? 0,
+                pq.Question.Length > 50 ? pq.Question[..50] + "..." : pq.Question);
+        }
+        _logger.LogInformation("[{TaskId}][{Model}] ========== Perplexity验证结果汇总结束 ==========", taskId, modelId);
+        
         // Step 3: 原模型逐个问题生成回答（v3.1 逐个调用，确保回答质量）
         _logger.LogInformation("[{TaskId}][{Model}] Step3: 逐个问题生成答案 (模式: {Mode}, {Count} 个)", taskId, modelId, request.AnswerMode, questionsToProcess.Count);
         
@@ -1590,6 +1787,17 @@ Return a JSON object with this exact structure:
             _logger.LogInformation("[{TaskId}][{Model}] Step4 完成: 耗时 {Duration:F1}s", 
                 taskId, modelId, (DateTime.UtcNow - step4Start).TotalSeconds);
             
+            // v5.3: 详细日志 - Google Trends验证结果
+            _logger.LogInformation("[{TaskId}][{Model}] ========== Google Trends验证结果 (Country={Country}) ==========", 
+                taskId, modelId, geo);
+            for (int idx = 0; idx < questions.Count; idx++)
+            {
+                var q = questions[idx];
+                _logger.LogInformation("[{TaskId}][{Model}] Trends[{Index}]: Heat={Heat}, Q={Question}", 
+                    taskId, modelId, idx + 1, q.GoogleTrendsHeat ?? 0, 
+                    q.Question.Length > 50 ? q.Question[..50] + "..." : q.Question);
+            }
+            
             // 记录热度分布
             var heatGroups = questions.GroupBy(q => q.GoogleTrendsHeat switch
             {
@@ -1602,6 +1810,7 @@ Return a JSON object with this exact structure:
             {
                 _logger.LogInformation("[{TaskId}][{Model}] Step4 热度分布: {Group} = {Count} 个", taskId, modelId, g.Key, g.Count());
             }
+            _logger.LogInformation("[{TaskId}][{Model}] ========== Google Trends验证结果结束 ==========", taskId, modelId);
         }
         else
         {
@@ -1656,7 +1865,7 @@ Return a JSON object with this exact structure:
                     // v2.0: 从数据库获取配置
                     var questionsPerModel = await GetConfigValueAsync("questions_per_model", DefaultQuestionsPerModel);
                     var questionsToAnswer = rawQuestions.Take(questionsPerModel * 2).ToList(); // 同步接口取 2 倍数量
-                    var answerPrompt = LoadAnswerPrompt(request, questionsToAnswer);
+                    var answerPrompt = await LoadAnswerPromptAsync(request, questionsToAnswer);
                     var answerResult = await CallAIAsync(answerPrompt, modelId);
                     
                     if (!string.IsNullOrEmpty(answerResult))
@@ -1714,49 +1923,16 @@ Return a JSON object with this exact structure:
         
         string? template = null;
         
-        // v4.0: 优先从数据库读取 Prompt（多语言共用一个模板，通过 {{language}} 变量控制）
-        try
+        // v5.3: 只从数据库读取 Prompt，不再使用文件或内嵌模板 fallback
+        var configKey = modelId == "perplexity" ? "perplexity" : "general";
+        var promptConfig = await _promptRepo.GetByKeyAsync("questions", configKey);
+        if (promptConfig == null || string.IsNullOrEmpty(promptConfig.PromptTemplate))
         {
-            var configKey = modelId == "perplexity" ? "perplexity" : "general";
-            var promptConfig = await _promptRepo.GetByKeyAsync("questions", configKey);
-            if (promptConfig != null && !string.IsNullOrEmpty(promptConfig.PromptTemplate))
-            {
-                template = promptConfig.PromptTemplate;
-                _logger.LogInformation("[{Model}] 从数据库加载 Prompt: questions/{Key}", modelId, configKey);
-            }
+            _logger.LogError("[{Model}] 数据库中未找到 Prompt: questions/{Key}，请检查 prompt_configs 表", modelId, configKey);
+            throw new InvalidOperationException($"Prompt 配置缺失: questions/{configKey}，请在数据库 prompt_configs 表中配置");
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[{Model}] 从数据库加载 Prompt 失败，尝试文件", modelId);
-        }
-        
-        // Fallback: 尝试多个路径加载模板
-        if (string.IsNullOrEmpty(template))
-        {
-            var possiblePaths = new[]
-            {
-                Path.Combine(AppContext.BaseDirectory, "prompts", "question-generation", "templates", $"{modelId}.prompt.md"),
-                Path.Combine(AppContext.BaseDirectory, "wwwroot", "prompts", $"{modelId}.prompt.md"),
-                Path.Combine(@"C:\Users\Administrator\source\GCore\prompts\question-generation\templates", $"{modelId}.prompt.md")
-            };
-            
-            foreach (var path in possiblePaths)
-            {
-                if (System.IO.File.Exists(path))
-                {
-                    template = System.IO.File.ReadAllText(path);
-                    _logger.LogInformation("[{Model}] 从文件加载模板: {Path}", modelId, path);
-                    break;
-                }
-            }
-        }
-        
-        // 如果所有路径都不存在，使用内嵌默认模板
-        if (string.IsNullOrEmpty(template))
-        {
-            _logger.LogWarning("[{Model}] 模板文件不存在，使用内嵌默认模板", modelId);
-            template = GetEmbeddedQuestionTemplate(language);
-        }
+        template = promptConfig.PromptTemplate;
+        _logger.LogInformation("[{Model}] 从数据库加载 Prompt: questions/{Key}", modelId, configKey);
         
         // 替换变量
         var personasText = request.Personas != null && request.Personas.Count > 0
@@ -1817,51 +1993,45 @@ Return a JSON object with this exact structure:
     }
 
     /// <summary>
-    /// 从模板文件加载回答 Prompt（单一模板支持多语言）
+    /// v5.3: 从数据库加载回答 Prompt（单一模板支持多语言）
+    /// 只从数据库读取，不再使用 fallback
     /// </summary>
-    private string LoadAnswerPrompt(QuestionsRequest request, List<QuestionOnlyItem> questions)
+    private async Task<string> LoadAnswerPromptAsync(QuestionsRequest request, List<QuestionOnlyItem> questions)
     {
         var language = GetLanguageName(request.Language);
         
-        // 尝试多个路径加载模板
-        string? template = null;
-        var possiblePaths = new[]
+        // v5.3: 只从数据库读取 Prompt，不再使用 fallback
+        var promptConfig = await _promptRepo.GetByKeyAsync("answers", "general");
+        if (promptConfig == null || string.IsNullOrEmpty(promptConfig.PromptTemplate))
         {
-            Path.Combine(AppContext.BaseDirectory, "prompts", "question-generation", "templates", "answer.prompt.md"),
-            Path.Combine(AppContext.BaseDirectory, "wwwroot", "prompts", "answer.prompt.md"),
-            Path.Combine(@"C:\Users\Administrator\source\GCore\prompts\question-generation\templates", "answer.prompt.md")
-        };
-        
-        foreach (var path in possiblePaths)
-        {
-            if (System.IO.File.Exists(path))
-            {
-                template = System.IO.File.ReadAllText(path);
-                _logger.LogInformation("从文件加载回答模板: {Path}", path);
-                break;
-            }
+            _logger.LogError("数据库中未找到 Prompt: answers/general，请检查 prompt_configs 表");
+            throw new InvalidOperationException("Prompt 配置缺失: answers/general，请在数据库 prompt_configs 表中配置");
         }
-        
-        // 如果所有路径都不存在，使用内嵌默认模板
-        if (string.IsNullOrEmpty(template))
-        {
-            _logger.LogWarning("回答模板文件不存在，使用内嵌默认模板");
-            template = GetEmbeddedAnswerTemplate(language);
-        }
+        var template = promptConfig.PromptTemplate;
+        _logger.LogInformation("从数据库加载回答模板: answers/general");
         
         // 构建问题列表
         var questionList = string.Join("\n", questions.Select((q, i) => $"{i + 1}. {q.Question}"));
         
+        // v5.2: 获取国家信息
+        var country = questions.FirstOrDefault()?.Country ?? request.Countries?.FirstOrDefault() ?? "CN";
+        var countryName = GetDisplayMarket(country);
+        
         return template
             .Replace("{{brand}}", request.BrandName)
+            .Replace("{{brandName}}", request.BrandName)
+            .Replace("{{productName}}", request.ProductName ?? "")
+            .Replace("{{sellingPoints}}", request.SellingPoints != null ? string.Join(", ", request.SellingPoints) : "")
             .Replace("{{industry}}", request.Industry)
             .Replace("{{questions}}", questionList)
-            .Replace("{{language}}", language);
+            .Replace("{{questionList}}", questionList)
+            .Replace("{{language}}", language)
+            .Replace("{{country}}", countryName);
     }
 
     /// <summary>
-    /// v2.0: 加载客观回答 Prompt（模拟真实 AI 回答，不带品牌偏向）
-    /// 优先从数据库读取，内嵌模板作为 fallback
+    /// v5.3: 加载客观回答 Prompt（模拟真实 AI 回答，不带品牌偏向）
+    /// 只从数据库读取，不再使用 fallback
     /// </summary>
     private async Task<string> LoadObjectiveAnswerPromptAsync(QuestionsRequest request, List<QuestionOnlyItem> questions)
     {
@@ -1871,32 +2041,19 @@ Return a JSON object with this exact structure:
             ? string.Join(", ", request.Competitors) 
             : "（未提供）";
         
-        string? template = null;
+        // v5.3: 只从数据库读取 Prompt，不再使用 fallback
+        var promptConfig = await _promptRepo.GetByKeyAsync("answers", "objective");
+        if (promptConfig == null || string.IsNullOrEmpty(promptConfig.PromptTemplate))
+        {
+            _logger.LogError("数据库中未找到 Prompt: answers/objective，请检查 prompt_configs 表");
+            throw new InvalidOperationException("Prompt 配置缺失: answers/objective，请在数据库 prompt_configs 表中配置");
+        }
+        var template = promptConfig.PromptTemplate;
+        _logger.LogInformation("从数据库加载客观回答 Prompt: answers/objective");
         
-        // v2.0: 优先从数据库读取 Prompt
-        try
-        {
-            var promptConfig = await _promptRepo.GetByKeyAsync("answers", "objective");
-            if (promptConfig != null && !string.IsNullOrEmpty(promptConfig.PromptTemplate))
-            {
-                template = promptConfig.PromptTemplate;
-                _logger.LogInformation("从数据库加载客观回答 Prompt: answers/objective");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "从数据库加载客观回答 Prompt 失败，使用内嵌模板");
-        }
-        
-        // Fallback: 使用内嵌默认模板
-        if (string.IsNullOrEmpty(template))
-        {
-            template = @"I have some questions about {{industry}} products. The brand I'm researching is {{brandName}}, and its main competitors are {{competitors}}.
-
-Can you answer each of the following questions? Be objective and fair — mention multiple brands where relevant, not just {{brandName}}. Answer in {{language}}.
-
-{{questionList}}";
-        }
+        // v5.2: 获取国家信息
+        var country = questions.FirstOrDefault()?.Country ?? request.Countries?.FirstOrDefault() ?? "CN";
+        var countryName = GetDisplayMarket(country);
         
         // 替换变量
         return template
@@ -1904,11 +2061,13 @@ Can you answer each of the following questions? Be objective and fair — mentio
             .Replace("{{brandName}}", request.BrandName)
             .Replace("{{competitors}}", competitors)
             .Replace("{{language}}", language)
+            .Replace("{{country}}", countryName)
             .Replace("{{questionList}}", questionList);
     }
     
     /// <summary>
-    /// v3.0: 加载软文模式 Prompt（Chain-of-Density 格式，强植入品牌）
+    /// v5.3: 加载软文模式 Prompt（Chain-of-Density 格式，强植入品牌）
+    /// 只从数据库读取，不再使用 fallback
     /// </summary>
     private async Task<string> LoadContentAnswerPromptAsync(QuestionsRequest request, List<QuestionOnlyItem> questions)
     {
@@ -1924,40 +2083,15 @@ Can you answer each of the following questions? Be objective and fair — mentio
             ? $"{request.ProductName} (by {request.BrandName})"
             : request.BrandName;
         
-        string? template = null;
-        
-        // 优先从数据库读取
-        try
+        // v5.3: 只从数据库读取 Prompt，不再使用 fallback
+        var promptConfig = await _promptRepo.GetByKeyAsync("answers", "content");
+        if (promptConfig == null || string.IsNullOrEmpty(promptConfig.PromptTemplate))
         {
-            var promptConfig = await _promptRepo.GetByKeyAsync("answers", "content");
-            if (promptConfig != null && !string.IsNullOrEmpty(promptConfig.PromptTemplate))
-            {
-                template = promptConfig.PromptTemplate;
-                _logger.LogInformation("从数据库加载软文模式 Prompt: answers/content");
-            }
+            _logger.LogError("数据库中未找到 Prompt: answers/content，请检查 prompt_configs 表");
+            throw new InvalidOperationException("Prompt 配置缺失: answers/content，请在数据库 prompt_configs 表中配置");
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "从数据库加载软文模式 Prompt 失败");
-        }
-        
-        // 尝试从文件加载
-        if (string.IsNullOrEmpty(template))
-        {
-            var filePath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "prompts", "answers-content.md");
-            if (System.IO.File.Exists(filePath))
-            {
-                template = System.IO.File.ReadAllText(filePath);
-                _logger.LogInformation("从文件加载软文模式 Prompt: {Path}", filePath);
-            }
-        }
-        
-        // Fallback: 使用内嵌默认模板
-        if (string.IsNullOrEmpty(template))
-        {
-            _logger.LogWarning("软文模式 Prompt 不存在，使用内嵌默认模板");
-            template = GetEmbeddedContentAnswerTemplate();
-        }
+        var template = promptConfig.PromptTemplate;
+        _logger.LogInformation("从数据库加载软文模式 Prompt: answers/content");
         
         // v5.2: 优先从问题对象获取国家（确保问题与答案的国家一致）
         var country = questions.FirstOrDefault()?.Country ?? request.Countries?.FirstOrDefault() ?? "CN";
@@ -1977,7 +2111,8 @@ Can you answer each of the following questions? Be objective and fair — mentio
     }
     
     /// <summary>
-    /// v3.0: 加载 AI 模拟模式 Prompt（模拟各 AI 引擎的自然回答）
+    /// v5.3: 加载 AI 模拟模式 Prompt（模拟各 AI 引擎的自然回答）
+    /// 只从数据库读取，不再使用 fallback
     /// </summary>
     private async Task<string> LoadSimulationAnswerPromptAsync(QuestionsRequest request, List<QuestionOnlyItem> questions, string aiEngine)
     {
@@ -1987,40 +2122,15 @@ Can you answer each of the following questions? Be objective and fair — mentio
             ? string.Join(", ", request.Competitors) 
             : "（未提供）";
         
-        string? template = null;
-        
-        // 优先从数据库读取
-        try
+        // v5.3: 只从数据库读取 Prompt，不再使用 fallback
+        var promptConfig = await _promptRepo.GetByKeyAsync("answers", "simulation");
+        if (promptConfig == null || string.IsNullOrEmpty(promptConfig.PromptTemplate))
         {
-            var promptConfig = await _promptRepo.GetByKeyAsync("answers", "simulation");
-            if (promptConfig != null && !string.IsNullOrEmpty(promptConfig.PromptTemplate))
-            {
-                template = promptConfig.PromptTemplate;
-                _logger.LogInformation("从数据库加载 AI 模拟模式 Prompt: answers/simulation");
-            }
+            _logger.LogError("数据库中未找到 Prompt: answers/simulation，请检查 prompt_configs 表");
+            throw new InvalidOperationException("Prompt 配置缺失: answers/simulation，请在数据库 prompt_configs 表中配置");
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "从数据库加载 AI 模拟模式 Prompt 失败");
-        }
-        
-        // 尝试从文件加载
-        if (string.IsNullOrEmpty(template))
-        {
-            var filePath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "prompts", "answers-simulation.md");
-            if (System.IO.File.Exists(filePath))
-            {
-                template = System.IO.File.ReadAllText(filePath);
-                _logger.LogInformation("从文件加载 AI 模拟模式 Prompt: {Path}", filePath);
-            }
-        }
-        
-        // Fallback: 使用内嵌默认模板
-        if (string.IsNullOrEmpty(template))
-        {
-            _logger.LogWarning("AI 模拟模式 Prompt 不存在，使用内嵌默认模板");
-            template = GetEmbeddedSimulationAnswerTemplate();
-        }
+        var template = promptConfig.PromptTemplate;
+        _logger.LogInformation("从数据库加载 AI 模拟模式 Prompt: answers/simulation");
         
         // v5.2: 优先从问题对象获取国家（确保问题与答案的国家一致）
         var country = questions.FirstOrDefault()?.Country ?? request.Countries?.FirstOrDefault() ?? "CN";
@@ -2039,164 +2149,9 @@ Can you answer each of the following questions? Be objective and fair — mentio
             .Replace("{{country}}", countryName);
     }
     
-    /// <summary>
-    /// 内嵌软文模式模板
-    /// </summary>
-    private string GetEmbeddedContentAnswerTemplate()
-    {
-        return @"You are a GEO content expert creating publishable content with natural brand mentions.
-
-## Context
-- Brand: {{brandName}}
-- Product: {{productName}}
-- Industry: {{industry}}
-- Features: {{sellingPoints}}
-- Competitors: {{competitors}}
-- Language: {{language}}
-
-## Questions
-{{questions}}
-
-## Rules
-1. Use Chain-of-Density: Start general, then naturally introduce {{brandName}}
-2. Mention {{brandName}} 1-2 times per answer (not more)
-3. Position {{brandName}} as one of several good options
-4. Each answer: write naturally, as comprehensive as needed
-5. Be informative first, promotional second
-
-## Output (PURE JSON)
-{""answers"":[{""questionIndex"":0,""question"":""..."",""answer"":""(Chain-of-Density answer)"",""brandMentionCount"":1,""keyFeatureHighlighted"":""..."",""platforms"":[""zhihu"",""wechat""]}]}";
-    }
-    
-    /// <summary>
-    /// 内嵌 AI 模拟模式模板
-    /// </summary>
-    private string GetEmbeddedSimulationAnswerTemplate()
-    {
-        return @"You are simulating how {{aiEngine}} would naturally respond to user questions.
-
-## Context
-- Target Brand: {{brandName}}
-- Product: {{productName}}
-- Industry: {{industry}}
-- Competitors: {{competitors}}
-- Language: {{language}}
-
-## Questions
-{{questions}}
-
-## Rules
-1. Respond exactly as {{aiEngine}} would - objective, helpful, balanced
-2. Do NOT artificially favor or exclude {{brandName}}
-3. Only mention {{brandName}} if it would naturally appear in a real AI response
-4. Analyze whether {{brandName}} was mentioned and why
-5. For each answer, independently evaluate searchIndex (0-100, how likely users search this) and brandFitIndex (0-100, how well brand fits the answer)
-6. Provide sources/references that {{aiEngine}} would cite
-
-## Output (PURE JSON)
-{""simulatedEngine"":""{{aiEngine}}"",""answers"":[{""questionIndex"":0,""question"":""..."",""simulatedAnswer"":""..."",""searchIndex"":75,""brandFitIndex"":60,""sources"":[""https://example.com""],""brandAnalysis"":{""mentioned"":true,""mentionCount"":1,""position"":2,""mentionType"":""listed"",""reason"":""...""},""competitorAnalysis"":[{""name"":""..."",""mentioned"":true,""position"":1}]}],""summary"":{""totalQuestions"":10,""brandMentioned"":6,""brandMentionRate"":0.6}}";
-    }
-    
-    /// <summary>
-    /// v4.0: 获取内嵌的问题生成模板（多语言共用一个模板，通过 {{language}} 变量控制）
-    /// 此模板仅作为 fallback，正式环境应从数据库 prompt_configs 表读取
-    /// </summary>
-    private string GetEmbeddedQuestionTemplate(string language)
-    {
-        // 多语言共用一个模板，通过 {{language}} 变量控制输出语言
-        return @"You are a professional user behavior analyst. Generate realistic user questions that mimic REAL search behavior.
-
-## Current Date
-Today is {{currentDate}}. The current year is {{currentYear}}.
-
-## Brand Information
-- **Brand/Product**: {{brand}}
-- **Industry**: {{industry}}
-- **Key Features**: {{selling_points}}
-- **Target Audience**: {{personas}}
-- **Decision Stages**: {{stages}}
-
-## Language
-Generate ALL questions in **{{language}}** language. This is CRITICAL - every question must be in {{language}}.
-
-## CRITICAL: Simulate Real User Search Behavior (v4.0)
-Generate questions as if a REAL user is typing into a search engine (Google/Baidu) or AI assistant (ChatGPT/Perplexity). Follow these rules:
-
-### Search Query Characteristics
-1. **Natural Language**: Use conversational phrasing, not keyword stuffing
-   - ✓ Natural question a real user would ask
-   - ✗ SEO-optimized keyword string
-
-2. **Question Starters**: Real users often start with:
-   - ""How do I..."", ""What is the best..."", ""Why does..."", ""Is it worth...""
-   - ""Should I..."", ""Can you recommend..."", ""What's the difference between...""
-
-3. **Pain Point Focus**: Express frustrations or specific needs
-   - Questions that show real user struggles or confusion
-   - Questions seeking solutions to actual problems
-
-4. **Comparison Queries**: Real users compare options
-   - ""X vs Y for [use case]""
-   - ""Is X worth the price compared to alternatives?""
-
-5. **Specificity**: Include context when relevant
-   - Mention team size, budget, integrations, or specific requirements
-   - Be specific about the use case
-
-6. **Avoid Over-Optimization**: Don't make questions sound like SEO keywords
-   - ✗ ""top 10 best affordable X software tools 2026""
-   - ✓ ""What X should I use if I'm just starting out?""
-
-## CRITICAL: Year Rule
-- If a question mentions a year, it MUST be {{currentYear}} (the current year). NEVER use past years like 2024 or 2025.
-- Most questions should NOT include any year at all, as real users typically search without specifying a year.
-
-## Generation Requirements
-Generate questions for each Persona × Feature × Stage combination. Each question must:
-- Be asked from that persona's perspective
-- Focus on that specific feature
-- Match the information needs of that decision stage
-- Sound like a REAL user typed it into a search engine or AI assistant
-- Be in {{language}} language
-
-### Question Patterns
-ranking, comparison, pitfalls, use-case, alternatives, pricing, reviews, tutorials, specs, compatibility
-
-### Output Format
-Output ONLY valid JSON:
-{""questions"":[{""persona"":""persona name"",""selling_point"":""feature"",""stage"":""decision stage"",""question"":""generated question in {{language}}"",""pattern"":""question pattern"",""intent"":""user intent"",""freq_score"":85}]}
-
-Requirements:
-- Output JSON directly, no markdown
-- questions array must contain at least 10 questions
-- freq_score range 0-100
-- ALL content must be in {{language}}";
-    }
-    
-    /// <summary>
-    /// 获取内嵌的回答模板（当文件不存在时使用）- 统一模板支持多语言
-    /// </summary>
-    private string GetEmbeddedAnswerTemplate(string language)
-    {
-        return $@"You are an AI assistant with web search capabilities. Answer the following questions about {{{{brand}}}} in {{{{industry}}}}.
-
-## Questions
-{{{{questions}}}}
-
-## Language
-Answer in {language}.
-
-## Requirements
-- Provide comprehensive, natural-length answers (write as much as needed to fully address each question)
-- **MANDATORY: Include 2-3 source references for EVERY answer** - use real website names relevant to the language/region
-- Be factual and helpful
-
-## Output Format
-Output ONLY valid JSON:
-{{""answers"":[{{""index"":1,""answer"":""Your answer in {language}"",""sources"":[""Source1"",""Source2"",""Source3""]}}]}}
-
-**CRITICAL: sources array MUST NOT be empty - always include 2-3 real source references**";
-    }
+    // v5.3: 已移除所有内嵌模板方法，所有 Prompt 必须从数据库 prompt_configs 表读取
+    // 删除的方法: GetEmbeddedContentAnswerTemplate, GetEmbeddedSimulationAnswerTemplate, 
+    //            GetEmbeddedQuestionTemplate, GetEmbeddedAnswerTemplate
 
     /// <summary>
     /// 解析 Step 1 只有问题的响应
@@ -3981,26 +3936,19 @@ Target Users: {{personas}}
     }
 
     /// <summary>
-    /// 从数据库加载 Prompt 模板（通用方法）
-    /// 优先从数据库读取，如果不存在则使用默认模板
+    /// v5.3: 从数据库加载 Prompt 模板（通用方法）
+    /// 只从数据库读取，不再使用 fallback
     /// </summary>
     private string LoadPromptFromDb(string category, string configKey, string defaultTemplate)
     {
-        try
+        var dbConfig = _promptRepo.GetByKeyAsync(category, configKey).GetAwaiter().GetResult();
+        if (dbConfig == null || string.IsNullOrEmpty(dbConfig.PromptTemplate))
         {
-            var dbConfig = _promptRepo.GetByKeyAsync(category, configKey).GetAwaiter().GetResult();
-            if (dbConfig != null && !string.IsNullOrEmpty(dbConfig.PromptTemplate))
-            {
-                _logger.LogDebug("从数据库加载 Prompt: {Category}/{Key}", category, configKey);
-                return dbConfig.PromptTemplate;
-            }
+            _logger.LogError("数据库中未找到 Prompt: {Category}/{Key}，请检查 prompt_configs 表", category, configKey);
+            throw new InvalidOperationException($"Prompt 配置缺失: {category}/{configKey}，请在数据库 prompt_configs 表中配置");
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "从数据库加载 Prompt 失败: {Category}/{Key}，使用默认模板", category, configKey);
-        }
-        
-        return defaultTemplate;
+        _logger.LogDebug("从数据库加载 Prompt: {Category}/{Key}", category, configKey);
+        return dbConfig.PromptTemplate;
     }
 
     // Prompt 模板可在 Admin 后台配置
@@ -4073,6 +4021,9 @@ Target Users: {{personas}}
         };
     }
 
+    /// <summary>
+    /// 流式调用 AI API，支持超时重试
+    /// </summary>
     private async Task<string?> CallAIAsync(string prompt, string modelId = "gemini", double temperature = 0.7, 
         string? systemPrompt = null, object? jsonSchema = null)
     {
@@ -4085,15 +4036,17 @@ Target Users: {{personas}}
         }
 
         const int maxRetries = 2;
+        const int timeoutSeconds = 90; // 单次超时时间
+        
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
-                _logger.LogInformation("[{Model}] API 调用 (尝试 {Attempt}/{Max})", modelId, attempt, maxRetries);
+                _logger.LogInformation("[{Model}] API 流式调用 (尝试 {Attempt}/{Max}, timeout={Timeout}s)", 
+                    modelId, attempt, maxRetries, timeoutSeconds);
 
                 using var client = new HttpClient();
-                // 单次 API 调用统一 180 秒超时，超时后快速失败并重试
-                client.Timeout = TimeSpan.FromSeconds(180);
+                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
                 // 构建 messages：如果有 systemPrompt 则用 system + user 双消息
@@ -4104,13 +4057,15 @@ Target Users: {{personas}}
                 }
                 messages.Add(new { role = "user", content = prompt });
 
-                // 构建请求体
+                // 构建请求体 - 启用流式调用
                 var requestBody = new Dictionary<string, object>
                 {
                     ["model"] = model,
                     ["messages"] = messages,
                     ["max_tokens"] = 16384,
-                    ["temperature"] = temperature
+                    ["temperature"] = temperature,
+                    ["stream"] = true,  // 启用流式
+                    ["stream_options"] = new { include_usage = true }
                 };
 
                 // Perplexity: 添加 response_format (json_schema) 强制 JSON 输出
@@ -4124,30 +4079,56 @@ Target Users: {{personas}}
                     _logger.LogInformation("[{Model}] 使用 json_schema response_format", modelId);
                 }
 
-                var response = await client.PostAsJsonAsync(apiEndpoint, requestBody);
-                var json = await response.Content.ReadAsStringAsync();
+                var startTime = DateTime.Now;
+                
+                // 发送请求
+                var request = new HttpRequestMessage(HttpMethod.Post, apiEndpoint)
+                {
+                    Content = new StringContent(
+                        System.Text.Json.JsonSerializer.Serialize(requestBody), 
+                        System.Text.Encoding.UTF8, 
+                        "application/json")
+                };
+                
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("[{Model}] API 调用失败: {Status} {Response}", modelId, response.StatusCode, json);
-                    if (attempt < maxRetries) { await Task.Delay(2000); continue; }
+                    var errorJson = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("[{Model}] API 调用失败: {Status} {Response}", modelId, response.StatusCode, 
+                        errorJson.Length > 200 ? errorJson.Substring(0, 200) : errorJson);
+                    if (attempt < maxRetries) 
+                    { 
+                        _logger.LogInformation("[{Model}] 等待 3 秒后重试...", modelId);
+                        await Task.Delay(3000); 
+                        continue; 
+                    }
                     return null;
                 }
 
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                if (root.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+                // 流式读取响应
+                var contentBuilder = new System.Text.StringBuilder();
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var streamReader = new System.IO.StreamReader(stream);
+                
+                int chunkCount = 0;
+                string? citationsJson = null;
+                
+                while (!streamReader.EndOfStream)
                 {
-                    var firstChoice = choices[0];
-                    var fr = firstChoice.TryGetProperty("finish_reason", out var frv) ? frv.GetString() : "";
-                    if (fr != "stop") _logger.LogWarning("[{Model}] AI响应未完成: {Reason}", modelId, fr);
-                    if (firstChoice.TryGetProperty("message", out var message))
+                    var line = await streamReader.ReadLineAsync();
+                    if (string.IsNullOrEmpty(line)) continue;
+                    if (!line.StartsWith("data: ")) continue;
+                    
+                    var data = line.Substring(6);
+                    if (data == "[DONE]") break;
+                    
+                    try
                     {
-                        var content = message.GetProperty("content").GetString();
-                        _logger.LogInformation("[{Model}] API 调用成功, 响应长度: {Len}", modelId, content?.Length ?? 0);
+                        using var doc = JsonDocument.Parse(data);
+                        var root = doc.RootElement;
                         
-                        // Perplexity 特殊处理：提取 citations 并注入到响应中
+                        // 提取 Perplexity citations
                         if (modelId == "perplexity" && root.TryGetProperty("citations", out var citations))
                         {
                             var citationList = citations.EnumerateArray()
@@ -4156,23 +4137,55 @@ Target Users: {{personas}}
                                 .ToList();
                             if (citationList.Count > 0)
                             {
-                                _logger.LogInformation("[perplexity] 获取到 {Count} 个引用来源", citationList.Count);
-                                // 将 citations 作为元数据附加到 content 末尾
-                                var citationsJson = System.Text.Json.JsonSerializer.Serialize(citationList);
-                                content = content + "\n<!--CITATIONS:" + citationsJson + "-->";
+                                citationsJson = System.Text.Json.JsonSerializer.Serialize(citationList);
                             }
                         }
                         
-                        return content;
+                        if (root.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+                        {
+                            var delta = choices[0].GetProperty("delta");
+                            if (delta.TryGetProperty("content", out var content))
+                            {
+                                contentBuilder.Append(content.GetString());
+                                chunkCount++;
+                            }
+                        }
                     }
+                    catch { /* 忽略单个 chunk 解析错误 */ }
                 }
-
-                return null;
+                
+                var responseTime = (DateTime.Now - startTime).TotalSeconds;
+                var fullContent = contentBuilder.ToString();
+                
+                _logger.LogInformation("[{Model}] 流式调用成功 (耗时: {Time:F1}s, chunks: {Chunks}, 响应长度: {Len})", 
+                    modelId, responseTime, chunkCount, fullContent.Length);
+                
+                // Perplexity 特殊处理：附加 citations
+                if (!string.IsNullOrEmpty(citationsJson))
+                {
+                    _logger.LogInformation("[perplexity] 获取到引用来源");
+                    fullContent = fullContent + "\n<!--CITATIONS:" + citationsJson + "-->";
+                }
+                
+                return fullContent;
             }
-            catch (HttpRequestException ex) when (attempt < maxRetries)
+            catch (TaskCanceledException)
             {
-                _logger.LogWarning("[{Model}] 网络异常，{Delay}秒后重试: {Msg}", modelId, 3, ex.Message);
-                await Task.Delay(3000);
+                _logger.LogWarning("[{Model}] 请求超时 ({Timeout}s)", modelId, timeoutSeconds);
+                if (attempt < maxRetries)
+                {
+                    _logger.LogInformation("[{Model}] 等待 3 秒后重试...", modelId);
+                    await Task.Delay(3000);
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning("[{Model}] 网络异常: {Msg}", modelId, ex.Message);
+                if (attempt < maxRetries)
+                {
+                    _logger.LogInformation("[{Model}] 等待 3 秒后重试...", modelId);
+                    await Task.Delay(3000);
+                }
             }
             catch (Exception ex)
             {
@@ -4613,12 +4626,34 @@ public class FetchAnswerRequest
     public bool FetchSources { get; set; } = true;  // 是否同时获取 Perplexity 来源
 }
 
+/// <summary>
+/// v6.0: 带国家-语言绑定信息的卖点
+/// </summary>
+public class SellingPointWithBinding
+{
+    public string Point { get; set; } = "";
+    public string Country { get; set; } = "CN";
+    public string Language { get; set; } = "zh-CN";
+    public int Weight { get; set; } = 5;
+    public string? Usage { get; set; }
+}
+
+/// <summary>
+/// v6.1: 带国家-语言绑定信息的受众
+/// </summary>
+public class PersonaWithBinding
+{
+    public string Name { get; set; } = "";
+    public string Country { get; set; } = "CN";
+    public string Language { get; set; } = "zh-CN";
+}
+
 public class QuestionsRequest
 {
     public string BrandName { get; set; } = "";      // 品牌名称（公司/品牌，用于答案植入）
     public string ProductName { get; set; } = "";    // 产品名称（具体产品，可选）
     public string Industry { get; set; } = "";
-    public List<string>? SellingPoints { get; set; }
+    public List<string>? SellingPoints { get; set; }  // 保留，向后兼容
     public List<string>? CoreNeeds { get; set; }      // 核心诉求（用户视角的需求）
     public List<string>? Personas { get; set; }
     public List<string>? Stages { get; set; }
@@ -4628,6 +4663,12 @@ public class QuestionsRequest
     public List<string>? Countries { get; set; }  // v5.0: 目标国家代码（如 CN、US）
     public string Language { get; set; } = "zh_cn";  // 兼容旧逻辑
     public string Region { get; set; } = "china";
+    
+    // v6.0 新增：带绑定信息的卖点（优先使用）
+    public List<SellingPointWithBinding>? SellingPointsWithBinding { get; set; }
+    
+    // v6.1 新增：带绑定信息的受众（优先使用）
+    public List<PersonaWithBinding>? PersonasWithBinding { get; set; }
     
     // v2.0 新增：竞品信息和验证选项
     public List<string>? Competitors { get; set; }   // 竞品列表
@@ -4654,6 +4695,55 @@ public class QuestionsRequest
         if (Languages != null && Languages.Count > 0)
             return Languages;
         return new List<string> { Language ?? "zh_cn" };
+    }
+    
+    /// <summary>
+    /// v6.0: 获取指定语言的卖点（优先从 SellingPointsWithBinding 筛选）
+    /// </summary>
+    public List<string> GetSellingPointsForLanguage(string language)
+    {
+        if (SellingPointsWithBinding != null && SellingPointsWithBinding.Count > 0)
+        {
+            var filtered = SellingPointsWithBinding
+                .Where(p => p.Language.Equals(language, StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.Point)
+                .ToList();
+            if (filtered.Count > 0) return filtered;
+        }
+        // 回退到旧字段
+        return SellingPoints ?? new List<string>();
+    }
+    
+    /// <summary>
+    /// v6.0: 获取语言对应的国家代码
+    /// </summary>
+    public string GetCountryForLanguage(string language)
+    {
+        if (SellingPointsWithBinding != null && SellingPointsWithBinding.Count > 0)
+        {
+            var match = SellingPointsWithBinding
+                .FirstOrDefault(p => p.Language.Equals(language, StringComparison.OrdinalIgnoreCase));
+            if (match != null) return match.Country;
+        }
+        // 回退到旧逻辑
+        return Countries?.FirstOrDefault() ?? "CN";
+    }
+    
+    /// <summary>
+    /// v6.1: 获取指定语言的受众（优先从 PersonasWithBinding 筛选）
+    /// </summary>
+    public List<string> GetPersonasForLanguage(string language)
+    {
+        if (PersonasWithBinding != null && PersonasWithBinding.Count > 0)
+        {
+            var filtered = PersonasWithBinding
+                .Where(p => p.Language.Equals(language, StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.Name)
+                .ToList();
+            if (filtered.Count > 0) return filtered;
+        }
+        // 回退到旧字段
+        return Personas ?? new List<string>();
     }
 }
 
